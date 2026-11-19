@@ -255,7 +255,8 @@ select.inp{appearance:none}
 .top{position:relative;z-index:2;flex:none;height:72px;padding:0 24px;display:flex;align-items:center;gap:24px;background:var(--bar);border-bottom:1px solid var(--rule)}
 .top .logo .w{display:flex;align-items:baseline;gap:6px}
 .shell>.top .sep{width:1px;height:36px;background:var(--rule)}
-.nav{display:flex;gap:4px;position:relative;top:2px}
+.nav{display:flex;gap:4px}
+.nav button>*{position:relative;top:2px}
 .nav button{position:relative;width:68px;height:56px;border:0;border-radius:3px;background:var(--faint);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap}
 .nav button:hover{background:var(--selBg)}
 .nav button[aria-current=page]{background:var(--navy);color:var(--onNavy)}
@@ -628,7 +629,7 @@ function serverBackend() {
     try { r = await fetch(path, { method: method || (body ? 'POST' : 'GET'), headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); }
     catch { throw { code: 'network' }; }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw { code: j.error || 'server' };
+    if (!r.ok) throw { code: j.error || 'http-' + r.status };
     return j;
   }
   async function loadMe() {
@@ -744,9 +745,14 @@ const AUTH_MSG = {
   'photo/big': '이미지가 너무 큽니다. 다른 사진을 고르십시오.',
   'agent/bad-photo': '사진 형식이 올바르지 않습니다.',
   'network': '서버에 연결할 수 없습니다. 잠시 후 다시 시도하십시오.',
+  'http-413': '서버가 사진 크기를 받아들이지 않습니다. 서버 파일(server.js)이 최신 버전인지 확인하십시오.',
+  'http-404': '서버에 이 기능이 없습니다. 서버 파일(server.js)이 최신 버전인지 확인하십시오.',
+  'server': '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도하십시오.',
+  'too-large': '사진 용량이 너무 큽니다. 다른 사진을 고르십시오.',
+  'not-found': '서버에 이 기능이 없습니다. 서버 파일(server.js)이 최신 버전인지 확인하십시오.',
   'number-taken': '이미 사용 중인 넘버입니다. 넘버를 다시 부여하십시오.'
 };
-const errMsg = e => AUTH_MSG[e && e.code] || ('오류가 발생했습니다. ' + (e && (e.code || e.message) || ''));
+const errMsg = e => AUTH_MSG[e && e.code] || (/^http-5/.test(e && e.code) ? AUTH_MSG.server : '오류가 발생했습니다. (' + (e && (e.code || e.message) || '알 수 없음') + ')');
 
 /* ═════════════ 6. 화면: 로그인 ═════════════ */
 function viewLogin() {

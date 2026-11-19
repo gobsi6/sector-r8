@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS chat (
 CREATE INDEX IF NOT EXISTS chat_ts ON chat(channel, ts);
 `);
 
+// 외관 사진 칸이 없던 예전 데이터베이스에 칸을 더한다
+if (!db.prepare("SELECT 1 FROM pragma_table_info('agents') WHERE name = 'photo'").get()) db.exec('ALTER TABLE agents ADD COLUMN photo TEXT');
 // 예전 버전(이메일 가입)으로 만든 데이터베이스면 칸 이름만 바꾼다
 if (db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'email'").get()) db.exec('ALTER TABLE users RENAME COLUMN email TO login');
 
@@ -74,8 +76,9 @@ const Q = {
   agent: db.prepare('SELECT * FROM agents WHERE user_id = ?'),
   agentByNum: db.prepare('SELECT user_id FROM agents WHERE num = ?'),
   agents: db.prepare('SELECT * FROM agents ORDER BY num'),
-  addAgent: db.prepare(`INSERT INTO agents (user_id, num, name, role, head, age, stats, trait, skills, contamination, res, created, last_seen)
-    VALUES (@user_id, @num, @name, @role, @head, @age, @stats, @trait, @skills, 0, @res, @created, @created)`),
+  addAgent: db.prepare(`INSERT INTO agents (user_id, num, name, role, head, photo, age, stats, trait, skills, contamination, res, created, last_seen)
+    VALUES (@user_id, @num, @name, @role, @head, @photo, @age, @stats, @trait, @skills, 0, @res, @created, @created)`),
+  setPhoto: db.prepare('UPDATE agents SET photo = ? WHERE user_id = ?'),
   seen: db.prepare('UPDATE agents SET last_seen = ? WHERE user_id = ?'),
   sealed: db.prepare('SELECT data FROM sealed WHERE user_id = ?'),
   addSealed: db.prepare('INSERT INTO sealed (user_id, data) VALUES (?, ?)'),
@@ -92,13 +95,16 @@ const CHANNELS = ['all', 'field', 'ctrl'];
 /* ───────── 도우미 ───────── */
 const now = () => Date.now();
 const isInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+// 외관 사진: 브라우저에서 224×272로 줄인 data URL만 받는다
+const PHOTO_RE = /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/;
+const photoOf = v => v == null || v === '' ? null : (typeof v === 'string' && v.length <= 300000 && PHOTO_RE.test(v) ? v : undefined);
 const str = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
 const online = new Map(); // user_id → 연결 수
 
 function publicAgent(row) {
   if (!row) return null;
   return {
-    uid: String(row.user_id), num: row.num, name: row.name, role: row.role, head: row.head, age: row.age,
+    uid: String(row.user_id), num: row.num, name: row.name, role: row.role, head: row.head, photo: row.photo || null, age: row.age,
     stats: JSON.parse(row.stats), trait: row.trait, skills: JSON.parse(row.skills), contamination: row.contamination,
     res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
@@ -119,7 +125,7 @@ function throttled(ip) {
 /* ───────── HTTP ───────── */
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json({ limit: '400kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const fail = (res, code, status = 400) => res.status(status).json({ error: code });
@@ -170,6 +176,8 @@ app.post('/api/agent', need, (req, res) => {
   const num = str(b.num, 8), name = str(b.name, 12);
   if (!/^R8-\d{3}$/.test(num)) return fail(res, 'agent/bad-number');
   if (!name) return fail(res, 'agent/bad-name');
+  const photo = photoOf(b.photo);
+  if (photo === undefined) return fail(res, 'agent/bad-photo');
   if (!isInt(b.role, 0, 1) || !isInt(b.head, 0, 3) || !isInt(b.age, 18, 70) || !isInt(b.trait, 2, 12)) return fail(res, 'agent/bad-field');
   const stats = b.stats;
   if (!Array.isArray(stats) || stats.length !== 6 || !stats.every(v => isInt(v, 2, 7))) return fail(res, 'agent/bad-stats');
@@ -193,7 +201,7 @@ app.post('/api/agent', need, (req, res) => {
   try {
     transaction(() => {
       if (Q.agentByNum.get(num)) throw Object.assign(new Error(), { code: 'number-taken' });
-      Q.addAgent.run({ user_id: uid, num, name, role: b.role, head: b.head, age: b.age, stats: JSON.stringify(stats), trait: b.trait, skills: JSON.stringify(skills), res: JSON.stringify(START_RES), created: now() });
+      Q.addAgent.run({ user_id: uid, num, name, role: b.role, head: b.head, photo, age: b.age, stats: JSON.stringify(stats), trait: b.trait, skills: JSON.stringify(skills), res: JSON.stringify(START_RES), created: now() });
       Q.addSealed.run(uid, JSON.stringify(sealed));
     });
   } catch (e) {
@@ -203,6 +211,25 @@ app.post('/api/agent', need, (req, res) => {
   const agent = publicAgent(Q.agent.get(uid));
   io.emit('agent', agent);
   res.json({ agent, sealed });
+});
+
+// 외관 사진 바꾸기 / 지우기
+app.post('/api/agent/photo', need, (req, res) => {
+  if (!Q.agent.get(req.user.id)) return fail(res, 'agent/none');
+  const photo = photoOf(req.body && req.body.photo);
+  if (photo === undefined) return fail(res, 'agent/bad-photo');
+  Q.setPhoto.run(photo, req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id));
+  io.emit('agent', agent);
+  res.json({ agent });
+});
+
+// 알 수 없는 API 주소와 요청 오류도 JSON으로 답한다
+app.use('/api', (req, res) => fail(res, 'not-found', 404));
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') return fail(res, 'too-large', 413);
+  if (err && err.type === 'entity.parse.failed') return fail(res, 'bad-json', 400);
+  console.error(err); fail(res, 'server', 500);
 });
 
 /* ───────── 실시간 (Socket.io) ───────── */
