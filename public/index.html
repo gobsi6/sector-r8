@@ -472,8 +472,8 @@ function serverBackend() {
   return {
     demo: false,
     onAuth(cb) { authCb = cb; (token ? loadMe() : Promise.resolve(null)).then(cb, () => cb(null)); },
-    signIn: (email, pw) => api('/api/login', { email, pw }).then(done),
-    signUp: (email, pw) => api('/api/signup', { email, pw }).then(done),
+    signIn: (login, pw) => api('/api/login', { login, pw }).then(done),
+    signUp: (login, pw) => api('/api/signup', { login, pw }).then(done),
     async signOut() { try { await api('/api/logout', {}); } catch {} saveToken(null); if (socket) { socket.disconnect(); socket = null; } connecting = null; agents.clear(); chat = []; me = null; authCb(null); },
     async getAgent() { if (!me) await loadMe(); return me && me.agent; },
     async getPrivate() { if (!me || !me.sealed) await loadMe(); return me && me.sealed; },
@@ -505,9 +505,8 @@ function demoBackend() {
   return {
     demo: true,
     onAuth(cb) { subs.auth.push(cb); setTimeout(() => cb(get('user')), 0); },
-    async signIn(e) { if (!e) throw { code: 'auth/invalid-email' }; const u = { uid: 'me-' + e.replace(/[^a-z0-9]/gi, ''), email: e }; put('user', u); fire('auth', u); },
+    async signIn(e) { if (!e) throw { code: 'auth/missing-login' }; const u = { uid: 'me-' + e.replace(/[^a-z0-9]/gi, ''), login: e }; put('user', u); fire('auth', u); },
     async signUp(e, p) { return this.signIn(e, p); },
-    async signInGoogle() { return this.signIn('demo@r8.local'); },
     async signOut() { localStorage.removeItem(K + 'user'); fire('auth', null); },
     async getAgent(uid) { return (get('agents') || {})[uid] || null; },
     async getPrivate(uid) { return (get('private') || {})[uid] || null; },
@@ -540,15 +539,13 @@ const setTheme = t => { S.theme = t; document.documentElement.dataset.theme = t;
 setTheme(S.theme);
 
 const AUTH_MSG = {
-  'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+  'auth/invalid-login': '아이디는 영문, 숫자, 밑줄(_)로 4~20자여야 합니다.',
+  'auth/missing-login': '아이디를 입력하십시오.',
+  'auth/login-taken': '이미 사용 중인 아이디입니다. 다른 아이디를 입력하십시오.',
   'auth/missing-password': '비밀번호를 입력하십시오.',
   'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
-  'auth/email-already-in-use': '이미 등록된 이메일입니다. 출입 인증으로 진행하십시오.',
-  'auth/invalid-credential': '이메일 또는 비밀번호가 일치하지 않습니다.',
-  'auth/wrong-password': '이메일 또는 비밀번호가 일치하지 않습니다.',
-  'auth/user-not-found': '등록되지 않은 이메일입니다. 재생 절차를 먼저 진행하십시오.',
+  'auth/invalid-credential': '아이디 또는 비밀번호가 일치하지 않습니다.',
   'auth/too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도하십시오.',
-  'auth/popup-closed-by-user': '인증 창이 닫혔습니다.',
   'auth/required': '인증이 만료되었습니다. 다시 출입 인증하십시오.',
   'agent/exists': '이미 출입증이 발급된 계정입니다.',
   'agent/bad-number': '넘버 형식이 올바르지 않습니다.',
@@ -583,9 +580,9 @@ function viewLogin() {
   </section>
   <section class="side" aria-label="${up ? '요원 등록' : '출입 인증'}">
     <form data-form="login" novalidate>
-      <div class="ttl"><span class="bb" style="font-size:18px;letter-spacing:.16em;color:var(--navyLine)">${up ? 'REGISTER' : 'ACCESS'}</span><b>${up ? '단말 계정 등록' : '출입 인증'}</b><span class="sub" style="font-size:14px">${up ? '재생 절차를 시작하기 전에 단말 계정을 등록하십시오.' : '등록된 이메일로 인증하십시오.'}</span></div>
-      ${B.demo ? `<div class="demo"><b>데모 모드</b> — 파일로 열어 이 브라우저 안에서만 동작합니다. 아무 이메일이나 입력하면 진입합니다.</div>` : ''}
-      <label class="lab"><span>이메일</span><input class="inp" type="email" name="email" autocomplete="email" placeholder="agent@example.com" required></label>
+      <div class="ttl"><span class="bb" style="font-size:18px;letter-spacing:.16em;color:var(--navyLine)">${up ? 'REGISTER' : 'ACCESS'}</span><b>${up ? '단말 계정 등록' : '출입 인증'}</b><span class="sub" style="font-size:14px">${up ? '재생 절차를 시작하기 전에 단말 계정을 등록하십시오.' : '아이디와 비밀번호로 인증하십시오.'}</span></div>
+      ${B.demo ? `<div class="demo"><b>데모 모드</b> — 파일로 열어 이 브라우저 안에서만 동작합니다. 아무 아이디나 입력하면 진입합니다.</div>` : ''}
+      <label class="lab"><span>아이디</span><input class="inp" type="text" name="login" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="20" placeholder="${up ? '영문, 숫자, 밑줄(_) 4~20자' : '아이디'}" required></label>
       <label class="lab"><span>비밀번호</span><input class="inp" type="password" name="pw" autocomplete="${up ? 'new-password' : 'current-password'}" placeholder="${up ? '6자 이상' : '비밀번호'}" required></label>
       <p class="err" role="alert">${esc(S.err)}</p>
       <button class="btn lg" type="submit" ${S.busy ? 'disabled' : ''}>${up ? '계정 등록' : '출입 인증'}</button>
@@ -903,10 +900,10 @@ app.addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.target, kind = f.dataset.form;
   if (kind === 'login') {
-    const email = f.email.value.trim(), pw = f.pw.value;
+    const login = f.login.value.trim(), pw = f.pw.value;
     S.busy = true; S.err = ''; render();
-    try { await (S.loginMode === 'up' ? B.signUp(email, pw) : B.signIn(email, pw)); }
-    catch (err) { S.busy = false; S.err = errMsg(err); render(); const el = app.querySelector('[name=email]'); if (el) el.value = email; }
+    try { await (S.loginMode === 'up' ? B.signUp(login, pw) : B.signIn(login, pw)); }
+    catch (err) { S.busy = false; S.err = errMsg(err); render(); const el = app.querySelector('[name=login]'); if (el) el.value = login; }
   }
   if (kind === 'chat') {
     const inp = f.text, text = inp.value.trim(); if (!text) return;

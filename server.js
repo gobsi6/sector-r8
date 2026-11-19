@@ -21,7 +21,7 @@ const transaction = fn => { db.exec('BEGIN IMMEDIATE'); try { const r = fn(); db
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  login TEXT NOT NULL UNIQUE COLLATE NOCASE,
   pw TEXT NOT NULL,
   created INTEGER NOT NULL
 );
@@ -62,11 +62,14 @@ CREATE TABLE IF NOT EXISTS chat (
 CREATE INDEX IF NOT EXISTS chat_ts ON chat(channel, ts);
 `);
 
+// 예전 버전(이메일 가입)으로 만든 데이터베이스면 칸 이름만 바꾼다
+if (db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'email'").get()) db.exec('ALTER TABLE users RENAME COLUMN email TO login');
+
 const Q = {
-  userByEmail: db.prepare('SELECT * FROM users WHERE email = ?'),
-  addUser: db.prepare('INSERT INTO users (email, pw, created) VALUES (?, ?, ?)'),
+  userByLogin: db.prepare('SELECT * FROM users WHERE login = ?'),
+  addUser: db.prepare('INSERT INTO users (login, pw, created) VALUES (?, ?, ?)'),
   addSession: db.prepare('INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)'),
-  session: db.prepare('SELECT users.id, users.email FROM sessions JOIN users ON users.id = sessions.user_id WHERE token = ?'),
+  session: db.prepare('SELECT users.id, users.login FROM sessions JOIN users ON users.id = sessions.user_id WHERE token = ?'),
   dropSession: db.prepare('DELETE FROM sessions WHERE token = ?'),
   agent: db.prepare('SELECT * FROM agents WHERE user_id = ?'),
   agentByNum: db.prepare('SELECT user_id FROM agents WHERE num = ?'),
@@ -130,22 +133,22 @@ app.get('/healthz', (req, res) => res.send('ok'));
 
 app.post('/api/signup', (req, res) => {
   if (throttled(req.ip)) return fail(res, 'auth/too-many-requests', 429);
-  const email = str(req.body.email, 120).toLowerCase(), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(res, 'auth/invalid-email');
+  const login = str(req.body.login, 40), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
+  if (!/^[A-Za-z0-9_]{4,20}$/.test(login)) return fail(res, 'auth/invalid-login');
   if (pw.length < 6) return fail(res, 'auth/weak-password');
-  if (Q.userByEmail.get(email)) return fail(res, 'auth/email-already-in-use');
-  const info = Q.addUser.run(email, bcrypt.hashSync(pw, 10), now());
-  res.json({ token: newToken(info.lastInsertRowid), user: { uid: String(info.lastInsertRowid), email } });
+  if (Q.userByLogin.get(login)) return fail(res, 'auth/login-taken');
+  const info = Q.addUser.run(login, bcrypt.hashSync(pw, 10), now());
+  res.json({ token: newToken(info.lastInsertRowid), user: { uid: String(info.lastInsertRowid), login } });
 });
 
 app.post('/api/login', (req, res) => {
   if (throttled(req.ip)) return fail(res, 'auth/too-many-requests', 429);
-  const email = str(req.body.email, 120).toLowerCase(), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
-  if (!email) return fail(res, 'auth/invalid-email');
+  const login = str(req.body.login, 40), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
+  if (!login) return fail(res, 'auth/missing-login');
   if (!pw) return fail(res, 'auth/missing-password');
-  const u = Q.userByEmail.get(email);
+  const u = Q.userByLogin.get(login);
   if (!u || !bcrypt.compareSync(pw, u.pw)) return fail(res, 'auth/invalid-credential');
-  res.json({ token: newToken(u.id), user: { uid: String(u.id), email: u.email } });
+  res.json({ token: newToken(u.id), user: { uid: String(u.id), login: u.login } });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -155,7 +158,7 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/me', need, (req, res) => {
   const s = Q.sealed.get(req.user.id);
-  res.json({ user: { uid: String(req.user.id), email: req.user.email }, agent: publicAgent(Q.agent.get(req.user.id)), sealed: s ? JSON.parse(s.data) : null });
+  res.json({ user: { uid: String(req.user.id), login: req.user.login }, agent: publicAgent(Q.agent.get(req.user.id)), sealed: s ? JSON.parse(s.data) : null });
 });
 
 app.get('/api/number/:num', need, (req, res) => res.json({ free: !Q.agentByNum.get(req.params.num) }));
