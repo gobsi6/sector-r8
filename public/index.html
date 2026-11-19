@@ -1059,10 +1059,21 @@ function msgHTML(m, me, first) {
 }
 
 /* ═════════════ 9. 그리기 ═════════════ */
-let playT, lastPhase = null;
+let playT, lastPhase = null, animUntil = 0, refreshT = null;
 function play(cls) {
   app.classList.remove('in', 'in-view', 'in-step'); void app.offsetWidth;
   app.classList.add(cls); clearTimeout(playT); playT = setTimeout(() => app.classList.remove(cls), 1400);
+  animUntil = Date.now() + 1450;
+}
+// 같은 내용이면 다시 그리지 않는다(등장 애니메이션이 두 번 재생되는 것 방지)
+function setHTML(id, html) { const el = document.getElementById(id); if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }
+// 실시간 데이터로 인한 갱신은 등장 애니메이션이 끝난 뒤에 반영한다
+function refreshLobby() {
+  if (S.phase !== 'lobby') return;
+  const wait = animUntil - Date.now();
+  if (wait > 0) { if (!refreshT) refreshT = setTimeout(() => { refreshT = null; refreshLobby(); }, wait + 30); return; }
+  setHTML('center', viewCenter()); setHTML('colL', viewLeft());
+  const o = app.querySelector('[data-bind=online]'); if (o) o.textContent = S.agents.filter(isOnline).length;
 }
 function render() {
   if (S.phase !== lastPhase) { lastPhase = S.phase; if (S.phase !== 'boot' && S.phase !== 'issued') play('in'); }
@@ -1070,9 +1081,9 @@ function render() {
   else if (S.phase === 'login') app.innerHTML = viewLogin();
   else if (S.phase === 'create') app.innerHTML = viewCreate();
   else if (S.phase === 'issued') { app.innerHTML = viewIssued(); setTimeout(() => app.querySelector('[data-act=enter]')?.focus({ preventScroll: true }), calm() ? 0 : 2700); }
-  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); scrollChat(); }
+  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
-function renderCenter() { const el = document.getElementById('center'); if (el) el.innerHTML = viewCenter(); const l = document.getElementById('colL'); if (l && S.view === 'agents') l.innerHTML = viewLeft(); }
+function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); }
 function renderChatList() {
   const el = document.getElementById('chatList'); if (!el) return;
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
@@ -1095,11 +1106,16 @@ async function onUser(u) {
   enterLobby();
 }
 function enterLobby() {
-  S.phase = 'lobby'; S.view = 'home'; S.unread = 0; render(); window.scrollTo(0, 0);
+  S.view = 'home'; S.unread = 0;
+  // 요원 목록이 처음 도착하면(또는 잠시 뒤) 한 번에 그린다
+  let shown = false;
+  const show = () => { if (shown) return; shown = true; S.phase = 'lobby'; render(); window.scrollTo(0, 0); };
+  setTimeout(show, 700);
   let seen = -1;
   unsub.push(B.watchAgents(list => {
     S.agents = list; const mine = list.find(a => a.uid === S.user.uid); if (mine) S.me = mine;
-    if (S.phase === 'lobby') { renderCenter(); const l = document.getElementById('colL'); if (l) l.innerHTML = viewLeft(); const o = app.querySelector('[data-bind=online]'); if (o) o.textContent = list.filter(isOnline).length; }
+    if (!shown) return show();
+    refreshLobby();
   }));
   unsub.push(B.watchChat(list => {
     const prev = S.chat.length; S.chat = list;
@@ -1107,7 +1123,7 @@ function enterLobby() {
     seen = list.filter(m => m.uid !== S.user.uid).length;
     renderChatList(); if (prev === 0) scrollChat();
   }));
-  B.getPrivate(S.user.uid).then(p => { S.priv = p; if (S.view === 'agents') renderCenter(); }).catch(() => {});
+  B.getPrivate(S.user.uid).then(p => { S.priv = p; if (S.view === 'agents') refreshLobby(); }).catch(() => {});
   B.touch(S.user.uid); touchT = setInterval(() => B.touch(S.user.uid), 60000);
 }
 
