@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SECTOR R-8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* ───────── 색과 기본 ───────── */
+:root,[data-theme=dark]{
+  --bg:linear-gradient(115deg,#0D0D0D 0%,#181818 45%,#132228 100%);--ink:#F2F2F0;--sub:#9A9A98;--faint:rgba(255,255,255,.05);--rule:rgba(255,255,255,.12);
+  --tile:#1F1F1F;--tileLine:rgba(255,255,255,.12);--tileHi:#262626;--navy:#24505F;--navyHi:#2F6A7D;--navyLine:#5E9FB3;--onNavy:#EAF3F5;--red:#FF3B30;
+  --bar:rgba(10,10,10,.72);--giant:rgba(94,159,179,.07);--stage:radial-gradient(ellipse 60% 55% at 50% 58%,rgba(47,106,125,.45),rgba(47,106,125,0) 70%);
+  --selBg:rgba(94,159,179,.14);--shadow:0 18px 40px rgba(0,0,0,.35);
+  --f-c1:#262626;--f-c2:#0C0C0C;--f-inner:#1C1C1C;--f-line:#070707;--f-hood:#151515;--f-face:#2C2C2C;--f-case:#232323;--f-lens:#24505F;--f-lensCore:#BFEFFF;
+}
+[data-theme=light]{
+  --bg:linear-gradient(115deg,#F6F6F4 0%,#E8E8E6 42%,#D3DADD 100%);--ink:#161616;--sub:#5C5C5A;--faint:rgba(0,0,0,.05);--rule:rgba(0,0,0,.14);
+  --tile:#FFFFFF;--tileLine:rgba(0,0,0,.14);--tileHi:#FFFFFF;--navy:#1F4A59;--navyHi:#2C6577;--navyLine:#1F4A59;--onNavy:#FFFFFF;--red:#D42A20;
+  --bar:rgba(255,255,255,.78);--giant:rgba(31,74,89,.07);--stage:radial-gradient(ellipse 60% 55% at 50% 58%,rgba(31,74,89,.22),rgba(31,74,89,0) 70%);
+  --selBg:rgba(31,74,89,.10);--shadow:0 18px 40px rgba(0,0,0,.12);
+  --f-c1:#2E2E2E;--f-c2:#141414;--f-inner:#3A3A3A;--f-line:#0E0E0E;--f-hood:#202020;--f-face:#4A4A4A;--f-case:#3A3A3A;--f-lens:#1F4A59;--f-lensCore:#9FD3E3;
+}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+#app{min-height:100%}
+body{margin:0;background:var(--bg) fixed;color:var(--ink);font:15px/1.5 'Pretendard Variable',Pretendard,system-ui,sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.4}
+:focus-visible{outline:2px solid var(--navyLine);outline-offset:2px}
+.bb{font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:.06em;line-height:1}
+.sub{color:var(--sub);font-size:13px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* ───────── 공통 부품 ───────── */
+.pan{background:var(--tile);border-radius:8px;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.btn{height:44px;padding:0 18px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:hover:not(:disabled){background:var(--navyHi)}
+.btn.g{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.btn.g:hover:not(:disabled){background:var(--faint)}
+.btn.s{height:34px;padding:0 12px;font-size:13px}
+.btn.lg{height:52px;font-size:16px}
+.ib{width:40px;height:40px;border:0;border-radius:6px;background:transparent;color:var(--ink);display:grid;place-items:center}
+.ib:hover{background:var(--faint)}
+.ib.f{background:var(--faint)}
+.inp{width:100%;height:46px;padding:0 14px;border:0;border-radius:6px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);font-size:16px}
+textarea.inp{height:120px;padding:12px 14px;line-height:1.6;resize:vertical}
+select.inp{appearance:none}
+[data-theme=dark] select.inp option{background:#1F1F1F}
+.lab{display:flex;flex-direction:column;gap:6px}
+.lab>span:first-child{font-size:13px;font-weight:700;color:var(--sub)}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:8px;background:var(--faint)}
+.seg button{height:34px;padding:0 14px;border:0;border-radius:6px;background:transparent;font-size:13px;font-weight:700;color:var(--sub)}
+.seg button[aria-pressed=true]{background:var(--navy);color:var(--onNavy)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:4px;font-size:11px;font-weight:700;background:var(--navy);color:var(--onNavy);white-space:nowrap}
+.tag.o{background:transparent;box-shadow:inset 0 0 0 1px var(--navyLine);color:var(--navyLine)}
+.tag.r{background:var(--red);color:#fff}
+.note{padding:14px 16px;border-radius:6px;background:var(--faint);display:flex;gap:10px;font-size:13px;line-height:1.6}
+.note svg{flex:none;color:var(--navyLine)}
+.err{color:var(--red);font-size:13px;font-weight:700;min-height:1em}
+.bars{display:flex;gap:2px;height:4px}
+.bars i{flex:1;border-radius:1px;background:var(--rule)}
+.bars i.on{background:var(--navyLine)}
+.bars.big{gap:3px;height:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--sub);flex:none}
+.dot.on{background:#3CC48A}
+.logo{display:flex;align-items:center;gap:10px}
+.logo .w{font-size:26px;white-space:nowrap}
+.logo .w span{color:var(--navyLine)}
+
+/* ───────── 로그인 ───────── */
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 520px;position:relative;overflow:hidden}
+.login .giant{position:absolute;left:-30px;bottom:-70px;font-family:'Bebas Neue',sans-serif;font-size:560px;line-height:.8;color:var(--giant);pointer-events:none;white-space:nowrap}
+.login .hero{position:relative;padding:64px 72px;display:flex;flex-direction:column;justify-content:space-between;gap:40px}
+.login h1{margin:0;font-size:56px;font-weight:800;line-height:1.1;letter-spacing:-.03em}
+.login .lede{margin:0;font-size:16px;line-height:1.7;color:var(--sub);max-width:520px}
+.locked{display:flex;align-items:center;gap:8px;font-size:16px;letter-spacing:.2em;color:var(--navyLine)}
+.locked i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.tlog{display:flex;flex-direction:column;gap:8px;max-width:460px}
+.tlog div{display:flex;gap:12px;font-size:13px;color:var(--sub)}
+.tlog b{color:var(--navyLine);font-size:15px}
+.login .side{position:relative;padding:48px;display:flex;align-items:center;background:var(--bar);border-left:1px solid var(--rule);backdrop-filter:blur(6px)}
+.login form{width:100%;display:flex;flex-direction:column;gap:14px}
+.login .ttl{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.login .ttl b{font-size:28px;letter-spacing:-.02em}
+.login .or{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--sub)}
+.login .or i{flex:1;height:1px;background:var(--tileLine)}
+.demo{padding:12px 14px;border-radius:6px;font-size:13px;line-height:1.6;background:var(--selBg);box-shadow:inset 0 0 0 1px var(--navyLine)}
+@media (max-width:999px){
+  .login{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .login .giant{font-size:220px;left:auto;right:-20px;top:40px;bottom:auto}
+  .login .hero{padding:44px 24px 8px;gap:18px}
+  .login h1{font-size:34px}
+  .login .tlog{display:none}
+  .login .side{padding:20px 24px 32px;background:transparent;border:0;backdrop-filter:none;align-items:flex-start}
+}
+
+/* ───────── 재생 절차(캐릭터 생성) ───────── */
+.cr{min-height:100%;display:flex;flex-direction:column}
+.cr header{height:72px;padding:0 32px;display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--rule);background:var(--bar);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+.cr .steps{display:flex;gap:4px;margin:0 auto}
+.cr .steps button{height:36px;padding:0 12px;border:0;border-radius:6px;background:transparent;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--sub)}
+.cr .steps button.done{color:var(--ink)}
+.cr .steps button[aria-current=step]{background:var(--navy);color:var(--onNavy);font-weight:800}
+.cr .steps .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:14px;padding-top:2px;box-shadow:inset 0 0 0 1.5px var(--tileLine)}
+.cr .steps .done .n{background:var(--navyLine);color:var(--onNavy);box-shadow:none}
+.cr .steps [aria-current=step] .n{background:var(--onNavy);color:var(--navy);box-shadow:none}
+.cr .mbar{display:none}
+.cr main{flex:1;width:100%;max-width:1280px;margin:0 auto;padding:44px 32px 32px;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:48px;align-items:start}
+.cr .form{display:flex;flex-direction:column;gap:22px;min-height:620px}
+.cr .form h2{margin:4px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.cr .eyebrow{font-size:18px;letter-spacing:.16em;color:var(--navyLine)}
+.cr .body{display:flex;flex-direction:column;gap:20px}
+.cr .foot{margin-top:auto;padding-top:20px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px}
+.cr aside{position:sticky;top:104px;display:flex;flex-direction:column;gap:12px}
+.bignum{font-size:44px;color:var(--navyLine)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice{padding:14px 16px;border:0;border-radius:6px;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine);text-align:left;display:flex;flex-direction:column;gap:3px}
+.choice[aria-pressed=true]{background:var(--selBg);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.choice b{font-size:15px}
+.heads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.heads button{position:relative;height:120px;border:0;border-radius:6px;overflow:hidden;background:var(--stage),var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);padding:0}
+.heads button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--navyLine)}
+.heads button svg{position:absolute;left:0;top:4px;width:100%;height:100%}
+.heads .no{position:absolute;left:8px;top:6px;font-size:14px;color:var(--sub);z-index:1}
+.heads .ring{position:absolute;inset:auto 0 0 0;height:4px}
+.stepper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stepper b{width:64px;text-align:center;font-size:40px}
+.statrow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.statrow .ctl{display:flex;align-items:center;gap:6px}
+.statrow .ctl b{width:24px;text-align:center;font-size:24px}
+.statrow .ib{width:32px;height:32px;background:var(--faint)}
+.derived{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.derived .pan{padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.derived b{font-size:28px}
+.pcard{padding:12px 14px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;align-items:center;gap:12px}
+.pcard .r{flex:none;width:40px;height:40px;border-radius:6px;display:grid;place-items:center;background:var(--faint);font-size:22px;padding-top:3px}
+.pcard .v{flex:1;display:flex;flex-direction:column;gap:3px}
+.pcard .v b{font-size:14px;line-height:1.4}
+.dice{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.die{width:64px;height:64px;border-radius:10px;display:grid;place-items:center;background:var(--tile);box-shadow:inset 0 0 0 2px var(--ink);font-size:36px;padding-top:4px}
+.trait{padding:20px;border-radius:8px;background:linear-gradient(120deg,var(--navy),var(--navyHi));color:var(--onNavy);display:flex;flex-direction:column;gap:10px}
+.trait .k{font-size:15px;letter-spacing:.16em;opacity:.8}
+.trait b{font-size:26px}
+.trait .chips{display:flex;gap:8px;flex-wrap:wrap}
+.trait .chips span{height:28px;padding:0 10px;border-radius:4px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;background:rgba(255,255,255,.18)}
+.trait .chips span.c{background:var(--red);color:#fff}
+.skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.skills button{height:52px;padding:0 14px;border:0;border-radius:6px;display:flex;align-items:center;gap:10px;text-align:left;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.skills button.dept{background:var(--faint);cursor:default}
+.skills button[aria-pressed=true]:not(.dept){background:var(--selBg);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.skills .lv{margin-left:auto;font-size:18px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.summary .pan{padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+@media (max-width:999px){
+  .cr header{height:60px;padding:0 16px;gap:12px}
+  .cr .steps{display:none}
+  .cr .mbar{display:flex;gap:4px;padding:12px 16px 0}
+  .cr .mbar i{flex:1;height:4px;border-radius:2px;background:var(--rule)}
+  .cr .mbar i.on{background:var(--navyLine)}
+  .cr main{grid-template-columns:1fr;padding:20px 16px 24px;gap:24px}
+  .cr .form{min-height:0}
+  .cr aside{position:static;order:-1}
+  .cr aside .badge .stats,.cr aside .badge dl{display:none}
+  .heads button{height:88px}
+  .skills{grid-template-columns:1fr}
+}
+
+/* ───────── 출입증 ───────── */
+.badge{display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine),var(--shadow)}
+.badge .bt{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(120deg,var(--navy),var(--navyHi));color:var(--onNavy)}
+.badge .bt .bb{font-size:18px;letter-spacing:.16em}
+.badge .bt small{font-size:11px;opacity:.85}
+.badge .id{padding:18px;display:flex;gap:16px}
+.badge .ph{position:relative;flex:none;width:112px;height:136px;overflow:hidden;border-radius:6px;background:var(--stage),var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.badge .ph svg{position:absolute;left:0;top:4px;width:100%;height:100%}
+.badge .who{flex:1;display:flex;flex-direction:column;gap:4px}
+.badge .num{font-size:17px;letter-spacing:.1em;color:var(--navyLine)}
+.badge .nm{font-size:26px;font-weight:800;line-height:1.1;word-break:keep-all}
+.badge .kv{display:flex;flex-direction:column;gap:2px;margin-top:auto;font-size:12px;color:var(--sub)}
+.badge .kv b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:18px;color:var(--ink);margin-left:6px}
+.badge .kv .ok{color:var(--navyLine);font-weight:700;margin-left:6px}
+.badge .stats{padding:0 18px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px 18px}
+.badge .stats>span{display:flex;flex-direction:column;gap:4px}
+.badge .stats .l{display:flex;justify-content:space-between;font-size:12px;color:var(--sub)}
+.badge .stats .l b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:16px;color:var(--ink)}
+.badge dl{margin:0;padding:14px 18px 18px;border-top:1px dashed var(--tileLine);display:grid;grid-template-columns:72px 1fr;gap:8px 10px;font-size:13px}
+.badge dt{color:var(--sub)}
+.badge dd{margin:0;font-weight:700}
+.badge dd.seal{letter-spacing:.05em}
+.badge .foot{padding:14px 18px;border-top:1px dashed var(--tileLine);display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.badge .barcode{height:30px;display:flex;gap:2px;align-items:stretch}
+.badge .barcode i{background:var(--ink)}
+.badge .dates{font-size:11px;color:var(--sub);text-align:right;line-height:1.5}
+
+/* ───────── 로비 셸 ───────── */
+.shell{min-height:100%;display:flex;flex-direction:column}
+.top{height:72px;padding:0 24px;display:flex;align-items:center;gap:20px;background:var(--bar);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+.shell>.top .sep{width:1px;height:32px;background:var(--rule)}
+.nav{display:flex;gap:4px}
+.nav button{position:relative;width:68px;height:56px;border:0;border-radius:6px;background:transparent;color:var(--sub);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600}
+.nav button:hover{background:var(--faint);color:var(--ink)}
+.nav button[aria-current=page]{background:var(--navy);color:var(--onNavy)}
+.res{margin-left:auto;display:flex;gap:8px}
+.res span{height:34px;padding:0 12px 0 10px;display:flex;align-items:center;gap:8px;border-radius:6px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);font-size:11px;color:var(--sub)}
+.res svg{color:var(--navyLine)}
+.res em{font-style:normal}
+.res b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:20px;color:var(--ink)}
+.tools{display:flex;gap:4px}
+.body3{flex:1;display:grid;grid-template-columns:370px minmax(0,1fr) 360px;gap:20px;padding:24px 32px;align-items:start}
+.body3>*{min-width:0}
+.colL{position:sticky;top:96px}
+.colR{position:sticky;top:96px;height:calc(100vh - 96px - 64px)}
+.ticker{height:44px;display:flex;align-items:center;gap:16px;padding:0 32px;border-top:1px solid var(--rule);background:var(--bar);overflow:hidden;font-size:13px;color:var(--sub);position:sticky;bottom:0;z-index:10}
+.ticker .k{flex:none;height:22px;padding:2px 8px 0;background:var(--ink);color:var(--tileHi);font-size:14px;letter-spacing:.1em;display:grid;place-items:center}
+.ticker .tr{flex:1;overflow:hidden;white-space:nowrap}
+.ticker .tr span{display:inline-block;padding-left:100%;animation:tick 60s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.ticker .tr span{animation:none;padding-left:0}.locked i{animation:none}}
+
+/* 홈 */
+.center{display:flex;flex-direction:column;gap:20px}
+.op{position:relative;overflow:hidden;min-height:300px;padding:26px 28px;border-radius:8px;background:linear-gradient(120deg,var(--navy) 0%,var(--navyHi) 100%);color:var(--onNavy);display:flex;flex-direction:column;gap:10px}
+.op .k{display:flex;align-items:center;gap:10px;font-size:20px;letter-spacing:.12em}
+.op h2{margin:6px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.op p{margin:0;font-size:14px;opacity:.85;max-width:460px;line-height:1.6}
+.op .ghost{position:absolute;right:-10px;bottom:-24px;font-family:'Bebas Neue',sans-serif;font-size:150px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
+.op .go{margin-top:auto;align-self:flex-end;height:52px;padding:0 24px;border:0;border-radius:6px;background:var(--onNavy);color:var(--navy);font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.tile{padding:20px 22px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+.tile .h{display:flex;align-items:baseline;gap:8px}
+.tile .h .bb{font-size:28px;white-space:nowrap}
+.tile .h small{white-space:nowrap}
+.tile .h small{font-size:12px;color:var(--sub)}
+.roster{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.roster span{width:36px;height:36px;border-radius:6px;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--faint);color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.roster span.on{background:var(--navy);color:var(--onNavy);box-shadow:none}
+.logl{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.logl li{display:flex;gap:12px;font-size:13px}
+.logl time{flex:none;color:var(--navyLine);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.04em;padding-top:1px}
+.empty{color:var(--sub);font-size:13px}
+
+/* 요원 */
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.acard{padding:14px;border:0;display:flex;gap:12px;text-align:left;align-items:center}
+.acard[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px var(--navyLine);background:var(--selBg)}
+.acard .ph{position:relative;flex:none;width:56px;height:64px;border-radius:6px;overflow:hidden;background:var(--stage),var(--faint)}
+.acard .ph svg{position:absolute;left:0;top:2px;width:100%;height:100%}
+.acard .t{flex:1;display:flex;flex-direction:column;gap:2px}
+.acard .num{font-size:14px;letter-spacing:.1em;color:var(--navyLine)}
+.acard b{font-size:16px}
+.detail{padding:22px;display:flex;flex-direction:column;gap:16px}
+.sealbox{border-radius:6px;box-shadow:inset 0 0 0 1px var(--tileLine);overflow:hidden}
+.sealbox .hd{padding:12px 14px;display:flex;align-items:center;gap:10px;background:var(--faint)}
+.sealbox .bd{padding:14px;display:grid;grid-template-columns:80px 1fr;gap:8px 12px;font-size:13px;line-height:1.6}
+.sealbox .bd dt{color:var(--sub)}
+.sealbox .bd dd{margin:0}
+.wip{padding:48px 28px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.wip .bb{font-size:44px;color:var(--navyLine)}
+.wip h2{margin:0;font-size:24px}
+
+/* 채팅 */
+.chat{height:100%;display:flex;flex-direction:column;overflow:hidden}
+.chat .hd{height:60px;padding:0 12px 0 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--tileLine)}
+.chat .hd .bb{font-size:20px;letter-spacing:.12em}
+.chat .hd small{margin-left:auto;font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px}
+.chat .tabs{padding:12px 18px 0;display:flex;gap:4px}
+.chat .tabs button{height:32px;padding:0 12px;border:0;border-radius:4px;background:var(--faint);font-size:13px;font-weight:700;color:var(--sub)}
+.chat .tabs button[aria-pressed=true]{background:var(--navy);color:var(--onNavy)}
+.chat .list{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.chat .list .first{margin-top:auto}
+.msg{display:flex;gap:8px;align-items:flex-start;max-width:92%}
+.msg .av{flex:none;width:28px;height:28px;border-radius:5px;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--navy);color:var(--onNavy)}
+.msg .av.c{background:transparent;box-shadow:inset 0 0 0 1.5px var(--navyLine);color:var(--navyLine)}
+.msg .m{display:flex;flex-direction:column;gap:4px}
+.msg .meta{display:flex;align-items:center;gap:6px;font-size:12px}
+.msg .meta time{color:var(--sub)}
+.msg .tx{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:6px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);word-break:break-word;white-space:pre-wrap}
+.msg.me{align-self:flex-end;flex-direction:column;align-items:flex-end;gap:4px}
+.msg.me .tx{background:var(--navy);color:var(--onNavy);box-shadow:none}
+.chat form{padding:0 18px 18px;display:flex;gap:8px}
+.chat form input{flex:1;height:44px;padding:0 12px;border:0;border-radius:6px;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine);font-size:16px}
+.chat form button{width:44px;height:44px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);display:grid;place-items:center}
+.fab,.sheet-close,.bnav{display:none}
+
+/* ───────── 모바일 셸 ───────── */
+@media (max-width:999px){
+  .top{height:60px;padding:0 16px;gap:10px}
+  .top .logo .w{font-size:22px}
+  .top .logo svg{width:24px;height:26px}
+  .top .nav,.shell>.top .sep{display:none}
+  .res{gap:6px}
+  .res span{padding:0 8px;height:30px}
+  .res span em{display:none}
+  .res em{font-style:normal}
+.res b{font-size:17px}
+  .tools .ib{width:36px;height:36px}
+  .body3{display:flex;flex-direction:column;padding:16px 16px 96px;gap:16px}
+  .colL,.colR{position:static}
+  .colR{height:auto}
+  .ticker{display:none}
+  .tiles{grid-template-columns:1fr;gap:12px}
+  .op{min-height:240px;padding:20px}
+  .op h2{font-size:24px}
+  .op .go{align-self:stretch;justify-content:center}
+  .bnav{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--tile);border-top:1px solid var(--rule)}
+  .bnav button{border:0;background:transparent;color:var(--sub);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:600}
+  .bnav button[aria-current=page]{color:var(--navyLine)}
+  .bnav button[aria-current=page] svg{stroke-width:2.25}
+  .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:31;width:56px;height:56px;border:0;border-radius:50%;background:var(--navy);color:var(--onNavy);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .fab i{position:absolute;top:4px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center}
+  .colR{position:fixed;inset:0;z-index:40;padding:0;display:none}
+  .colR.open{display:block}
+  .colR .chat{border-radius:0;height:100%;box-shadow:none}
+  .sheet-close{display:grid}
+  .chat .hd small{margin-left:auto}
+}
+</style>
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+
+<script type="module">
+/* ═════════════════════════════════════════════════════════════
+   1. 연결 방식 — 게임 서버(server.js)가 이 파일을 내보내면 서버에 붙는다.
+      파일을 그냥 열면(file://) 브라우저 안에서만 도는 데모 모드로 켜진다.
+   ═════════════════════════════════════════════════════════════ */
+const DEMO = location.protocol === 'file:' || new URLSearchParams(location.search).has('demo');
+
+/* ═════════════ 2. 게임 데이터 (설계서 기준) ═════════════ */
+const SN = ['근력', '체력', '민첩', '지능', '육감', '의지'];
+const DEPT = [['격리동 시설관리팀', ['장비 운용', '운반']], ['경비팀', ['사격', '격투']], ['연구실 조교', ['기록 해독', '관찰']], ['의무실', ['응급처치', '참기']], ['관제실 운영요원', ['통신', '장비 운용']], ['문서 보관실', ['기록 해독', '교섭']], ['청소·방역팀', ['은신', '관찰']], ['급식실', ['운반', '교섭']], ['개체 면담관', ['교섭', '오컬트']], ['소속 기록 없음', []]];
+const DEATH = ['격리 실패 사고에 휘말려 현장에서 사망', '정기 점검 중 실종, 나흘 뒤 발견', '동료를 구하다 사망', '개체 면담 도중 심장 정지', '섹터 봉쇄 때 문 밖에 남음', '사인 불명, 기록에는 ‘자연사’', '실험 참여 동의서에 서명한 다음 날', '연고가 있는 누군가의 실수로 사망', '스스로 격리실에 들어감', '사망 기록 없음, 하지만 재생 수조에 있었음'];
+const SECRET = ['사망 기록이 사망 전에 이미 작성돼 있었다', '외부에 정보를 빼돌리던 내부자였다', '한 개체의 첫 발견자였다', '이미 한 번 재생된 적이 있다', '섹터 밖에 기다리는 가족이 있었다', '인사 기록의 사진이 본인이 아니다', '어느 격리 절차를 직접 썼다', '다른 PC의 사망에 관여했다', '누군가에게 기억을 대신 지워 달라고 부탁했다', '사람이 아니었을지도 모른다'];
+const TRAITS = {
+  2: ['제3의 맥박', '심장이 두 번씩 뛴다', '체력 +2', '진정제가 듣지 않음'],
+  3: ['결락된 기억', '입사일을 기억하지 못한다', '의지 +2', '기억 회복 판정 −1'],
+  4: ['잔향 청각', '소리가 늘 하나 더 들린다', '소리 감지 +2', '소리형 개체에게 먼저 지목됨'],
+  5: ['늘어진 그림자', '거울에 반 박자 늦게 비친다', '민첩 +1', '카메라에 간헐적으로 안 찍힘'],
+  6: ['무감각 피부', '통증이 닿지 않는다', 'HP +3', '부상을 스스로 모름'],
+  7: ['차가운 체온', '체온이 방 온도를 따라간다', '열원 감지에 안 잡힘', '관제팀도 위치를 놓침'],
+  8: ['젖은 손끝', '손끝이 늘 축축하다', '물 관련 개체 판정 +1', '종이 기록을 만지면 번짐'],
+  9: ['시간 어긋남', '시계가 그의 앞에서 느려진다', '행동 순서 +2', '회복 시간 ×1.5'],
+  10: ['타인의 말버릇', '모르는 사투리가 섞인다', '지능 +1', '통신에서 가끔 다른 사람으로 인식'],
+  11: ['개체의 시선', '눈동자가 빛을 되비춘다', '육감 +2', '개체와 눈이 마주치면 오염 +5%'],
+  12: ['빈자리', '가끔 아무도 그를 인식하지 못한다', '은신 자동 성공 1회', '보상 기록에서 가끔 빠짐']
+};
+const SKILLS = [['격투', '근력'], ['사격', '민첩'], ['은신', '민첩'], ['응급처치', '지능'], ['장비 운용', '지능'], ['기록 해독', '지능'], ['통신', '지능'], ['관찰', '육감'], ['오컬트', '육감'], ['교섭', '의지'], ['참기', '의지'], ['운반', '체력']];
+const ROLES = [['현장팀', '탐사와 전투를 담당합니다'], ['관제팀', '바이탈 확인과 지시를 담당합니다']];
+const STEPS = ['신원', '외관', '스탯', '과거', '변질', '기능', '발급'];
+const RIMS = ['var(--navyLine)', '#A0A09E', 'var(--red)', '#7FB8CA'];
+const START_RES = { supply: 100, research: 0, pass: 1 };
+
+const d = n => 1 + Math.floor(Math.random() * n);
+const newNum = () => 'R8-' + String(10 + d(989)).padStart(3, '0');
+const statMods = (stats, trait) => {
+  const tr = trait ? TRAITS[trait] : null;
+  return stats.map((v, k) => {
+    if (!tr) return v;
+    const m = tr[2].match(/^(\S+) \+(\d)$/);
+    return m && m[1] === SN[k] ? v + Number(m[2]) : v;
+  });
+};
+const derived = (stats, trait) => {
+  const s = statMods(stats, trait), tr = trait ? TRAITS[trait] : null;
+  return { hp: s[0] + s[1] + 4 + (tr && tr[2] === 'HP +3' ? 3 : 0), san: s[5] + 3, mv: 2 + Math.ceil(s[2] / 3) };
+};
+
+/* ═════════════ 3. 아이콘·두상 ═════════════ */
+const IC = {
+  home: 'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  ops: 'M2.0 12.0a10.0 10.0 0 1 0 20.0 0a10.0 10.0 0 1 0 -20.0 0M22 12L18 12M6 12L2 12M12 6L12 2M12 22L12 18',
+  base: 'M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8zM6 13h12M6 17h12',
+  agent: 'M13 19a4 4 0 00-8 0M16 10h2M16 14h2M6.0 12.0a3.0 3.0 0 1 0 6.0 0a3.0 3.0 0 1 0 -6.0 0M4.0 5.0h16.0a2.0 2.0 0 0 1 2.0 2.0v10.0a2.0 2.0 0 0 1 -2.0 2.0h-16.0a2.0 2.0 0 0 1 -2.0 -2.0v-10.0a2.0 2.0 0 0 1 2.0 -2.0Z',
+  files: 'M15.0 17.0h6.0a1.0 1.0 0 0 1 1.0 1.0v3.0a1.0 1.0 0 0 1 -1.0 1.0h-6.0a1.0 1.0 0 0 1 -1.0 -1.0v-3.0a1.0 1.0 0 0 1 1.0 -1.0ZM10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v2.5M20 17v-2a2 2 0 1 0-4 0v2',
+  log: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2',
+  msg: 'M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z',
+  send: 'M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904zM6 12h16',
+  x: 'M18 6 6 18M6 6 18 18',
+  box: 'M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7 12 12l8.7-5M12 22V12',
+  flask: 'M9 3h6M10 3v6.5L4.5 19A1.5 1.5 0 0 0 5.8 21h12.4a1.5 1.5 0 0 0 1.3-2L14 9.5V3M7 15h10',
+  pass: 'M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2ZM13 5v2M13 17v2M13 11v2',
+  user: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0',
+  lock: 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2ZM7 11V7a5 5 0 0 1 10 0v4',
+  unlock: 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2ZM7 11V7a5 5 0 0 1 9.9-1',
+  dice: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM16 8h.01M8 8h.01M8 16h.01M16 16h.01M12 12h.01',
+  minus: 'M5 12h14', plus: 'M5 12h14M12 5v14',
+  arrowR: 'M5 12h14M12 5l7 7-7 7', arrowL: 'M19 12H5M12 19l-7-7 7-7',
+  refresh: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5',
+  alert: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01',
+  check: 'M20 6 9 17l-5-5', play: 'M7 4 L20 12 L7 20 Z',
+  sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+  moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+  out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
+};
+const ico = (k, s = 20, w = 1.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+const icoFill = (k, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+let hsN = 0;
+const headshot = (head = 0) => {
+  const id = 'h' + (++hsN), rim = RIMS[head] || RIMS[0];
+  return `<svg viewBox="70 52 260 260" aria-hidden="true"><defs>
+<linearGradient id="${id}c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--f-c1)"/><stop offset="1" stop-color="var(--f-c2)"/></linearGradient>
+<linearGradient id="${id}r" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="${rim}" stop-opacity=".9"/><stop offset=".35" stop-color="${rim}" stop-opacity="0"/></linearGradient>
+<radialGradient id="${id}l" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="var(--f-lensCore)"/><stop offset="1" stop-color="var(--f-lens)"/></radialGradient></defs>
+<path d="M118 238 C 96 300, 90 420, 84 520 L 70 700 L 186 700 L 196 470 L 206 700 L 330 700 L 316 520 C 310 420, 304 300, 282 238 C 256 222, 236 216, 200 214 C 164 216, 144 222, 118 238 Z" fill="url(#${id}c)"/>
+<path d="M118 238 C 96 300, 90 420, 84 520 L 70 700 L 186 700 L 196 470 L 206 700 L 330 700 L 316 520 C 310 420, 304 300, 282 238 C 256 222, 236 216, 200 214 C 164 216, 144 222, 118 238 Z" fill="url(#${id}r)"/>
+<path d="M200 236 L 176 330 L 200 470 L 224 330 Z" fill="var(--f-inner)"/>
+<path d="M150 232 L 196 330 M250 232 L 204 330" stroke="var(--f-line)" stroke-width="3" fill="none"/>
+<rect x="226" y="290" width="38" height="50" fill="#D8D8D6"/><path d="M232 300 H 258 M232 310 H 252" stroke="var(--f-c2)" stroke-width="3"/>
+<path d="M110 250 C 86 330, 80 420, 92 500 L 112 498 C 108 420, 116 340, 132 270 Z" fill="var(--f-c2)"/>
+<path d="M290 250 C 318 320, 330 400, 326 470 L 306 472 C 306 400, 296 330, 272 272 Z" fill="var(--f-c2)"/>
+<path d="M200 70 C 146 70, 124 112, 126 160 C 128 200, 146 228, 200 236 C 254 228, 272 200, 274 160 C 276 112, 254 70, 200 70 Z" fill="var(--f-hood)"/>
+<path d="M200 70 C 254 70, 276 112, 274 160 C 272 200, 254 228, 200 236" fill="none" stroke="${rim}" stroke-width="3" opacity=".8"/>
+<path d="M200 104 C 166 104, 152 128, 154 158 C 156 188, 172 206, 200 210 C 228 206, 244 188, 246 158 C 248 128, 234 104, 200 104 Z" fill="var(--f-face)"/>
+<circle cx="178" cy="150" r="15" fill="url(#${id}l)"/><circle cx="222" cy="150" r="15" fill="url(#${id}l)"/>
+<circle cx="178" cy="150" r="15" fill="none" stroke="var(--f-line)" stroke-width="3"/><circle cx="222" cy="150" r="15" fill="none" stroke="var(--f-line)" stroke-width="3"/>
+<path d="M186 180 H 214 L 220 214 H 180 Z" fill="var(--f-line)"/><path d="M184 196 H 216 M184 204 H 216" stroke="var(--f-face)" stroke-width="2"/></svg>`;
+};
+const LOGO = s => `<svg width="${s}" height="${Math.round(s * 46 / 42)}" viewBox="0 0 42 46" aria-hidden="true"><path d="M21 2 L39 12.5 L39 33.5 L21 44 L3 33.5 L3 12.5 Z" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M21 9 L33 16 L33 30 L21 37 L9 30 L9 16 Z" fill="var(--ink)"/><circle cx="21" cy="23" r="7" fill="none" stroke="var(--navyLine)" stroke-width="2.5"/><circle cx="21" cy="23" r="2" fill="var(--red)"/></svg>`;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const bars = (v, big) => `<span class="bars${big ? ' big' : ''}">${Array.from({ length: 10 }, (_, i) => `<i${i < v ? ' class="on"' : ''}></i>`).join('')}</span>`;
+const hhmm = ms => { if (!ms) return '--:--'; const t = new Date(ms); return String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0'); };
+const ymd = ms => { if (!ms) return '----.--.--'; const t = new Date(ms); return t.getFullYear() + '.' + String(t.getMonth() + 1).padStart(2, '0') + '.' + String(t.getDate()).padStart(2, '0'); };
+const isOnline = a => a && (typeof a.online === 'boolean' ? a.online : a.lastSeen && Date.now() - a.lastSeen < 3 * 60 * 1000);
+
+/* ═════════════ 4. 백엔드 (게임 서버 / 데모) ═════════════ */
+function serverBackend() {
+  const TK = 'r8token';
+  let token = (() => { try { return localStorage.getItem(TK); } catch { return null; } })();
+  let authCb = () => {}, me = null, socket = null;
+  const agents = new Map(); let chat = [];
+  const subs = { agents: new Set(), chat: new Set() };
+  const emitA = () => { const l = [...agents.values()]; subs.agents.forEach(f => f(l)); };
+  const emitC = () => subs.chat.forEach(f => f(chat));
+  const saveToken = t => { token = t; try { t ? localStorage.setItem(TK, t) : localStorage.removeItem(TK); } catch {} };
+  async function api(path, body, method) {
+    let r;
+    try { r = await fetch(path, { method: method || (body ? 'POST' : 'GET'), headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); }
+    catch { throw { code: 'network' }; }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw { code: j.error || 'server' };
+    return j;
+  }
+  async function loadMe() {
+    try { me = await api('/api/me'); return me.user; }
+    catch (e) { if (e.code === 'auth/required') { saveToken(null); return null; } throw e; }
+  }
+  function loadIo() {
+    if (window.io) return Promise.resolve(window.io);
+    return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = '/socket.io/socket.io.js'; sc.onload = () => ok(window.io); sc.onerror = () => no({ code: 'network' }); document.head.appendChild(sc); });
+  }
+  let connecting = null;
+  function connect() { return connecting || (connecting = open().catch(e => { connecting = null; throw e; })); }
+  async function open() {
+    const io = await loadIo();
+    socket = io({ auth: { token } });
+    socket.on('connect_error', e => { if (e.message === 'auth/required') { saveToken(null); authCb(null); } });
+    socket.on('agents', l => { agents.clear(); l.forEach(a => agents.set(a.uid, a)); emitA(); });
+    socket.on('agent', a => { agents.set(a.uid, a); emitA(); });
+    socket.on('chat:history', l => { chat = l; emitC(); });
+    socket.on('chat', m => { chat = chat.concat(m).slice(-300); emitC(); });
+    return socket;
+  }
+  const done = async j => { saveToken(j.token); const u = await loadMe(); authCb(u); };
+  return {
+    demo: false,
+    onAuth(cb) { authCb = cb; (token ? loadMe() : Promise.resolve(null)).then(cb, () => cb(null)); },
+    signIn: (email, pw) => api('/api/login', { email, pw }).then(done),
+    signUp: (email, pw) => api('/api/signup', { email, pw }).then(done),
+    async signOut() { try { await api('/api/logout', {}); } catch {} saveToken(null); if (socket) { socket.disconnect(); socket = null; } connecting = null; agents.clear(); chat = []; me = null; authCb(null); },
+    async getAgent() { if (!me) await loadMe(); return me && me.agent; },
+    async getPrivate() { if (!me || !me.sealed) await loadMe(); return me && me.sealed; },
+    async createAgent(uid, pub, priv, payload) { const j = await api('/api/agent', payload); me = { ...(me || {}), agent: j.agent, sealed: j.sealed }; return j.agent; },
+    watchAgents(cb) { subs.agents.add(cb); connect().catch(() => {}); if (agents.size) cb([...agents.values()]); return () => subs.agents.delete(cb); },
+    watchChat(cb) { subs.chat.add(cb); connect().catch(() => {}); if (chat.length) cb(chat); return () => subs.chat.delete(cb); },
+    async sendChat(m) {
+      const s = await connect();
+      await new Promise((ok, no) => s.timeout(5000).emit('chat', { channel: m.channel, text: m.text }, (err, r) => err ? no({ code: 'network' }) : r && r.error ? no({ code: r.error }) : ok()));
+    },
+    touch() {}
+  };
+}
+
+function demoBackend() {
+  const K = 'r8demo:', get = k => { try { return JSON.parse(localStorage.getItem(K + k)); } catch { return null; } }, put = (k, v) => { try { localStorage.setItem(K + k, JSON.stringify(v)); } catch {} };
+  const subs = { auth: [], agents: [], chat: [] }, fire = (k, v) => subs[k].forEach(f => f(v));
+  const now = Date.now();
+  if (!get('agents')) put('agents', {
+    npc1: { uid: 'npc1', num: 'R8-047', name: '서이안', role: 1, head: 3, age: 34, stats: [3, 4, 5, 6, 5, 5], trait: 10, skills: { '통신': 1, '장비 운용': 1, '관찰': 1 }, contamination: 12, res: START_RES, createdAt: now - 864e5 * 9, lastSeen: now },
+    npc2: { uid: 'npc2', num: 'R8-112', name: '윤해원', role: 0, head: 1, age: 29, stats: [5, 5, 4, 3, 4, 3], trait: 6, skills: { '사격': 1, '격투': 1, '은신': 1 }, contamination: 31, res: START_RES, createdAt: now - 864e5 * 4, lastSeen: now },
+    npc3: { uid: 'npc3', num: 'R8-205', name: '박도윤', role: 0, head: 2, age: 41, stats: [4, 6, 3, 4, 3, 4], trait: 2, skills: { '응급처치': 1, '참기': 1, '운반': 1 }, contamination: 6, res: START_RES, createdAt: now - 864e5, lastSeen: now - 36e5 }
+  });
+  if (!get('chat')) put('chat', [
+    { id: 'c1', uid: 'npc1', num: 'R8-047', name: '서이안', role: 1, channel: 'all', text: '데모 섹터입니다. 여기 남긴 말은 이 브라우저에만 저장돼요.', ts: now - 6e5 },
+    { id: 'c2', uid: 'npc2', num: 'R8-112', name: '윤해원', role: 0, channel: 'all', text: '신규 요원 오면 출입증 보여 주세요.', ts: now - 3e5 }
+  ]);
+  const agents = () => Object.values(get('agents') || {});
+  return {
+    demo: true,
+    onAuth(cb) { subs.auth.push(cb); setTimeout(() => cb(get('user')), 0); },
+    async signIn(e) { if (!e) throw { code: 'auth/invalid-email' }; const u = { uid: 'me-' + e.replace(/[^a-z0-9]/gi, ''), email: e }; put('user', u); fire('auth', u); },
+    async signUp(e, p) { return this.signIn(e, p); },
+    async signInGoogle() { return this.signIn('demo@r8.local'); },
+    async signOut() { localStorage.removeItem(K + 'user'); fire('auth', null); },
+    async getAgent(uid) { return (get('agents') || {})[uid] || null; },
+    async getPrivate(uid) { return (get('private') || {})[uid] || null; },
+    async createAgent(uid, pub, priv) {
+      const all = get('agents') || {};
+      if (Object.values(all).some(a => a.num === pub.num)) throw { code: 'number-taken' };
+      all[uid] = { ...pub, uid, createdAt: Date.now(), lastSeen: Date.now() }; put('agents', all);
+      const pv = get('private') || {}; pv[uid] = priv; put('private', pv);
+      fire('agents', agents());
+    },
+    watchAgents(cb) { subs.agents.push(cb); cb(agents()); return () => {}; },
+    watchChat(cb) { subs.chat.push(cb); cb(get('chat') || []); return () => {}; },
+    async sendChat(m) { const c = get('chat') || []; c.push({ ...m, id: 'c' + Date.now(), ts: Date.now() }); put('chat', c.slice(-120)); fire('chat', get('chat')); },
+    async touch(uid) { const all = get('agents') || {}; if (all[uid]) { all[uid].lastSeen = Date.now(); put('agents', all); } }
+  };
+}
+
+/* ═════════════ 5. 상태 ═════════════ */
+const S = {
+  phase: 'boot', user: null, me: null, priv: null, agents: [], chat: [],
+  view: 'home', chan: 'all', chatOpen: false, unread: 0, sel: null, reveal: false,
+  loginMode: 'in', err: '', busy: false,
+  theme: (() => { try { return localStorage.getItem('r8theme') || 'dark'; } catch { return 'dark'; } })(),
+  c: null
+};
+const freshCreate = () => ({ step: 0, num: newNum(), name: '', role: 0, head: 0, age: 31, mode: 'pt', stats: [4, 4, 4, 4, 4, 4], pmode: 'roll', dept: d(10) - 1, death: d(10) - 1, secret: d(10) - 1, realName: '', story: '', cross: '', trait: 0, free: -1, err: '' });
+let B, unsub = [], touchT;
+const app = document.getElementById('app');
+const setTheme = t => { S.theme = t; document.documentElement.dataset.theme = t; try { localStorage.setItem('r8theme', t); } catch {} };
+setTheme(S.theme);
+
+const AUTH_MSG = {
+  'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+  'auth/missing-password': '비밀번호를 입력하십시오.',
+  'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+  'auth/email-already-in-use': '이미 등록된 이메일입니다. 출입 인증으로 진행하십시오.',
+  'auth/invalid-credential': '이메일 또는 비밀번호가 일치하지 않습니다.',
+  'auth/wrong-password': '이메일 또는 비밀번호가 일치하지 않습니다.',
+  'auth/user-not-found': '등록되지 않은 이메일입니다. 재생 절차를 먼저 진행하십시오.',
+  'auth/too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도하십시오.',
+  'auth/popup-closed-by-user': '인증 창이 닫혔습니다.',
+  'auth/required': '인증이 만료되었습니다. 다시 출입 인증하십시오.',
+  'agent/exists': '이미 출입증이 발급된 계정입니다.',
+  'agent/bad-number': '넘버 형식이 올바르지 않습니다.',
+  'agent/bad-name': '호출명을 입력하십시오.',
+  'agent/bad-stats': '스탯 배분이 규칙에 맞지 않습니다.',
+  'agent/bad-past': '과거 항목을 확인하십시오.',
+  'agent/bad-skill': '기능 선택을 확인하십시오.',
+  'agent/bad-field': '입력값을 확인하십시오.',
+  'chat/too-fast': '전송 간격이 너무 짧습니다.',
+  'network': '서버에 연결할 수 없습니다. 잠시 후 다시 시도하십시오.',
+  'number-taken': '이미 사용 중인 넘버입니다. 넘버를 다시 부여하십시오.'
+};
+const errMsg = e => AUTH_MSG[e && e.code] || ('오류가 발생했습니다. ' + (e && (e.code || e.message) || ''));
+
+/* ═════════════ 6. 화면: 로그인 ═════════════ */
+function viewLogin() {
+  const up = S.loginMode === 'up';
+  return `<div class="login">
+  <span class="giant" aria-hidden="true">R-8</span>
+  <section class="hero">
+    <span class="logo">${LOGO(36)}<span style="display:flex;flex-direction:column;gap:4px"><span class="bb w">SECTOR <span>R-8</span></span><span class="sub" style="font-size:12px;letter-spacing:.1em">격리 대응 단말</span></span></span>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <span class="locked bb"><i></i>SECTOR LOCKED</span>
+      <h1>당신은 이미<br>한 번 사망하였습니다.</h1>
+      <p class="lede">이 섹터에서 일하다 죽은 직원은 재생 수조에서 깨어나 넘버를 받습니다. 기억은 온전하지 않지만, 업무는 계속됩니다.</p>
+    </div>
+    <div class="tlog"><span class="bb sub" style="font-size:14px;letter-spacing:.16em">TERMINAL LOG</span>
+      <div><b class="bb">--:--:--</b>격리동 B 정기 점검 대기</div>
+      <div><b class="bb">--:--:--</b>재생 수조 TANK-02 가동 중</div>
+      <div><b class="bb">--:--:--</b>신규 요원 재생 절차 대기</div>
+    </div>
+  </section>
+  <section class="side" aria-label="${up ? '요원 등록' : '출입 인증'}">
+    <form data-form="login" novalidate>
+      <div class="ttl"><span class="bb" style="font-size:18px;letter-spacing:.16em;color:var(--navyLine)">${up ? 'REGISTER' : 'ACCESS'}</span><b>${up ? '단말 계정 등록' : '출입 인증'}</b><span class="sub" style="font-size:14px">${up ? '재생 절차를 시작하기 전에 단말 계정을 등록하십시오.' : '등록된 이메일로 인증하십시오.'}</span></div>
+      ${B.demo ? `<div class="demo"><b>데모 모드</b> — 파일로 열어 이 브라우저 안에서만 동작합니다. 아무 이메일이나 입력하면 진입합니다.</div>` : ''}
+      <label class="lab"><span>이메일</span><input class="inp" type="email" name="email" autocomplete="email" placeholder="agent@example.com" required></label>
+      <label class="lab"><span>비밀번호</span><input class="inp" type="password" name="pw" autocomplete="${up ? 'new-password' : 'current-password'}" placeholder="${up ? '6자 이상' : '비밀번호'}" required></label>
+      <p class="err" role="alert">${esc(S.err)}</p>
+      <button class="btn lg" type="submit" ${S.busy ? 'disabled' : ''}>${up ? '계정 등록' : '출입 인증'}</button>
+      <button class="btn g" type="button" data-act="loginMode" style="margin-top:8px;height:auto;padding:14px;justify-content:flex-start;gap:12px;text-align:left">
+        <span style="width:40px;height:40px;flex:none;border-radius:6px;display:grid;place-items:center;background:var(--navy);color:var(--onNavy)">${ico('refresh')}</span>
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">${up ? '이미 등록하셨습니까?' : '처음 오셨습니까?'}</b><span class="sub" style="font-size:12px;font-weight:400">${up ? '출입 인증 화면으로 돌아갑니다' : '계정을 등록하고 재생 절차를 시작합니다'}</span></span>${ico('arrowR', 18)}
+      </button>
+    </form>
+  </section>
+</div>`;
+}
+
+/* ═════════════ 7. 화면: 재생 절차 ═════════════ */
+function badgeHTML(a, { preview = false, priv = null } = {}) {
+  const tr = a.trait ? TRAITS[a.trait] : null, mods = statMods(a.stats, a.trait);
+  const sealed = [['실명', '███'], ['소속', '███ ███'], ['사망 경위', '███ ██'], ['실제 나이', '██']];
+  const cont = a.contamination || 0;
+  return `<article class="badge" aria-label="출입증">
+  <div class="bt"><span class="bb">ACCESS PASS</span><small>${ROLES[a.role][0]}</small></div>
+  <div class="id"><div class="ph">${headshot(a.head)}</div>
+    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm" data-bind="name">${esc(a.name || '호출명 미정')}</b><span class="sub" style="font-size:12px">외관 <span data-bind="age">${a.age}</span>세</span>
+      ${preview ? `<span class="tag o" style="align-self:flex-start;margin-top:auto">${tr ? esc(tr[0]) : '재생 대기'}</span>` : `<span class="kv"><span>오염도<b style="color:${cont >= 50 ? 'var(--red)' : 'var(--ink)'}">${cont}%</b></span><span>상태<span class="ok">출동 가능</span></span></span>`}
+    </div></div>
+  <div class="stats">${SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('')}</div>
+  ${preview
+    ? `<dl>${sealed.map(([k, v]) => `<dt>${k}</dt><dd class="seal">${v}</dd>`).join('')}</dl>`
+    : `<dl><dt>소속</dt><dd>${ROLES[a.role][0]}</dd><dt>변질</dt><dd>${tr ? esc(tr[0]) : '없음'}</dd><dt>기능</dt><dd>${esc(Object.keys(a.skills || {}).join(', ') || '없음')}</dd></dl>
+       <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>섹터 R-8 귀속</span></div>`}
+</article>`;
+}
+function barcode(s) {
+  let h = 7, out = '';
+  for (let i = 0; i < 34; i++) { h = (h * 31 + s.charCodeAt(i % s.length) + i) % 997; out += `<i style="width:${1 + h % 3}px;${h % 5 === 0 ? 'opacity:0' : ''}"></i>`; }
+  return out;
+}
+
+function viewCreate() {
+  const c = S.c, step = c.step, used = c.stats.reduce((a, b) => a + b, 0), left = 24 - used;
+  const dv = derived(c.stats, c.trait), deptSk = DEPT[c.dept][1], tr = c.trait ? TRAITS[c.trait] : null;
+  const realAge = realAgeOf(c);
+  const can = [!!c.name.trim(), true, c.mode === 'roll' || left === 0, c.pmode === 'roll' || !!c.story.trim(), !!c.trait, c.free >= 0, true];
+  const why = ['호출명을 입력하십시오.', '', '남은 점수를 모두 배분하십시오.', '과거 이야기를 작성하십시오.', '변질 특성을 굴리십시오.', '자유 기능 1개를 선택하십시오.', ''][step];
+  let body = '';
+  if (step === 0) body = `
+    <div class="lab"><span>넘버</span><span style="display:flex;align-items:center;gap:12px"><b class="bb bignum">${c.num}</b><button class="btn g s" data-act="reNum">${ico('refresh', 14, 2)}다시 부여</button></span><span class="sub">섹터가 부여하는 식별 번호입니다. 공식 기록에는 이 번호만 남습니다.</span></div>
+    <label class="lab"><span>호출명</span><input class="inp" data-in="name" value="${esc(c.name)}" maxlength="12" placeholder="동료들이 부를 이름"><span class="sub">실명은 기억나지 않습니다. 과거를 되찾으면 출입증에 함께 기재됩니다.</span></label>
+    <div class="lab"><span>주로 맡을 역할</span><span class="roles">${ROLES.map(([n, s], i) => `<button class="choice" data-act="role" data-v="${i}" aria-pressed="${c.role === i}"><b>${n}</b><span class="sub">${s}</span></button>`).join('')}</span><span class="sub">작전마다 변경할 수 있습니다.</span></div>`;
+  if (step === 1) body = `
+    <div class="lab"><span>두상</span><span class="heads">${RIMS.map((r, i) => `<button data-act="head" data-v="${i}" aria-pressed="${c.head === i}" aria-label="두상 ${i + 1}"><span class="bb no">0${i + 1}</span>${headshot(i)}<i class="ring" style="background:${r}"></i></button>`).join('')}</span></div>
+    <div class="lab"><span>외관 나이</span><span class="stepper"><button class="ib f" data-act="age" data-v="-1" aria-label="한 살 줄이기">${ico('minus', 18, 2)}</button><b class="bb">${c.age}</b><button class="ib f" data-act="age" data-v="1" aria-label="한 살 늘리기">${ico('plus', 18, 2)}</button><span class="sub">사망 시점의 나이입니다. 이후로 나이를 먹지 않습니다.</span></span></div>
+    <div class="note">${ico('lock', 18)}<span>실제 나이는 과거 단계에서 정해지며 봉인됩니다. 캐릭터는 자신의 실제 나이를 알 수 없습니다.</span></div>`;
+  if (step === 2) body = `
+    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="seg"><button data-act="mode" data-v="pt" aria-pressed="${c.mode === 'pt'}">점수 배분</button><button data-act="mode" data-v="roll" aria-pressed="${c.mode === 'roll'}">굴림</button></span>
+      ${c.mode === 'pt' ? `<span class="sub" style="margin-left:auto">남은 점수 <b class="bb" style="font-size:24px;color:${left === 0 ? 'var(--navyLine)' : 'var(--ink)'}">${left}</b> / 24</span>` : `<button class="btn s" data-act="rollStats" style="margin-left:auto">${ico('dice', 14, 2)}1d6+1 굴리기</button>`}</span>
+    <div style="display:flex;flex-direction:column;gap:8px">${SN.map((n, k) => `<span class="statrow"><b>${n}</b>${bars(c.stats[k], true)}<span class="ctl">${c.mode === 'pt' ? `<button class="ib" data-act="stat" data-k="${k}" data-v="-1" aria-label="${n} 내리기" ${c.stats[k] <= 2 ? 'disabled' : ''}>${ico('minus', 14, 2)}</button>` : ''}<b class="bb">${c.stats[k]}</b>${c.mode === 'pt' ? `<button class="ib" data-act="stat" data-k="${k}" data-v="1" aria-label="${n} 올리기" ${c.stats[k] >= 7 || left <= 0 ? 'disabled' : ''}>${ico('plus', 14, 2)}</button>` : ''}</span></span>`).join('')}</div>
+    <span class="sub">점수 배분은 능력치마다 2~7 사이에서 합계 24를 맞춥니다. 굴림은 각 1d6+1이며 합계가 20 미만이면 다시 굴립니다.</span>
+    <span class="derived"><span class="pan"><span class="sub">HP</span><b class="bb">${dv.hp}</b></span><span class="pan"><span class="sub">정신력</span><b class="bb">${dv.san}</b></span><span class="pan"><span class="sub">이동</span><b class="bb">${dv.mv}칸</b></span></span>`;
+  if (step === 3) body = `
+    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="seg"><button data-act="pmode" data-v="roll" aria-pressed="${c.pmode === 'roll'}">무작위</button><button data-act="pmode" data-v="write" aria-pressed="${c.pmode === 'write'}">직접 작성</button></span>${c.pmode === 'roll' ? `<button class="btn s" data-act="rollPast" style="margin-left:auto">${ico('dice', 14, 2)}전부 굴리기</button>` : ''}</span>
+    ${c.pmode === 'roll' ? `<div style="display:flex;flex-direction:column;gap:8px">${[['소속 부서', DEPT[c.dept][0] + (deptSk.length ? ' (' + deptSk.join(', ') + ')' : ''), c.dept, 'dept'], ['사망 경위', DEATH[c.death], c.death, 'death'], ['비밀', SECRET[c.secret], c.secret, 'secret']].map(([n, v, r, k]) => `<div class="pcard"><span class="r bb">${r + 1}</span><span class="v"><span class="sub">${n}</span><b>${esc(v)}</b></span><button class="ib f" data-act="rollOne" data-v="${k}" aria-label="${n} 다시 굴리기">${ico('refresh', 16)}</button></div>`).join('')}</div>`
+    : `<label class="lab"><span>소속 부서</span><select class="inp" data-in="dept">${DEPT.map(([n, sk], i) => `<option value="${i}" ${c.dept === i ? 'selected' : ''}>${n}${sk.length ? ' (' + sk.join(', ') + ')' : ''}</option>`).join('')}</select></label>
+       <label class="lab"><span>실명</span><input class="inp" data-in="realName" value="${esc(c.realName)}" maxlength="20" placeholder="예: 김도하"></label>
+       <label class="lab"><span>과거 이야기</span><textarea class="inp" data-in="story" maxlength="1500" placeholder="사망 경위, 숨긴 일 등을 자유롭게 작성하십시오">${esc(c.story)}</textarea></label>`}
+    <label class="lab"><span>교차 과거 (선택)</span><input class="inp" data-in="cross" value="${esc(c.cross)}" maxlength="8" placeholder="과거를 함께 엮을 요원의 넘버, 예: R8-047"></label>
+    <div class="note">${ico('lock', 18)}<span>이 내용은 전부 봉인됩니다. 플레이어는 알지만 캐릭터는 기억하지 못합니다. 실제 나이는 <b>${realAge}세</b>로 기록됩니다.</span></div>`;
+  if (step === 4) {
+    const a = c.trait ? Math.min(6, Math.max(1, Math.ceil(c.trait / 2))) : '?', b = c.trait ? c.trait - a : '?';
+    body = `
+    <p style="margin:0;font-size:15px;line-height:1.7">재생 수조에서 처음 깨어날 때 몸에 남은 흔적입니다. 2d6을 굴려 변질 특성 하나를 받습니다.</p>
+    <span class="dice"><span class="die bb">${a}</span><span class="die bb">${b}</span><button class="btn" data-act="rollTrait" style="margin-left:8px">${ico('dice', 16, 2)}${c.trait ? '다시 굴리기' : '2d6 굴리기'}</button></span>
+    ${tr ? `<div class="trait"><span class="bb k">MUTATION ${c.trait}</span><b>${tr[0]}</b><span style="font-size:14px;opacity:.85">${tr[1]}</span><span class="chips"><span>장점: ${tr[2]}</span><span class="c">대가: ${tr[3]}</span></span></div>` : `<div class="pan" style="padding:20px;color:var(--sub);font-size:14px">아직 굴리지 않았습니다.</div>`}`;
+  }
+  if (step === 5) body = `
+    <span class="sub" style="font-size:14px">${deptSk.length ? '부서 기능 ' + deptSk.length + '개는 등급 1로 정해져 있습니다. ' : '소속 기록이 없어 부서 기능이 없습니다. '}자유 기능 1개를 더 선택하십시오. <b style="color:var(--ink)">남은 선택 ${c.free < 0 ? 1 : 0}</b></span>
+    <div class="skills">${SKILLS.map(([n, s], i) => { const isD = deptSk.includes(n), isF = c.free === i; return `<button class="${isD ? 'dept' : ''}" ${isD ? 'aria-disabled="true"' : `data-act="free" data-v="${i}"`} aria-pressed="${isD || isF}"><b>${n}</b><span class="sub" style="font-size:12px">${s}</span>${isD ? '<span class="tag">부서</span>' : isF ? '<span class="tag o">선택</span>' : ''}<b class="bb lv">LV ${isD || isF ? 1 : 0}</b></button>`; }).join('')}</div>`;
+  if (step === 6) body = `
+    <p style="margin:0;font-size:15px;line-height:1.7">출입증을 발급하면 섹터 R-8에 귀속됩니다. 넘버와 호출명은 이후 변경할 수 없습니다.</p>
+    <div class="summary">${[['넘버', `<b class="bb" style="font-size:22px">${c.num}</b>`], ['호출명', `<b>${esc(c.name)}</b>`], ['역할', `<b>${ROLES[c.role][0]}</b>`], ['변질 특성', `<b>${tr ? tr[0] : '-'}</b>`], ['HP · 정신력 · 이동', `<b>${dv.hp} · ${dv.san} · ${dv.mv}칸</b>`], ['기능', `<b>${esc(skillList(c).join(', '))}</b>`]].map(([k, v]) => `<span class="pan"><span class="sub">${k}</span>${v}</span>`).join('')}</div>
+    <p class="err" role="alert">${esc(c.err)}</p>
+    <button class="btn lg" data-act="issue" ${S.busy ? 'disabled' : ''}>${ico('check', 18, 2.5)}출입증 발급</button>`;
+
+  return `<div class="cr">
+  <header><span class="logo">${LOGO(28)}<span style="display:flex;flex-direction:column;gap:3px"><span class="bb" style="font-size:22px">REGENERATION</span><span class="sub" style="font-size:11px">재생 절차, 요원 등록</span></span></span>
+    <nav class="steps" aria-label="단계">${STEPS.map((n, i) => `<button data-act="goStep" data-v="${i}" ${i === step ? 'aria-current="step"' : ''} class="${i < step ? 'done' : ''}" ${i > step ? 'disabled' : ''}><span class="n">${i + 1}</span>${n}</button>`).join('')}</nav>
+    <button class="btn g s" data-act="signOut" style="margin-left:auto">나가기</button></header>
+  <div class="mbar" aria-hidden="true">${STEPS.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>
+  <main>
+    <section class="form" aria-labelledby="stepTitle">
+      <div><span class="bb eyebrow">STEP ${step + 1} / ${STEPS.length}</span><h2 id="stepTitle">${STEPS[step]}</h2></div>
+      <div class="body">${body}</div>
+      <div class="foot">
+        ${step === 0 ? `<button class="btn g" data-act="signOut">${ico('arrowL', 16, 2)}로그인으로</button>` : `<button class="btn g" data-act="goStep" data-v="${step - 1}">${ico('arrowL', 16, 2)}이전</button>`}
+        ${step < 6 ? `<span style="display:flex;align-items:center;gap:12px"><span class="sub" data-bind="why">${can[step] ? '' : why}</span><button class="btn" data-act="goStep" data-v="${step + 1}" data-need="${step}" ${can[step] ? '' : 'disabled'}>${step === 5 ? '확인으로' : '다음'}${ico('arrowR', 16, 2)}</button></span>` : ''}
+      </div>
+    </section>
+    <aside><span style="display:flex;align-items:baseline;gap:8px"><span class="bb" style="font-size:16px;letter-spacing:.16em;color:var(--sub)">PREVIEW</span><span class="sub" style="font-size:12px">출입증 미리보기</span></span>
+      ${badgeHTML({ num: c.num, name: c.name, role: c.role, head: c.head, age: c.age, stats: c.stats, trait: c.trait }, { preview: true })}</aside>
+  </main>
+</div>`;
+}
+const realAgeOf = c => c.age + 5 * (1 + (c.dept + (c.pmode === 'write' ? 0 : c.death + c.secret)) % 10);
+const skillList = c => { const l = DEPT[c.dept][1].slice(); if (c.free >= 0 && !l.includes(SKILLS[c.free][0])) l.push(SKILLS[c.free][0]); return l; };
+
+/* ═════════════ 8. 화면: 로비 ═════════════ */
+const MENU = [['home', '홈', 'home'], ['ops', '작전', 'ops'], ['base', '기지', 'base'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
+function viewShell() {
+  const me = S.me, r = me.res || START_RES;
+  return `<div class="shell">
+  <header class="top">
+    <span class="logo">${LOGO(30)}<span class="bb w">SECTOR <span>R-8</span></span></span>
+    <span class="sep"></span>
+    <nav class="nav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 22)}<span>${l}</span></button>`).join('')}</nav>
+    <span class="res"><span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span></span>
+    <span class="tools"><button class="ib" data-act="theme" aria-label="${S.theme === 'dark' ? '밝은 화면' : '어두운 화면'}으로 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span>
+  </header>
+  <div class="body3">
+    <div class="colL" id="colL">${badgeHTML(me)}</div>
+    <main class="center" id="center">${viewCenter()}</main>
+    <div class="colR${S.chatOpen ? ' open' : ''}" id="colR">${viewChat()}</div>
+  </div>
+  <footer class="ticker"><span class="k bb">NOTICE</span><span class="tr"><span>${esc(notices().join('　　　'))}</span></span></footer>
+  <nav class="bnav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 22)}<span>${l}</span></button>`).join('')}</nav>
+  <button class="fab" data-act="chat" aria-label="통신 채널 열기">${ico('msg', 24)}${S.unread ? `<i>${S.unread > 9 ? '9+' : S.unread}</i>` : ''}</button>
+</div>`;
+}
+function notices() {
+  const n = S.agents.length;
+  return [`섹터 R-8에 귀속된 요원 ${n}명.`, '작전 및 기지 관리 기능은 다음 개방 단계에서 가동됩니다.', '봉인된 기록은 섹터의 허가 없이 열람할 수 없습니다.'];
+}
+
+function viewCenter() {
+  if (S.view === 'home') return viewHome();
+  if (S.view === 'agents') return viewAgents();
+  const m = MENU.find(x => x[0] === S.view);
+  return `<section class="pan wip"><span class="bb">${({ ops: 'OPERATIONS', base: 'BASE', files: 'ARCHIVE', log: 'RECORDS' })[S.view]}</span><h2>${m[1]}</h2><p class="sub" style="font-size:14px;margin:0">이 구역은 아직 개방되지 않았습니다. 다음 단계에서 가동됩니다.</p></section>`;
+}
+
+function viewHome() {
+  const on = S.agents.filter(isOnline), sorted = S.agents.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return `
+  <section class="op" aria-label="작전">
+    <span class="bb k">${ico('ops', 20)}OPERATION STANDBY</span>
+    <h2>대기 중인 작전이 없습니다</h2>
+    <p>작전 배정은 다음 개방 단계에서 시작됩니다. 그동안 통신 채널에서 다른 요원과 합을 맞추십시오.</p>
+    <span class="ghost">STANDBY</span>
+    <button class="go" disabled>${icoFill('play', 16)}대기실 입장</button>
+  </section>
+  <div class="tiles">
+    <section class="pan tile" aria-label="요원">
+      <span class="h"><span class="bb">AGENTS</span><small>요원</small></span>
+      <span class="sub">섹터 요원 ${S.agents.length}명, 지금 접속 ${on.length}명</span>
+      <span class="roster">${S.agents.slice(0, 12).map(a => `<span class="${isOnline(a) ? 'on' : ''}" title="${esc(a.num + ' ' + a.name)}">${esc((a.name || '?')[0])}</span>`).join('')}</span>
+      <button class="btn g s" data-act="view" data-v="agents" style="align-self:flex-start">요원 목록 보기${ico('arrowR', 14, 2)}</button>
+    </section>
+    <section class="pan tile" aria-label="섹터 기록">
+      <span class="h"><span class="bb">SECTOR LOG</span><small>재생 기록</small></span>
+      <ul class="logl">${sorted.slice(0, 5).map(a => `<li><time>${ymd(a.createdAt).slice(5)}</time><span>${esc(a.num)} ${esc(a.name)} 요원이 재생 절차를 마쳤다.</span></li>`).join('') || '<li class="empty">기록이 없다.</li>'}</ul>
+    </section>
+  </div>`;
+}
+
+function viewAgents() {
+  const list = S.agents.slice().sort((a, b) => (a.num > b.num ? 1 : -1));
+  const sel = list.find(a => a.uid === S.sel) || list.find(a => a.uid === S.user.uid);
+  const mine = sel && sel.uid === S.user.uid, tr = sel && sel.trait ? TRAITS[sel.trait] : null, dv = sel ? derived(sel.stats, sel.trait) : null;
+  return `
+  <section style="display:flex;flex-direction:column;gap:12px" aria-label="요원 목록">
+    <span style="display:flex;align-items:baseline;gap:8px"><span class="bb" style="font-size:28px">AGENTS</span><span class="sub">섹터 R-8 귀속 요원 ${list.length}명</span></span>
+    <div class="agents">${list.map(a => `<button class="pan acard" data-act="sel" data-v="${esc(a.uid)}" aria-pressed="${sel && sel.uid === a.uid}"><span class="ph">${headshot(a.head)}</span><span class="t"><span class="bb num">${esc(a.num)}</span><b>${esc(a.name)}${a.uid === S.user.uid ? ' <span class="tag o">나</span>' : ''}</b><span class="sub" style="display:flex;align-items:center;gap:6px"><i class="dot${isOnline(a) ? ' on' : ''}"></i>${ROLES[a.role][0]} · ${isOnline(a) ? '접속 중' : '오프라인'}</span></span></button>`).join('')}</div>
+  </section>
+  ${sel ? `<section class="pan detail" aria-label="요원 상세">
+    <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="bb" style="font-size:22px;letter-spacing:.1em;color:var(--navyLine)">${esc(sel.num)}</span><b style="font-size:22px">${esc(sel.name)}</b><span class="tag">${ROLES[sel.role][0]}</span>${tr ? `<span class="tag o">${tr[0]}</span>` : ''}</span>
+    <span class="derived"><span class="pan"><span class="sub">HP</span><b class="bb">${dv.hp}</b></span><span class="pan"><span class="sub">정신력</span><b class="bb">${dv.san}</b></span><span class="pan"><span class="sub">이동</span><b class="bb">${dv.mv}칸</b></span></span>
+    ${tr ? `<div class="note">${ico('alert', 18)}<span><b>${tr[0]}</b>: ${tr[1]}. 장점 ${tr[2]}, 대가 ${tr[3]}.</span></div>` : ''}
+    <span class="sub">기능: ${esc(Object.entries(sel.skills || {}).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</span>
+    ${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}
+  </section>` : ''}`;
+}
+function sealBox() {
+  const p = S.priv;
+  if (!p) return `<div class="note">${ico('lock', 18)}<span>봉인 기록을 불러오는 중입니다.</span></div>`;
+  const rows = p.mode === 'write'
+    ? [['소속 부서', DEPT[p.dept][0]], ['실명', p.realName || '(공란)'], ['과거', p.story], ['실제 나이', p.realAge + '세'], ['교차 과거', p.cross || '없음']]
+    : [['소속 부서', DEPT[p.dept][0]], ['사망 경위', DEATH[p.death]], ['비밀', SECRET[p.secret]], ['실제 나이', p.realAge + '세'], ['교차 과거', p.cross || '없음']];
+  return `<div class="sealbox"><div class="hd">${ico(S.reveal ? 'unlock' : 'lock', 18)}<b style="font-size:14px">봉인 기록</b><span class="sub" style="font-size:12px">플레이어만 열람할 수 있다. 캐릭터는 이 내용을 기억하지 못한다.</span><button class="btn g s" data-act="reveal" style="margin-left:auto">${S.reveal ? '닫기' : '열람'}</button></div>
+    ${S.reveal ? `<dl class="bd">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}</div>`;
+}
+
+function viewChat() {
+  const me = S.user.uid, list = S.chat.filter(m => (m.channel || 'all') === S.chan), on = S.agents.filter(isOnline).length;
+  return `<section class="pan chat" aria-label="통신 채널">
+  <div class="hd">${ico('msg', 20)}<span class="bb">TEAM CHANNEL</span><small><i class="dot on"></i><span>접속 <span data-bind="online">${on}</span>명</span></small><button class="ib sheet-close" data-act="chat" aria-label="채팅 닫기">${ico('x', 18, 2)}</button></div>
+  <div class="tabs">${[['all', '전체'], ['field', '현장'], ['ctrl', '관제']].map(([k, l]) => `<button data-act="chan" data-v="${k}" aria-pressed="${S.chan === k}">${l}</button>`).join('')}</div>
+  <div class="list" id="chatList">${list.map((m, i) => msgHTML(m, me, i === 0)).join('') || '<span class="empty first">아직 오간 통신이 없습니다.</span>'}</div>
+  <form data-form="chat"><label class="sr" for="chatIn">메시지 입력</label><input id="chatIn" name="text" autocomplete="off" maxlength="300" placeholder="메시지 입력"><button type="submit" aria-label="보내기">${ico('send', 18, 2)}</button></form>
+</section>`;
+}
+function msgHTML(m, me, first) {
+  const cls = first ? ' first' : '';
+  if (m.uid === me) return `<div class="msg me${cls}"><time class="sub" style="font-size:12px">${hhmm(m.ts)}</time><span class="tx">${esc(m.text)}</span></div>`;
+  return `<div class="msg${cls}"><span class="av${m.role === 1 ? ' c' : ''}">${esc((m.name || '?')[0])}</span><span class="m"><span class="meta"><b>${esc(m.name)}</b><span class="tag${m.role === 1 ? ' o' : ''}" style="height:18px;padding:0 6px">${m.role === 1 ? '관제' : '현장'}</span><time>${hhmm(m.ts)}</time></span><span class="tx">${esc(m.text)}</span></span></div>`;
+}
+
+/* ═════════════ 9. 그리기 ═════════════ */
+function render() {
+  if (S.phase === 'boot') app.innerHTML = `<div style="min-height:100%;display:grid;place-items:center"><span class="bb sub" style="font-size:18px;letter-spacing:.2em">CONNECTING…</span></div>`;
+  else if (S.phase === 'login') app.innerHTML = viewLogin();
+  else if (S.phase === 'create') app.innerHTML = viewCreate();
+  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); scrollChat(); }
+}
+function renderCenter() { const el = document.getElementById('center'); if (el) el.innerHTML = viewCenter(); }
+function renderChatList() {
+  const el = document.getElementById('chatList'); if (!el) return;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  const list = S.chat.filter(m => (m.channel || 'all') === S.chan);
+  el.innerHTML = list.map((m, i) => msgHTML(m, S.user.uid, i === 0)).join('') || '<span class="empty first">아직 오간 통신이 없습니다.</span>';
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+function scrollChat() { const el = document.getElementById('chatList'); if (el) el.scrollTop = el.scrollHeight; }
+function refreshFab() { const f = document.querySelector('.fab'); if (f) f.innerHTML = ico('msg', 24) + (S.unread ? `<i>${S.unread > 9 ? '9+' : S.unread}</i>` : ''); }
+const mobile = () => matchMedia('(max-width:999px)').matches;
+
+/* ═════════════ 10. 흐름 ═════════════ */
+async function onUser(u) {
+  unsub.forEach(f => f && f()); unsub = []; clearInterval(touchT);
+  S.user = u; S.me = null; S.priv = null; S.err = ''; S.busy = false;
+  if (!u) { S.phase = 'login'; return render(); }
+  S.phase = 'boot'; render();
+  try { S.me = await B.getAgent(u.uid); } catch (e) { S.phase = 'login'; S.err = errMsg(e); return render(); }
+  if (!S.me) { S.c = freshCreate(); S.phase = 'create'; return render(); }
+  enterLobby();
+}
+function enterLobby() {
+  S.phase = 'lobby'; S.view = 'home'; S.unread = 0; render(); window.scrollTo(0, 0);
+  let seen = -1;
+  unsub.push(B.watchAgents(list => {
+    S.agents = list; const mine = list.find(a => a.uid === S.user.uid); if (mine) S.me = mine;
+    if (S.phase === 'lobby') { renderCenter(); const l = document.getElementById('colL'); if (l) l.innerHTML = badgeHTML(S.me); const o = app.querySelector('[data-bind=online]'); if (o) o.textContent = list.filter(isOnline).length; }
+  }));
+  unsub.push(B.watchChat(list => {
+    const prev = S.chat.length; S.chat = list;
+    if (seen >= 0 && mobile() && !S.chatOpen) { S.unread += Math.max(0, list.filter(m => m.uid !== S.user.uid).length - seen); refreshFab(); }
+    seen = list.filter(m => m.uid !== S.user.uid).length;
+    renderChatList(); if (prev === 0) scrollChat();
+  }));
+  B.getPrivate(S.user.uid).then(p => { S.priv = p; if (S.view === 'agents') renderCenter(); }).catch(() => {});
+  B.touch(S.user.uid); touchT = setInterval(() => B.touch(S.user.uid), 60000);
+}
+
+async function issue() {
+  const c = S.c; S.busy = true; c.err = ''; render();
+  const realAge = realAgeOf(c);
+  const skills = {}; skillList(c).forEach(k => skills[k] = 1);
+  const pub = { num: c.num, name: c.name.trim(), role: c.role, head: c.head, age: c.age, stats: c.stats, trait: c.trait, skills, contamination: 0, res: START_RES };
+  const priv = c.pmode === 'write'
+    ? { mode: 'write', dept: c.dept, realName: c.realName.trim(), story: c.story.trim(), cross: c.cross.trim().toUpperCase(), realAge }
+    : { mode: 'roll', dept: c.dept, death: c.death, secret: c.secret, cross: c.cross.trim().toUpperCase(), realAge };
+  try {
+    const payload = { num: pub.num, name: pub.name, role: c.role, head: c.head, age: c.age, stats: c.stats, mode: c.mode, trait: c.trait, free: c.free,
+      past: c.pmode === 'write' ? { mode: 'write', dept: c.dept, realName: c.realName, story: c.story, cross: c.cross } : { mode: 'roll', dept: c.dept, death: c.death, secret: c.secret, cross: c.cross } };
+    await B.createAgent(S.user.uid, pub, priv, payload);
+    S.me = await B.getAgent(S.user.uid); S.busy = false; enterLobby();
+  } catch (e) { S.busy = false; c.err = errMsg(e); render(); }
+}
+
+/* ═════════════ 11. 입력 처리 ═════════════ */
+app.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
+  const a = t.dataset.act, v = t.dataset.v, c = S.c;
+  const re = () => render();
+  switch (a) {
+    case 'loginMode': S.loginMode = S.loginMode === 'in' ? 'up' : 'in'; S.err = ''; return re();
+    case 'signOut': return B.signOut();
+    case 'theme': setTheme(S.theme === 'dark' ? 'light' : 'dark'); return re();
+    // 재생 절차
+    case 'reNum': c.num = newNum(); c.err = ''; return re();
+    case 'role': c.role = +v; return re();
+    case 'head': c.head = +v; return re();
+    case 'age': c.age = Math.max(18, Math.min(70, c.age + +v)); return re();
+    case 'mode': c.mode = v; if (v === 'pt') c.stats = [4, 4, 4, 4, 4, 4]; else rollStats(); return re();
+    case 'rollStats': rollStats(); return re();
+    case 'stat': { const k = +t.dataset.k, s = c.stats.slice(), left = 24 - s.reduce((x, y) => x + y, 0); s[k] += +v; if (s[k] < 2 || s[k] > 7 || (+v > 0 && left <= 0)) return; c.stats = s; return re(); }
+    case 'pmode': c.pmode = v; return re();
+    case 'rollPast': c.dept = d(10) - 1; c.death = d(10) - 1; c.secret = d(10) - 1; c.free = fixFree(c); return re();
+    case 'rollOne': c[v] = d(10) - 1; if (v === 'dept') c.free = fixFree(c); return re();
+    case 'rollTrait': c.trait = d(6) + d(6); return re();
+    case 'free': c.free = c.free === +v ? -1 : +v; return re();
+    case 'goStep': c.step = +v; window.scrollTo(0, 0); return re();
+    case 'issue': return issue();
+    // 로비
+    case 'view': S.view = v; S.reveal = false; if (mobile()) S.chatOpen = false; render(); return window.scrollTo(0, 0);
+    case 'sel': S.sel = v; S.reveal = false; return renderCenter();
+    case 'reveal': S.reveal = !S.reveal; return renderCenter();
+    case 'chan': S.chan = v; { const col = document.getElementById('colR'); col.innerHTML = viewChat(); scrollChat(); } return;
+    case 'chat': S.chatOpen = !S.chatOpen; S.unread = 0; document.getElementById('colR').classList.toggle('open', S.chatOpen); refreshFab(); if (S.chatOpen) { scrollChat(); document.getElementById('chatIn')?.focus(); } return;
+  }
+});
+function rollStats() { let s; do { s = SN.map(() => d(6) + 1); } while (s.reduce((a, b) => a + b, 0) < 20); S.c.stats = s; }
+function fixFree(c) { return c.free >= 0 && DEPT[c.dept][1].includes(SKILLS[c.free][0]) ? -1 : c.free; }
+
+app.addEventListener('input', e => {
+  const k = e.target.dataset.in; if (!k || !S.c) return;
+  const c = S.c;
+  if (k === 'dept') { c.dept = +e.target.value; c.free = fixFree(c); return render(); }
+  c[k] = e.target.value;
+  if (k === 'name') {
+    const b = app.querySelector('[data-bind=name]'); if (b) b.textContent = c.name || '호출명 미정';
+    const n = app.querySelector('[data-need="0"]'), w = app.querySelector('[data-bind=why]');
+    if (n) n.disabled = !c.name.trim(); if (w) w.textContent = c.name.trim() ? '' : '호출명을 입력하십시오.';
+  }
+  if (k === 'story') { const n = app.querySelector('[data-need="3"]'), w = app.querySelector('[data-bind=why]'); if (n) n.disabled = !c.story.trim(); if (w) w.textContent = c.story.trim() ? '' : '과거 이야기를 작성하십시오.'; }
+});
+
+app.addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, kind = f.dataset.form;
+  if (kind === 'login') {
+    const email = f.email.value.trim(), pw = f.pw.value;
+    S.busy = true; S.err = ''; render();
+    try { await (S.loginMode === 'up' ? B.signUp(email, pw) : B.signIn(email, pw)); }
+    catch (err) { S.busy = false; S.err = errMsg(err); render(); const el = app.querySelector('[name=email]'); if (el) el.value = email; }
+  }
+  if (kind === 'chat') {
+    const inp = f.text, text = inp.value.trim(); if (!text) return;
+    inp.value = '';
+    try { await B.sendChat({ uid: S.user.uid, num: S.me.num, name: S.me.name, role: S.me.role, channel: S.chan, text }); }
+    catch (err) { inp.value = text; inp.placeholder = errMsg(err); }
+  }
+});
+
+/* ═════════════ 12. 시작 ═════════════ */
+render();
+(async () => {
+  B = DEMO ? demoBackend() : serverBackend();
+  B.onAuth(onUser);
+})();
+</script>
+</body>
+</html>
