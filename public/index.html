@@ -1050,6 +1050,114 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .detail .grid2 .span2{grid-column:1 / -1}
 .detail .tabb{padding:20px 24px 24px}.detail .tabb>.inv{margin:0}
 @media (max-width:999px){.atabs{padding:0 12px}.atabs button{padding:0 12px}.detail .tabb{padding:16px}.detail .vit3{grid-template-columns:1fr}}
+
+.fm{position:relative}
+.fm .gd{flex:none;margin-left:auto;font-size:10px;font-weight:800;padding:1px 6px;border-radius:3px;background:var(--navy);color:var(--onNavy)}.fm .gd.r{background:transparent;color:#D9A441;box-shadow:inset 0 0 0 1px #D9A441}
+.fm.guard{box-shadow:inset 0 0 0 2px var(--navyLine),0 0 12px color-mix(in srgb,var(--navyLine) 40%,transparent)}
+.fm .intent{display:flex;align-items:baseline;gap:6px;margin-top:2px;padding:4px 7px;border-radius:3px;background:color-mix(in srgb,var(--red) 12%,transparent);font-size:12px}
+.fm .intent small{font-size:10px;color:var(--sub)}.fm .intent b{font-size:12px;color:var(--red)}
+.fm .intent.it-scream b{color:#C86BB0}.fm .intent.it-scream{background:color-mix(in srgb,#C86BB0 12%,transparent)}
+.fm .intent.it-call b{color:#D9A441}.fm .intent.it-call{background:color-mix(in srgb,#D9A441 12%,transparent)}
+.fm .intent.it-brace b,.fm .intent.it-stun b{color:var(--sub)}.fm .intent.it-brace,.fm .intent.it-stun{background:var(--faint)}
+.fm.foe.wait{opacity:.6}.fm.foe.wait .intent{background:transparent}
+.fm .pop{position:absolute;right:10px;top:22px;font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;pointer-events:none;animation:popUp 1.3s ease-out forwards;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.fm .pop.two{right:46px;animation-delay:.12s}
+.fm .pop.dmg{color:#FF6A5E}.fm .pop.sdmg{color:#D98BE0}.fm .pop.heal{color:#7FD39B}
+@keyframes popUp{0%{opacity:0;transform:translateY(8px) scale(.8)}15%{opacity:1;transform:translateY(-4px) scale(1.15)}70%{opacity:1;transform:translateY(-14px)}100%{opacity:0;transform:translateY(-22px)}}
+.fm.hit{animation:hitShake .45s ease-in-out}.fm.hit::after{content:'';position:absolute;inset:0;border-radius:3px;background:var(--red);opacity:0;animation:hitFlash .6s ease-out;pointer-events:none}
+.fm.healed::after{content:'';position:absolute;inset:0;border-radius:3px;background:#5FAF7E;opacity:0;animation:hitFlash .7s ease-out;pointer-events:none}
+@keyframes hitShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes hitFlash{0%{opacity:.35}100%{opacity:0}}
+.fm.dying{animation:dieOut 1.4s ease-in forwards;justify-content:center}.fm.dying .kill{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.1em;color:var(--red);text-align:center}
+@keyframes dieOut{0%{opacity:1;transform:scale(1)}30%{opacity:1;transform:scale(1.05)}100%{opacity:0;transform:scale(.85)}}
+.choice2.atk.combo{box-shadow:inset 0 0 0 1.5px #D9A441}.req i.cb{color:#141414;background:#D9A441;box-shadow:none}
+.choice2.atk.guard .req i.a{color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--navyLine)}
+@media (prefers-reduced-motion:reduce){.fm.hit,.fm.dying,.fm .pop,.fm.hit::after,.fm.healed::after{animation:none}.fm .pop{display:none}.fm.dying{display:none}}
+
+/* 교전 화면 */
+.cbar2{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 8px 6px 12px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 35%,transparent);flex-wrap:wrap}
+.cbx{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:3px;background:var(--red);color:#160B0A;font-size:12px;font-weight:900;flex:none}
+.cbt{font-size:14px;min-width:0}
+.cbe{display:flex;align-items:baseline;gap:6px;font-size:13px;margin-left:auto}.cbe small{font-size:11px;color:var(--sub)}.cbe.near b{color:var(--red)}
+.cbo{height:34px;padding:0 10px;border:0;border-radius:4px;font:inherit;font-size:12px;font-weight:700;color:var(--navyLine);background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 50%,transparent);display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.cbd{margin-top:-4px;padding:10px 14px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.6}.cbd p{margin:0;color:var(--ink2,var(--ink))}.cbd .see{font-size:12px;color:var(--sub)}.cbd .see b{margin-right:6px;color:var(--ink)}
+.fore{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}.fore .fl{color:var(--sub)}
+.fore .fi{display:inline-flex;align-items:baseline;gap:6px;padding:5px 10px;border-radius:3px;background:color-mix(in srgb,var(--red) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 35%,transparent)}
+.fore .fi small{font-size:11px;font-weight:800;color:var(--red)}.fore .fi b{font-size:13px;color:var(--red)}.fore .fi em{font-style:normal;font-size:11px;color:var(--sub)}
+.fore .fi.it-scream{background:color-mix(in srgb,#C86BB0 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,#C86BB0 40%,transparent)}.fore .fi.it-scream b{color:#C86BB0}
+.fore .fi.it-call b{color:#D9A441}.fore .fi.it-brace b,.fore .fi.it-stun b{color:var(--sub)}
+.cturn{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.cturn b{font-size:15px}.cturn small{font-size:12px;color:var(--sub)}
+.cacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cgrp{padding:10px;border-radius:5px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:8px;min-width:0}
+.cgh{display:flex;align-items:baseline;gap:6px;font-size:12px;color:var(--sub);min-width:0}.cgh b{font-size:13px}.cgh b.r{color:var(--red)}.cgh b.n{color:var(--navyLine)}.cgh small{margin-left:auto;font-size:11px}
+.cgb{display:flex;gap:8px;flex-wrap:wrap}
+.cb2{flex:1 1 140px;min-height:62px;padding:9px 12px;border:0;border-radius:5px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.cb2 .cl{display:flex;align-items:center;gap:6px}.cb2 .cl b{font-size:15px}.cb2 .cl i{font-style:normal;font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;background:#D9A441;color:#1A1408}
+.cb2 small{font-size:11px;line-height:1.4;color:var(--sub)}
+.cb2.atk{background:color-mix(in srgb,var(--red) 14%,transparent);box-shadow:inset 0 0 0 1.5px var(--red)}.cb2.atk.combo{box-shadow:inset 0 0 0 1.5px #D9A441}
+.cb2.def{background:color-mix(in srgb,var(--navyLine) 14%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.cb2:hover:not(:disabled){filter:brightness(1.15)}
+.cb2:disabled{cursor:not-allowed;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine);color:var(--sub)}.cb2:disabled small{color:var(--sub)}
+.cmore{align-self:flex-start;height:36px;padding:0 12px;border:0;border-radius:4px;font:inherit;font-size:12px;color:var(--ink);background:var(--faint);display:inline-flex;align-items:center;gap:6px;cursor:pointer}.cmore b{font-size:13px}.cmore small{color:var(--sub)}
+@media (max-width:640px){.cacts{grid-template-columns:1fr}.cbe{margin-left:0}.cbo{margin-left:auto}}
+
+/* 대열이 길어지면 칩이 줄어들고, 그래도 넘치면 가로로 넘긴다 */
+.form .line{justify-content:safe center}
+.form .line .fm,.form .line .fm.foe{flex:0 1 172px;width:auto;min-width:128px}
+.fm .fwait{position:absolute;top:-8px;right:8px;height:18px;padding:0 7px;border-radius:9px;display:flex;align-items:center;font-size:10px;font-weight:800;color:#fff;background:var(--red);box-shadow:0 0 0 2px var(--tile)}
+.fm .fwait.hit{animation:hitShake .45s ease-in-out}
+.form .line{padding-top:10px}
+@media (max-width:999px){.form .line .fm,.form .line .fm.foe{flex:0 0 116px;min-width:116px}}
+
+/* 관제 간섭: 잡음 */
+.noisebox{position:relative;overflow:hidden;padding:12px 14px;border-radius:3px;background:#0E1416;box-shadow:inset 0 0 0 1px color-mix(in srgb,#C86BB0 55%,transparent);display:flex;flex-direction:column;gap:8px}
+.noisebox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.18;background:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 3px);animation:nzScroll .6s steps(3) infinite}
+.noisebox .nh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.noisebox .nh .bb{font-size:15px;letter-spacing:.14em;color:#C86BB0}.noisebox .nh small{font-size:11px;color:var(--sub)}
+.noisebox .ntx{margin:0;font-family:ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;font-size:15px;line-height:1.7;letter-spacing:.04em;color:#E6D6E2;text-shadow:1px 0 rgba(229,87,79,.6),-1px 0 rgba(94,159,179,.6);animation:nzJit 2.4s steps(1) infinite}
+.noisebox .nbtn{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.choice2.dec{box-shadow:inset 0 0 0 1.5px #C86BB0}
+.stage.noisy .cctv,.stage.noisy .radar,.stage.noisy .cbar2{position:relative}
+.stage.noisy .cctv::after,.stage.noisy .radar::after,.stage.noisy .cbar2::after{content:'';position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.35;background:repeating-linear-gradient(0deg,rgba(255,255,255,.35) 0 1px,transparent 1px 2px),repeating-linear-gradient(90deg,rgba(200,107,176,.25) 0 2px,transparent 2px 7px);animation:nzScroll .5s steps(4) infinite}
+.stage.noisy .cctv .cap2{animation:nzJit 1.8s steps(1) infinite}
+.scope.noisy{filter:contrast(1.4) hue-rotate(40deg)}.rd .glt{color:#C86BB0;animation:nzJit 1.2s steps(1) infinite}
+@keyframes nzScroll{0%{background-position:0 0}100%{background-position:0 12px}}
+@keyframes nzJit{0%,88%,100%{transform:none}90%{transform:translateX(2px) skewX(-6deg)}94%{transform:translateX(-3px)}}
+.lg.noise{box-shadow:inset 2px 0 0 #C86BB0}.lg.noise>span{color:#D9A6CF}
+.ctlline .cm small{margin-left:6px;font-size:11px;color:var(--sub)}.ctlline .cm.brk{color:var(--red)}
+.choice2.rmt .req i.a{color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--navyLine)}
+@media (prefers-reduced-motion:reduce){.noisebox::before,.noisebox .ntx,.stage.noisy .cctv::after,.stage.noisy .radar::after,.stage.noisy .cbar2::after,.stage.noisy .cctv .cap2,.rd .glt{animation:none}}
+
+/* 튜토리얼 */
+.tut-hl{position:relative;z-index:2;border-radius:4px;box-shadow:0 0 0 2px #8FC3D3,0 0 22px color-mix(in srgb,#5E9FB3 55%,transparent)!important;animation:tutPulse 1.6s ease-in-out infinite}
+@keyframes tutPulse{50%{box-shadow:0 0 0 2px #8FC3D3,0 0 6px color-mix(in srgb,#5E9FB3 30%,transparent)}}
+.tut-bub{position:relative;z-index:3;margin:8px 0 2px;padding:12px 14px;border-radius:3px;background:#0F1A1D;color:#DCEAEE;box-shadow:inset 0 0 0 1px rgba(94,159,179,.6),0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px;max-width:620px;flex-basis:100%}
+.tut-bub::before{content:'';position:absolute;top:-6px;left:28px;width:11px;height:11px;background:#0F1A1D;box-shadow:-1px -1px 0 0 rgba(94,159,179,.6);transform:rotate(45deg)}
+.tut-bub .tbh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tut-bub .ch{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.14em;line-height:1;padding:3px 6px 2px;border-radius:1px;color:#0D1A1E;background:#5E9FB3}
+.tut-bub .tbh i{width:7px;height:7px;border-radius:50%;background:#E5574F}.tut-bub .tbh b{font-size:14px;color:#8FC3D3}.tut-bub .tbh small{font-size:12px;color:#6F8E96}.tut-bub .tbh em{margin-left:auto;font-style:normal;font-size:11px;color:#6F8E96}
+.tut-bub .tsay{margin:0;font-family:ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;font-size:14px;line-height:1.6;letter-spacing:.02em;color:#E6F1F4}
+.tut-bub .trule{margin:0;padding-top:8px;border-top:1px dashed rgba(94,159,179,.3);font-size:12px;line-height:1.6;color:#9DB3B9}.tut-bub .trule b{color:#DCEAEE}
+.tut-bub .tbb{display:flex;justify-content:flex-end;align-items:center;gap:8px}.tut-bub .tbb small{font-size:12px;color:#8FC3D3}
+.tut-bub.nag{box-shadow:inset 0 0 0 1px #E5574F,0 10px 30px rgba(0,0,0,.45);animation:hitShake .45s ease-in-out}.tut-bub.nag .tsay{color:#F3B3AE}
+.opm-sub .tut-bub,.ctlline+.tut-bub{flex:1 1 100%}
+.tutscr{display:none}.tutscr.on{display:block;position:fixed;inset:0;z-index:60}
+.talarm .tskip{top:64px}.tskip{position:absolute;top:20px;right:22px;z-index:2;height:40px;padding:0 16px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:700;color:#C9C9C7;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);cursor:pointer}
+.twake{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(60% 70% at 50% 45%,#10302E 0%,#0A1615 45%,#050808 100%);color:#E6F4F1}
+.tvat{position:absolute;left:50%;top:50%;width:min(460px,70vw);height:min(700px,82vh);transform:translate(-50%,-50%);border-radius:999px;box-shadow:inset 0 0 0 2px rgba(62,127,120,.35);background:rgba(15,42,40,.45)}
+.tosd{position:absolute;top:24px;left:28px;font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;color:#7FD3C6;font-size:16px;line-height:1.3}.tosd small{font-size:13px;color:#4F8F86}
+.tlines{position:relative;width:min(640px,88vw);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.tlines p{margin:0;font-size:16px;line-height:1.6;color:#5F8F88}.tlines p.now{font-size:21px;color:#E6F4F1;animation:tutIn .8s ease-out}
+.tlines .btn{margin-top:14px;min-height:50px;padding:0 26px;background:#7FD3C6;color:#06201D;box-shadow:none}
+@keyframes tutIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.talarm{position:absolute;inset:0;display:flex;flex-direction:column;background:rgba(8,8,8,.88)}
+.tband{flex:none;min-height:52px;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;background:repeating-linear-gradient(135deg,#5A1714 0 18px,#461210 18px 36px);box-shadow:inset 0 -2px 0 #E5574F;font-weight:900;font-size:15px;color:#FFD9D5;animation:tutAlarm 1.2s steps(2) infinite}
+@keyframes tutAlarm{50%{filter:brightness(1.35)}}
+.tucard{margin:auto;width:min(620px,92vw);border-radius:10px;background:#171717;box-shadow:inset 0 0 0 1px rgba(229,87,79,.45),0 24px 60px rgba(0,0,0,.5);padding:26px 28px;display:flex;flex-direction:column;gap:16px;color:#EDEDEB}
+.tucard .th{display:flex;align-items:center;gap:10px}.tucard .th .bb{font-size:18px;letter-spacing:.14em;color:#E5574F}.tucard .th small{font-size:12px;color:#A3A3A1}
+.tmsg{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:6px;background:rgba(229,87,79,.06);box-shadow:inset 0 0 0 1px rgba(229,87,79,.25);font-family:ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;font-size:14.5px;line-height:1.7;color:#F1E3D2}
+.turole{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:6px;background:rgba(255,255,255,.04);flex-wrap:wrap}.turole small{font-size:11px;color:#A3A3A1}.turole b{font-size:15px;flex:1}
+.turole .sw{display:flex;gap:4px}.turole .sw button{height:32px;padding:0 12px;border:0;border-radius:4px;font:inherit;font-size:12px;cursor:pointer;background:transparent;color:#A3A3A1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}.turole .sw button[aria-pressed=true]{background:#24505F;color:#EAF3F5;box-shadow:none}
+.tucard .tgo{min-height:52px;background:#E5574F;color:#1A0B0A;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.tut-hl,.tband,.tlines p.now,.tut-bub.nag{animation:none}}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -1480,7 +1588,18 @@ function serverBackend() {
     socket.on('chat:history', l => { chat = l; emitC(); });
     socket.on('chat', m => { chat = chat.concat(m).slice(-300); emitC(); });
     socket.on('ops', l => { ops.clear(); l.forEach(r => ops.set(r.op.id, r)); emitO(); });
-    socket.on('op', r => { ops.set(r.op.id, r); emitO(); });
+    socket.on('op', r => {
+      // 직전 상태와 비교해 피해·회복·처치를 기록한다 (대열 칩 연출용)
+      const old = ops.get(r.op.id);
+      if (old && old.id === r.id && old.status === 'live') {
+        const fx = {};
+        r.members.forEach(m => { const q = old.members.find(x => x.uid === m.uid); if (q && (m.hp !== q.hp || m.san !== q.san)) fx['u' + m.uid] = { hp: m.hp - q.hp, san: m.san - q.san }; });
+        (r.minions || []).forEach(x => { const q = (old.minions || []).find(y => y.id === x.id); if (q && x.hp !== q.hp) fx['m' + x.id] = { hp: x.hp - q.hp }; });
+        const gone = (old.minions || []).filter(q => !(r.minions || []).some(x => x.id === q.id));
+        if (Object.keys(fx).length || gone.length) { r._fx = fx; r._gone = gone; r._fxAt = Date.now(); setTimeout(() => { if (ops.get(r.op.id) === r) emitO(); }, 1700); }
+      }
+      ops.set(r.op.id, r); emitO();
+    });
     socket.on('sector', x => { sector = { ...x, at: Date.now() }; subs.sector.forEach(f => f(sector)); });
     socket.on('dm:list', l => { dmState.gms = l.gms; dmState.conv = {}; l.conv.forEach(c => { dmState.conv[c.with] = c; }); emitD(null); });
     socket.on('dm', m => {
@@ -1529,7 +1648,7 @@ function serverBackend() {
     baseAct: (kind, entity) => api('/api/base', { kind, entity }),
     unlockDoc: (entity, section) => api('/api/archive/unlock', { entity, section }),
     statUp: k => api('/api/stat', { k }),
-    shopList: () => api('/api/shop'), shopBuy: id => api('/api/shop/buy', { id }), shopOrder: items => api('/api/shop/order', { items }), shopEquip: (kind, slot, id) => api('/api/shop/equip', { kind, slot, id }),
+    tutDone: skip => api('/api/tutorial/done', { skip }), shopList: () => api('/api/shop'), shopBuy: id => api('/api/shop/buy', { id }), shopOrder: items => api('/api/shop/order', { items }), shopEquip: (kind, slot, id) => api('/api/shop/equip', { kind, slot, id }),
     taskStart: (entity, kind, mins) => api('/api/task', { entity, kind, mins }),
     taskCancel: () => api('/api/task/cancel', {}),
     taskAck: () => api('/api/task/ack', {}),
@@ -1645,7 +1764,7 @@ const AUTH_MSG = {
   'op/sealed': 'RAVEN-3이 현장을 관리하고 있습니다. 봉쇄가 풀린 뒤 참가할 수 있습니다.', 'base/raven': 'RAVEN-3이 관리 중인 격리실입니다. 봉쇄가 풀린 뒤 점검할 수 있습니다.',
   'op/pos': '대열 위치가 맞지 않는 행동입니다.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.', 'op/map-start': '이 구역의 시작 지점입니다. 더 물러날 수 없습니다.', 'op/no-foe': '그쪽에는 싸울 상대가 없습니다.',
   'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제팀만 할 수 있습니다.', 'op/bad-choice': '할 수 없는 행동입니다.',
-  'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
+  'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-noise': '지금은 잡음이 없습니다.', 'op/used': '이 장면에서는 이미 썼습니다.', 'op/noise': '잡음 때문에 거리를 읽을 수 없습니다. 먼저 해독하거나 차단하십시오.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
   'demo': '데모 모드에서는 이 기능을 쓸 수 없습니다.',
   'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
   'gm/forbidden': 'GM 계정만 쓸 수 있습니다.', 'gm/bad': '입력값을 확인하십시오.', 'dm/bad-target': '메시지를 보낼 수 없는 상대입니다.', 'op/none': '작전을 찾을 수 없습니다.',
@@ -1866,6 +1985,7 @@ function viewShell() {
   <div class="toast" id="toast" aria-live="polite"></div>
   <div class="opmodal" id="opModal"></div>
   <div class="opmodal gmmodal" id="gmModal"></div>
+  <div class="tutscr" id="tutScreen"></div>
 </div>`;
 }
 function resHTML(r) { return `<span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply.toLocaleString()}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research.toLocaleString()}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span>`; }
@@ -2081,7 +2201,7 @@ function viewBase() {
 
 /* ─── 보급 상점 ─── */
 // 물품 이름표: 서버 목록이 오기 전에도 칭호를 그릴 수 있게 둔다
-const SHOPN = { rookie: '신입 요원', veteran: '현장 베테랑', voice: '무전 너머의 목소리', night: '야간 근무자', steady: '침착한 손', tankreg: '수조 단골', survivor: '끝까지 버틴 자', officer: '고참' };
+const SHOPN = { rookie: '신입 요원', veteran: '현장 베테랑', voice: '무전 너머의 목소리', night: '야간 근무자', steady: '침착한 손', tankreg: '수조 단골', survivor: '끝까지 버틴 자', officer: '고참', first: '첫 출동' };
 const SHOP_SEC = [['use', 'A', 'FIELD KIT', '작전 소모품', '작전 중 현장 요원이 차례마다 하나씩 씁니다. 종류마다 3개까지 들고 다닙니다.'], ['gear', 'B', 'EQUIPMENT', '장비', '방호구와 도구 칸에 하나씩 장착합니다. 받으면 빈 칸에 바로 장착됩니다.'], ['frame', 'C', 'PASS FRAME', '출입증 테두리', '다른 요원에게도 보입니다. 미리보기로 왼쪽 출입증에 입혀 볼 수 있습니다.']];
 const SLOT_NAME = { armor: '방호구', tool: '도구' };
 function viewShop() {
@@ -2171,6 +2291,7 @@ function todoItems() {
     sec.entities.filter(e => e.captured && !(e.lockUntil > Date.now()) && stabOf(e) < 30).sort((a, b) => stabOf(a) - stabOf(b)).slice(0, 2)
       .forEach(e => L.push({ lv: 'danger', t: `${e.id} ${e.name} 안정도 ${Math.floor(stabOf(e))}%`, s: '0%가 되면 RAVEN-3이 투입되고 전원 보급품이 깎입니다.', act: 'view', v: 'base', b: '점검하기' }));
   }
+  if (!(me.ach && me.ach.tutDone)) L.push({ lv: 'info', t: '첫 출동 훈련', s: '리퍼와 벌처가 작전의 기본을 알려 줍니다. 처음 마치면 보급품 20과 칭호 「첫 출동」.', act: 'tutStart', b: '훈련 시작' });
   const t = me.task;
   if (t && t.status === 'run' && t.sign) L.unshift({ lv: 'warn', t: `이상 징후: ${t.entity}`, s: `${t.sign.text} 지금 대응하면 성과가 늘어납니다.`, act: 'view', v: 'base', b: '대응하기' });
   if (t && t.status === 'done') { const bad = t.result && t.result.roll && t.result.roll.tier === 'fail'; L.push({ lv: bad ? 'danger' : 'info', t: `${TASK_NAME[t.kind]} 작업 ${bad ? '실패' : '완료'}`, s: `${t.entity} ${t.result ? esc(t.result.entityName || '') : ''}. 결과를 확인하십시오.`, act: 'view', v: 'base', b: '결과 보기' }); }
@@ -2280,7 +2401,9 @@ function radarHTML(r) {
   const axis = `<line x1="${C}" y1="${C - RAD}" x2="${C}" y2="${C + RAD}" stroke="var(--navyLine)" stroke-opacity=".2"/><line x1="${C - RAD}" y1="${C}" x2="${C + RAD}" y2="${C}" stroke="var(--navyLine)" stroke-opacity=".2"/>
     <text x="${C}" y="12" text-anchor="middle" font-size="9" fill="var(--sub)">앞</text><text x="${C}" y="146" text-anchor="middle" font-size="9" fill="var(--sub)">뒤</text>`;
   let blip = '', rd;
-  if (R.exact) {
+  if (R.noise) {
+    rd = `<span class="rd near"><b class="glt">??m</b><br><span class="sub">잡음 때문에 거리를 읽을 수 없습니다.</span></span>`;
+  } else if (R.exact) {
     if (R.detected) {
       const y = C + (R.from === 'rear' ? 1 : -1) * RAD * Math.min(R.dist, 50) / 50, x = C + (r.scene ? (r.scene.idx % 2 ? 7 : -6) : 0) * Math.min(1, R.dist / 20);
       const near = R.dist <= 10;
@@ -2293,19 +2416,82 @@ function radarHTML(r) {
   }
   const glow = R.exact ? '' : `<i class="glow ${R.from}${R.near ? ' near' : ''}${R.detected ? ' on' : ''}"></i>`;
   return `<div class="radar" aria-label="레이더"><span class="hh"><span class="bb">RADAR</span><small>${R.exact ? '관제 화면' : '현장 감지기'}</small></span>
-    <span class="scope"><i class="sw"></i>${glow}<svg viewBox="0 0 150 150" aria-hidden="true">${ring}${axis}${team}${blip}</svg></span>${rd}</div>`;
+    <span class="scope${R.noise ? ' noisy' : ''}"><i class="sw"></i>${glow}<svg viewBox="0 0 150 150" aria-hidden="true">${ring}${axis}${team}${blip}</svg></span>${rd}</div>`;
+}
+// 관제 원격 조작: 장면마다 한 번씩. 조명은 하수인을 비틀거리게, 격벽은 개체를 밀어낸다.
+function ctlRemoteHTML(r, me) {
+  const U = r.ctlUsed || {}, R = r.radar || {}, foes = (r.minions || []).length, off = me.acted || me.broken;
+  const lt = `<button class="choice2 rmt" data-act="opCtl" data-v="light" ${off || U.light || !foes ? 'disabled' : ''}><b>${U.light ? '조명 제어 완료' : '구역 조명을 최대로 올린다'}</b><small>지능 + 장비 운용 · 보통(2) · ${foes ? '성공하면 하수인 전원 비틀거림' : '하수인이 있을 때만'}</small><span class="req"><i class="a">원격 조작 · 장면당 한 번</i><i class="d">실패하면 잡음</i></span></button>`;
+  const dr = `<button class="choice2 rmt" data-act="opCtl" data-v="door" ${off || U.door || !R.detected ? 'disabled' : ''}><b>${U.door ? '격벽 제어 완료' : '격벽을 원격으로 내린다'}</b><small>지능 + 장비 운용 · 보통(2) · ${R.detected ? '성공하면 개체 12m 후퇴' : '개체가 레이더에 잡힐 때만'}</small><span class="req"><i class="a">원격 조작 · 장면당 한 번</i></span></button>`;
+  return lt + dr;
+}
+// 하수인이 노리는 요원: 앞은 선두, 뒤는 후미
+function foeTarget(r, sd) {
+  const field = r.members.filter(m => m.role === 'field');
+  const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
+  return line.length ? (sd === 'front' ? line[0] : line[line.length - 1]) : null;
+}
+const INT_FX = { bite: 'HP 피해', scream: '정신력 피해', call: '하수인이 1마리 늘어남', brace: '받는 피해 절반', stun: '행동 없음' };
+// 교전 중에는 감시 카메라·레이더 대신 한 줄 띠를 보여 준다
+function combatBarHTML(r) {
+  const sc = r.scene, R = r.radar, open = S.sceneOpen && S.sceneOpen[r.id];
+  const ent = R && R.noise ? '잡음 · 판독 불가' : !R || !R.detected ? '신호 없음' : R.exact ? `대열 ${R.from === 'rear' ? '뒤' : '앞'} ${R.dist}m` : R.near ? '근접 신호' : `대열 ${R.from === 'rear' ? '뒤쪽' : '앞쪽'}`;
+  const near = R && R.detected && (R.exact ? R.dist <= 10 : R.near);
+  return `<div class="cbar2"><span class="cbx">${ico('alert', 14, 2.4)}교전 중</span><b class="cbt">${esc(sc.title)}</b>
+    <span class="cbe${near ? ' near' : ''}"><small>개체</small><b>${ent}</b></span>
+    <button class="cbo" data-act="sceneOpen" data-v="${r.id}" aria-expanded="${!!open}">${open ? '장면 묘사 접기' : '장면 묘사 보기'}${ico(open ? 'chevD' : 'chevR', 13, 2)}</button></div>
+    ${open ? `<div class="cbd"><p>${esc(sc.text)}</p>${whereLine(r)}${r.sight ? `<span class="see${r.sight.stage >= 2 ? ' near' : ''}"><b>시야</b>${esc(r.sight.text)}</span>` : ''}</div>` : ''}`;
+}
+// 다음 하수인 행동 예고: 누구든 행동 하나를 마치면 이대로 움직인다
+function foreHTML(r) {
+  const parts = ['front', 'rear'].map(sd => { const f = (r.minions || []).find(x => x.side === sd); if (!f) return '';
+    const it = f.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null;
+    return `<span class="fi it-${it}"><small>${sd === 'front' ? '앞' : '뒤'}</small><b>${esc(f.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</b><em>${INT_FX[it]}${tg && tg.guard ? ', 막기로 절반' : ''}</em></span>`; }).filter(Boolean);
+  return parts.length ? `<div class="fore"><span class="fl">누구든 행동 하나를 마치면</span>${parts.join('')}</div>` : '';
+}
+// 교전 행동: 앞 / 나 / 뒤 세 묶음
+function combatActsHTML(r, me) {
+  const L = r.members.filter(m => m.role === 'field' && !m.dead).length, p = me.pos;
+  const it = r.tutItems || (S.me && S.me.inv && S.me.inv.items) || {}, used = me.itemTurn === r.turn;
+  const btn = (act, v, kind, label, out, off, tag) => `<button class="cb2 ${kind}${tag ? ' combo' : ''}" data-act="${act}" data-v="${v}" ${off ? 'disabled' : ''}><span class="cl"><b>${label}</b>${tag ? `<i>${tag}</i>` : ''}</span><small>${out}</small></button>`;
+  const side = sd => { const f = (r.minions || []).find(x => x.side === sd); if (!f) return '';
+    const melee = p === 'solo' || p === sd, ranged = p === 'mid' || (L === 2 && p !== sd), ok = melee || ranged;
+    const combo = f.combo && f.combo !== me.uid, minD = (2 + (combo ? 2 : 0)), kill = f.hp <= (f.braced ? Math.ceil(minD / 2) : minD);
+    const how = melee ? '근력+격투' : '민첩+사격';
+    const atkOut = !ok ? (sd === 'front' ? '선두·중열만 닿습니다' : '후미·중열만 닿습니다') : `${how} · 보통(2) · ${kill ? '성공하면 처치' : '성공 수만큼 피해'}${f.braced ? ', 웅크려서 절반' : ''}`;
+    const it2 = f.intent || 'bite';
+    return `<div class="cgrp"><span class="cgh"><b class="r">${sd === 'front' ? '앞' : '뒤'}</b>${esc(f.name || '하수인')}<small>다음 ${esc(f.intentName || it2)}</small></span><div class="cgb">
+      ${btn('opAct', 'atk-' + sd, 'atk', '공격', atkOut, !ok, combo && ok ? '협공 +2' : '')}
+      ${melee ? btn('opAct', 'shv-' + sd, 'etc', '밀쳐 내기', `근력+격투 · 쉬움(1) · 성공하면 ${it2 === 'stun' ? '이미 비틀거림' : '다음 ' + esc(jo2(f.intentName || it2, '을', '를')) + ' 막음'}`) : ''}</div></div>`; };
+  const sides = (r.minions || []).map(x => x.side), faces = p === 'solo' ? sides.length > 0 : (p === 'front' && sides.includes('front')) || (p === 'rear' && sides.includes('rear'));
+  const items = [['kit', '구급 키트', '가장 다친 요원 HP +30', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', '정신력 +30', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', '하수인을 모두 쫓아냄', (r.minions || []).length > 0]].filter(([k]) => it[k] > 0);
+  const self = [faces ? btn('opAct', 'guard', 'def', me.guard ? '막는 중' : '막기', '판정 없음 · 다음 하수인 공격 피해 절반', me.guard) : '',
+    ...items.map(([k, n, out, need]) => btn('opItem', k, 'etc', `${n} ×${it[k]}`, used ? '이번 차례에 이미 썼습니다' : out, used || !need))].filter(Boolean).join('');
+  const mine = self ? `<div class="cgrp me"><span class="cgh"><b class="n">나</b>${esc(me.name)}<small>${POSN[p] || ''}</small></span><div class="cgb">${self}</div></div>` : '';
+  return `<div class="cacts">${side('front')}${mine}${side('rear')}</div>`;
 }
 function formationHTML(r, me) {
   const field = r.members.filter(m => m.role === 'field');
   const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
   const gone = field.filter(m => m.dead);
   const R = r.radar, from = r.scene ? r.scene.from : 'front';
-  const show = R && R.exact && R.detected;
+  const show = R && R.exact && R.detected && !R.noise;
   const ent = `<span class="ent${R && R.detected ? '' : ' hide'}" title="개체">${ico('alert', 16, 2)}<span>${show ? R.dist + 'm' : R && R.detected ? '?' : '없음'}</span></span>`;
   const bar = (lab, v, mx, cls) => { const p = Math.max(0, Math.min(100, v / mx * 100)); return `<span class="vb ${cls}${cls === 'hp' ? (p <= 30 ? ' low' : p <= 60 ? ' mid' : '') : (p <= 30 ? ' low' : '')}"><small>${lab}</small><i><span style="width:${p}%"></span></i><b>${v}<em>/${mx}</em></b></span>`; };
-  const card = m => `<span class="fm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}"><span class="fh"><span class="ps">${m.broken ? '붕괴' : POSN[m.pos] || ''}</span><b>${esc(m.name)}</b></span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}</span>`;
+  const fresh = r._fxAt && Date.now() - r._fxAt < 1600, FX = fresh ? r._fx || {} : {};
+  const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
+  const hitc = f => !f ? '' : (f.hp < 0 || f.san < 0) ? ' hit' : ' healed';
+  const card = m => { const f = FX['u' + m.uid]; return `<span class="fm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${m.guard ? ' guard' : ''}${hitc(f)}"><span class="fh"><span class="ps">${m.broken ? '붕괴' : POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${m.guard ? '<span class="gd">막기</span>' : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}${pop(f)}</span>`; };
   // 왼쪽이 후미, 오른쪽이 선두. 개체는 오는 쪽 끝에 표시한다.
-  const foe = sd => (r.minions || []).filter(x => x.side === sd).map(x => `<span class="fm foe"><span class="fh"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b></span>${bar('HP', x.hp, x.hpMax, 'hp foe')}</span>`).join('');
+  const INT_D = { bite: '선두를 문다 · HP 피해', scream: '비명 · 정신력 피해', call: '동료를 부른다', brace: '웅크린다 · 받는 피해 절반', stun: '비틀거린다 · 행동 없음' };
+  const foe = sd => { const L2 = (r.minions || []).filter(x => x.side === sd);
+    const dead = fresh ? (r._gone || []).filter(x => x.side === sd).map(x => `<span class="fm foe dying"><span class="fh"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b></span><span class="kill">처치</span></span>`).join('') : '';
+    // 한쪽에서는 맨 앞 하수인만 움직이므로 뒤에 선 하수인은 칩 대신 숫자로 묶는다
+    const waitN = L2.length - 1, waitHit = L2.slice(1).some(x => FX['m' + x.id]);
+    return dead + L2.slice(0, 1).map((x, i) => { const f = FX['m' + x.id], lead = i === 0, it = x.intent || 'bite';
+      const tg = lead && (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null;
+      return `<span class="fm foe${hitc(f)}${lead ? '' : ' wait'}"><span class="fh"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b>${x.braced ? '<span class="gd r">웅크림</span>' : ''}</span>${bar('HP', x.hp, x.hpMax, 'hp foe')}${waitN > 0 ? `<span class="fwait${waitHit ? ' hit' : ''}" title="뒤에 ${waitN}마리 더 있습니다">+${waitN} 대기</span>` : ''}
+        <span class="intent it-${it}" title="${INT_D[it]}">${lead ? `<small>다음</small><b>${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</b>` : '<small>뒤에서 대기</small>'}</span>${pop(f)}</span>`; }).join(''); };
   const cards = foe('rear') + line.slice().reverse().map(card).join('') + foe('front');
   const arrow = `<span class="ar">${ico('chevR', 14, 2)}</span>`;
   return `<div class="form"><span class="hh"><span class="bb">FORMATION</span><small>대열, 오른쪽이 진행 방향</small></span>
@@ -2339,9 +2525,18 @@ function choiceHTML(c, me, r) {
 function attackHTML(a, me, r) {
   const L = r.members.filter(m => m.role === 'field' && !m.dead).length, p = me.pos;
   const melee = p === 'solo' || p === a.side, ranged = p === 'mid' || (L === 2 && p !== a.side);
-  const ok = melee || ranged;
+  const ok = melee || ranged, f = (r.minions || []).find(x => x.side === a.side);
   const how = melee ? '근력 + 격투 · 근접' : ranged ? '민첩 + 사격 · 사격' : (a.side === 'front' ? '선두 근접, 중열 사격' : '후미 근접, 중열 사격');
-  return `<button class="choice2 atk" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i><i>장면 유지</i></span></button>`;
+  const combo = f && f.combo && f.combo !== me.uid;
+  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i>${combo ? '<i class="cb">협공 +2</i>' : ''}${f && f.braced ? '<i class="d">웅크림 · 피해 절반</i>' : ''}<i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i></span></button>`;
+  if (melee) h += `<button class="choice2 atk shove" data-act="opAct" data-v="shv-${a.side}"><b>${a.side === 'front' ? '앞' : '뒤'}의 하수인을 밀쳐 낸다</b><small>근력 + 격투 · 쉬움(1) · 다음 행동을 못 하게 한다</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두' : '후미'}</i></span></button>`;
+  return h;
+}
+function guardHTML(r, me) {
+  const L = r.members.filter(m => m.role === 'field' && !m.dead), p = me.pos;
+  const sides = (r.minions || []).map(x => x.side), faces = p === 'solo' ? sides.length > 0 : (p === 'front' && sides.includes('front')) || (p === 'rear' && sides.includes('rear'));
+  if (!faces) return '';
+  return `<button class="choice2 atk guard" data-act="opAct" data-v="guard" ${me.guard ? 'disabled' : ''}><b>${me.guard ? '막을 준비를 했다' : '자세를 낮추고 막는다'}</b><small>판정 없음 · 이번 차례 하수인에게 받는 피해 절반</small><span class="req"><i class="a">방어</i><i class="p">${POSN[p]}</i></span></button>`;
 }
 function movesHTML(r, me) {
   const p = me.pos, bf = (r.minions || []).some(x => x.side === 'front'), br = (r.minions || []).some(x => x.side === 'rear');
@@ -2374,7 +2569,7 @@ function opTabs(r) {
 }
 const opSplit = (r, cls, body) => `<section class="pnl ops split${cls}"><div class="spl">${opTabs(r)}<div class="opdet">${body}</div></div></section>`;
 function opItemsHTML(r, me) {
-  const it = (S.me && S.me.inv && S.me.inv.items) || {}, used = me.itemTurn === r.turn;
+  const it = r.tutItems || (S.me && S.me.inv && S.me.inv.items) || {}, used = me.itemTurn === r.turn;
   const L = [['kit', '구급 키트', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', (r.minions || []).length > 0]].filter(([k]) => it[k] > 0);
   if (!L.length) return '';
   return `<div class="opitems"><small>소모품${used ? ', 이번 차례에 이미 썼습니다' : ', 차례마다 하나'}</small>${L.map(([k, n, need]) => `<button class="btn g" data-act="opItem" data-v="${k}" ${used || !need ? 'disabled' : ''}>${n} <span class="bb">×${it[k]}</span></button>`).join('')}</div>`;
@@ -2410,21 +2605,27 @@ function viewOps(rr, parts) {
         <span class="lbtn">${me ? `<button class="btn g s" data-act="opLeave">나가기</button><button class="btn${me.ready ? ' g' : ''}" data-act="opReady" data-v="${me.ready ? 0 : 1}">${me.ready ? '준비 취소' : '준비 완료'}</button><button class="btn" data-act="opStart" ${canStart ? '' : 'disabled'}>${icoFill('play', 14)}작전 개시 ${rd}/${tot}</button>`
           : `<button class="btn" data-act="opJoin" data-v="field" ${busy ? 'disabled' : ''}>현장팀으로 참가</button><button class="btn g" data-act="opJoin" data-v="ctrl" ${busy ? 'disabled' : ''}>관제팀으로 참가</button>`}</span>${err}</div></div>`);
   }
-  const ctlTeam = `<div class="ctlline"><b>관제팀</b><small>${team('ctrl').length}/${r.op.ctrl}</small>${team('ctrl').map(m => `<span class="cm${m.uid === S.user.uid ? ' me' : ''}">${esc(m.name)}</span>`).join('') || '<span class="sub">없음. 현장팀만 진행 중입니다.</span>'}</div>`;
+  const ctlTeam = `<div class="ctlline"><b>관제팀</b><small>${team('ctrl').length}/${r.op.ctrl}</small>${team('ctrl').map(m => `<span class="cm${m.uid === S.user.uid ? ' me' : ''}${m.broken ? ' brk' : ''}">${esc(m.name)}<small>${m.broken ? '붕괴' : `정신 ${m.san}/${m.sanMax}`}</small></span>`).join('') || '<span class="sub">없음. 현장팀만 진행 중입니다.</span>'}</div>`;
   const sc = r.scene, cnt = Array.from({ length: r.op.count }, (_, i) => `<i class="${i < r.count ? 'on' : ''}"></i>`).join('');
   const canAct = me && me.role === 'field' && !me.dead && !me.broken && r.status === 'live';
   const ctl = me && me.role === 'ctrl' && r.status === 'live';
-  const stage = r.status === 'live' ? `<div class="stage">
+  const combat = r.status === 'live' && (r.minions || []).length > 0, otherOpen = S.otherOpen && S.otherOpen[r.id];
+  const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
+  const stage = r.status === 'live' ? `<div class="stage${ctl && r.noise && r.noise.shown ? ' noisy' : ''}">
       <span class="prog"><span class="bb">SCENE ${sc.idx + 1} / ${r.op.scenes}</span><span class="cnt"><small>${esc(r.op.countLabel || '')}</small><span class="cbar">${cnt}</span><b>${r.count}</b></span></span>
-      <div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>
+      ${combat ? combatBarHTML(r) : `<div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>`}
       ${formationHTML(r, me)}
-      ${me && me.role === 'field' && !me.dead && !me.broken ? movesHTML(r, me) : ''}
-      ${canAct ? opItemsHTML(r, me) : ''}
-      ${me && me.role === 'field' ? (canAct ? `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${(r.attacks || []).map(a => attackHTML(a, me, r)).join('')}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
+      ${combat ? foreHTML(r) : ''}
+      ${combat && canAct ? `<div class="cturn"><b>${esc(me.name)}의 행동</b><small>하나를 고르면 한 턴이 지나고, 하수인이 위에 예고한 대로 움직입니다.</small></div>${combatActsHTML(r, me)}<button class="cmore" data-act="otherOpen" data-v="${r.id}" aria-expanded="${!!otherOpen}">${ico(otherOpen ? 'chevD' : 'chevR', 13, 2)}<b>전투 외 행동</b><small>${otherN}개 · 이동 4개</small></button>` : ''}
+      ${me && me.role === 'field' && !me.dead && !me.broken && (!combat || otherOpen || !canAct) ? movesHTML(r, me) : ''}
+      ${canAct && !combat ? opItemsHTML(r, me) : ''}
+      ${me && me.role === 'field' ? (canAct ? (combat && !otherOpen ? '' : `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${combat ? '' : (r.attacks || []).map(a => attackHTML(a, me, r)).join('') + guardHTML(r, me)}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>`) + `${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
         : `<div class="note">${ico('alert', 18)}<span>${me.dead ? '생체 신호가 끊겼습니다. 작전이 끝나면 재생 수조로 이송됩니다.' : '정신이 붕괴했습니다. 관제팀의 바이탈 안정을 기다리십시오.'}</span></div>`) : ''}
-      ${ctl ? `<div class="ctl"><span class="sub">관제 행동은 현장 판정 한 번마다 한 번씩 할 수 있습니다.${me.acted ? ' <b style="color:var(--ink)">다음 현장 판정을 기다리는 중입니다.</b>' : ''}</span>
-        <div class="choices"><button class="choice2 r1" data-act="opCtl" data-v="raven1" ${r.r1 ? 'disabled' : ''}><b>${r.r1 ? `RAVEN-1 지원 완료 (${esc(r.r1.by)} 요청)` : 'RAVEN-1 지원 요청'}</b><small>작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button><button class="choice2" data-act="opCtl" data-v="radio" ${me.radioed ? 'disabled' : ''}><b>현장에 거리 알리기</b><small>판정 없음 · 턴마다 한 번 · 관제 행동과 별개</small></button><button class="choice2" data-act="opCtl" data-v="support" ${me.acted ? 'disabled' : ''}><b>지원 주사위 보내기</b><small>지능 + 통신 · 쉬움(1) · 현재 ${r.support}개</small></button>
-        ${team('field').filter(m => !m.dead).map(m => `<button class="choice2" data-act="opCtl" data-v="stabilize" data-t="${m.uid}" ${me.acted || m.san >= m.sanMax ? 'disabled' : ''}><b>${esc(m.name)} 바이탈 안정</b><small>의지 + 응급처치 · 보통(2) · 정신력 ${m.san}/${m.sanMax}</small></button>`).join('')}</div></div>` : ''}
+      ${ctl ? `<div class="ctl">${me.broken ? `<div class="note">${ico('alert', 18)}<span>정신이 붕괴했습니다. 다른 관제 요원이 바이탈을 안정시켜야 다시 움직일 수 있습니다.</span></div>` : ''}${r.noise && r.noise.shown ? `<div class="noisebox" role="alert"><span class="nh"><span class="bb">UNKNOWN SIGNAL</span><small>잡음 ${r.noise.turns + 1}턴째 · 내버려 두면 턴마다 정신력이 깎입니다</small></span><p class="ntx">${esc(r.noise.shown)}</p>
+          <div class="nbtn"><button class="choice2 dec" data-act="opCtl" data-v="decode" ${me.acted || me.broken ? 'disabled' : ''}><b>신호를 해독한다</b><small>지능 + 기록 해독 · 보통(2) · 읽는 것만으로 정신력 소모</small><span class="req"><i class="a">성공: ${esc(r.op.countLabel || '귀환 신호')} +1, 잡음 걷힘</i></span></button><button class="choice2" data-act="opCtl" data-v="jam" ${me.acted || me.broken ? 'disabled' : ''}><b>회선을 차단한다</b><small>판정 없음 · 안전하지만 얻는 것이 없다</small></button></div></div>` : ''}
+        <span class="sub">관제 행동은 현장 판정 한 번마다 한 번씩 할 수 있습니다.${me.acted ? ' <b style="color:var(--ink)">다음 현장 판정을 기다리는 중입니다.</b>' : ''}</span>
+        <div class="choices"><button class="choice2 r1" data-act="opCtl" data-v="raven1" ${r.r1 ? 'disabled' : ''}><b>${r.r1 ? `RAVEN-1 지원 완료 (${esc(r.r1.by)} 요청)` : 'RAVEN-1 지원 요청'}</b><small>작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button><button class="choice2" data-act="opCtl" data-v="radio" ${me.radioed || r.noise || me.broken ? 'disabled' : ''}><b>현장에 거리 알리기</b><small>${r.noise ? '잡음 때문에 거리를 읽을 수 없습니다' : '판정 없음 · 턴마다 한 번 · 관제 행동과 별개'}</small></button>${ctlRemoteHTML(r, me)}<button class="choice2" data-act="opCtl" data-v="support" ${me.acted ? 'disabled' : ''}><b>지원 주사위 보내기</b><small>지능 + 통신 · 쉬움(1) · 현재 ${r.support}개</small></button>
+        ${r.members.filter(m => !m.dead && (m.role === 'field' || (m.role === 'ctrl' && m.uid !== me.uid))).map(m => `<button class="choice2" data-act="opCtl" data-v="stabilize" data-t="${m.uid}" ${me.acted || me.broken || m.san >= m.sanMax ? 'disabled' : ''}><b>${esc(m.name)} 바이탈 안정</b><small>의지 + 응급처치 · 보통(2) · 정신력 ${m.san}/${m.sanMax}</small></button>`).join('')}</div></div>` : ''}
       ${!me ? '<span class="sub">참가하지 않은 작전입니다. 진행 상황만 볼 수 있습니다.</span>' : ''}${err}
     </div>` : `<div class="stage done"><span class="bb res ${r.result}">${({ success: 'MISSION COMPLETE', fail: 'MISSION FAILED', abort: 'MISSION ABORTED' })[r.result]}</span>
       <b class="st">${({ success: '작전 성공', fail: '작전 실패', abort: '작전 중단' })[r.result]}</b>
@@ -2649,7 +2850,7 @@ function gmOpLiveHTML() {
     <div class="gmems">${mem}</div>
     <div class="gact wrap"><label class="gf in"><span>거리</span><input type="number" data-gm="dist" value="${rad.dist}" min="0" max="80"></label><button class="btn s g" data-act="gmOp" data-v="dist">거리 적용</button>
       <button class="btn s g" data-act="gmOp" data-v="count-">${esc(r.op.countLabel || '셈')} −1</button><button class="btn s g" data-act="gmOp" data-v="count+">+1</button>
-      <button class="btn s g" data-act="gmOp" data-v="spawnF">앞에 하수인</button><button class="btn s g" data-act="gmOp" data-v="spawnR">뒤에 하수인</button><button class="btn s g" data-act="gmOp" data-v="clearMinions">하수인 치우기</button>
+      <button class="btn s g" data-act="gmOp" data-v="spawnF">앞에 하수인</button><button class="btn s g" data-act="gmOp" data-v="spawnR">뒤에 하수인</button><button class="btn s g" data-act="gmOp" data-v="clearMinions">하수인 치우기</button><button class="btn s g" data-act="gmOp" data-v="noise">관제 잡음 켜기/끄기</button>
       <button class="btn s g" data-act="gmOp" data-v="scene">다음 장면</button></div>
     <div class="gact wrap"><button class="btn s" data-act="gmOp" data-v="success">성공 처리</button><button class="btn s g red" data-act="gmOp" data-v="fail">실패 처리</button><button class="btn s g" data-act="gmOp" data-v="abort">중단</button></div>
     ${gmMsgHTML()}
@@ -2784,7 +2985,22 @@ function render() {
   else if (S.phase === 'lobby') { const first = lastPhaseDrawn !== 'lobby'; app.innerHTML = viewShell(); setTimeout(syncMode, 0);
     if (first) { lastPhaseDrawn = 'lobby'; requestAnimationFrame(() => { syncMode(); lastLeft = leftKind(); drawPanels([...leftPanels(), ...centerPanels(), ...app.querySelectorAll('#colR .pnl')], 0.1); }); } ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
-function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); }
+function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); fitLines(document.getElementById('center')); }
+// 대열이 화면보다 길면(주로 휴대폰) 내 칩이 가운데 오도록 가로 스크롤을 맞춘다.
+// 직접 옆으로 넘겨 본 뒤 5초 동안은 그 위치를 지킨다.
+const LINE_SCROLL = { x: 0, at: 0 };
+function fitLines(root) {
+  if (!root) return;
+  root.querySelectorAll('.form .line').forEach(ln => {
+    if (!ln._wired) { ln._wired = true; ln.addEventListener('scroll', () => { if (ln._auto) { ln._auto = false; return; } LINE_SCROLL.x = ln.scrollLeft; LINE_SCROLL.at = Date.now(); }, { passive: true }); }
+    const room = ln.scrollWidth - ln.clientWidth; if (room <= 2) return;
+    let x;
+    if (Date.now() - LINE_SCROLL.at < 5000) x = LINE_SCROLL.x;
+    else { const me = ln.querySelector('.fm.me'); if (!me) return; const a = ln.getBoundingClientRect(), b = me.getBoundingClientRect(); x = ln.scrollLeft + (b.left - a.left) - (ln.clientWidth - b.width) / 2; }
+    x = Math.max(0, Math.min(room, Math.round(x)));
+    if (Math.abs(ln.scrollLeft - x) > 1) { ln._auto = true; ln.scrollLeft = x; }
+  });
+}
 // 작전 모드: 작전 화면에서 작전이 진행 중이면 왼쪽 출입증 칸을 접고 작전 화면을 넓힌다. 메뉴의 작전 버튼에는 LIVE 표시.
 /* ─── 작전 팝업: 내가 참가한 작전이 진행 중(또는 막 끝남)이면 고정 크기 팝업으로 띄운다. 다른 탭으로 갈 수 없다. ─── */
 const myModalOp = () => Object.values(S.ops || {}).find(r => (r.status === 'live' || (r.status === 'done' && S.modalHide !== r.id)) && opMine(r));
@@ -2825,9 +3041,10 @@ function gmRender() {
 addEventListener('resize', fitModal);
 function syncModal() {
   const host = document.getElementById('opModal'); if (!host) return;
-  const r = myModalOp();
+  const r = S.tut && S.tut.stage === 'op' ? S.tut.r : myModalOp();
   if (!r) { if (host.dataset.op) { host.innerHTML = ''; delete host.dataset.op; host.classList.remove('on'); document.body.classList.remove('modal-open'); } return; }
   const P = viewOps(r, true); if (!P || typeof P !== 'object') return;
+  if (r.tut) { P.head = P.head.replace(/철수<\/button>/, '훈련 건너뛰기</button>'); if (r.status === 'done') P.stage = tutDoneHTML(); }
   if (host.dataset.op !== String(r.id)) {
     host.dataset.op = String(r.id); host.classList.add('on'); document.body.classList.add('modal-open');
     host.innerHTML = `<div class="opm-box" role="dialog" aria-modal="true" aria-label="작전 진행">
@@ -2844,13 +3061,256 @@ function syncModal() {
   ['opmHead', 'opmStage'].forEach(id => { const el = document.getElementById(id); if (el) el._h = null; });
   setHTML('opmHead', P.head + `<div class="opm-sub">${P.ctlTeam}${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
+  fitLines(document.getElementById('opmStage'));
   const lg = document.getElementById('opmLog'), atB = lg && lg.scrollHeight - lg.scrollTop - lg.clientHeight < 60;
   setHTML('opmLog', P.log); if (lg && atB) lg.scrollTop = lg.scrollHeight;
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
+  if (r.tut) tutCoach(host);
+}
+/* ─────────────────────────── 튜토리얼: 첫 출동 ───────────────────────────
+   새 요원이 재생 수조에서 깨어나 경보를 듣고 바로 투입된다. 서버 작전을 쓰지 않고 브라우저 안에서 대본대로 진행한다.
+   작전 화면은 실제 작전과 같은 그리기 함수를 쓰고, 행동 버튼만 대본으로 받는다. 쓰러지지 않으며, 끝나면 서버에 보상을 요청한다.
+   현장: 리퍼(RAVEN-1 팀장)가 재미 삼아 따라와 알려 준다. 관제: 벌처(RAVEN-3 팀장)가 옆자리에서 알려 준다. */
+const TUT_WHO = { reaper: ['리퍼', 'RAVEN-1 팀장', 'RAVEN-1'], vulture: ['벌처', 'RAVEN-3 팀장', 'RAVEN-3'] };
+const TUT_TIER = { crit: '대성공', ok: '성공', cost: '대가', fail: '실패' };
+const TUT_SN = ['근력', '체력', '민첩', '지능', '육감', '의지'];
+const TUT_NOISE = '귀환 신호는 우리가 먹고 있다. 돌려받고 싶으면 읽어라.';
+const tutGarble = t => [...t].map(ch => ch === ' ' || ch === '.' ? ch : Math.random() < 0.55 ? '▒█▓░'[Math.floor(Math.random() * 4)] : ch).join('');
+function tutMe() { return S.tut && S.tut.r && S.tut.r.members.find(m => m.uid === S.user.uid); }
+function tutSay(r, text, x) { r.log.push({ kind: 'sys', text, ...(x || {}) }); }
+function tutChat(r, name, text, role) { (r.chat || (r.chat = [])).push({ uid: 'npc-' + name, name, role: role || 'field', text, ts: Date.now() }); }
+// 대본용 판정 기록: 결과는 정해 두고, 주사위 눈은 그 결과에 맞춰 만든다
+function tutRoll(r, m, label, statIdx, skill, diff, tier, text, fx, stats) {
+  const st = stats || (m.uid === S.user.uid && S.me ? S.me.stats : [10, 10, 10, 10, 10, 10]);
+  const sk = m.uid === S.user.uid && S.me ? ((S.me.skills || {})[skill] || 0) : 1;
+  const n = Math.max(2, Math.min(9, Math.floor((st[statIdx] || 10) / 2) - 1 + sk));
+  const succ = Math.min(n, tier === 'crit' ? diff + 2 : tier === 'ok' ? diff : tier === 'cost' ? Math.max(0, diff - 1) : 0);
+  const w = Array.from({ length: n }, (_, i) => i < succ ? 5 + (i % 2) : 2 + (i % 3)).sort(() => Math.random() - .5);
+  r.log.push({ kind: 'roll', uid: m.uid, name: m.name, pos: m.pos ? POSN[m.pos] : '', label, stat: TUT_SN[statIdx], statVal: st[statIdx] || 10, skill, skillLv: sk, dice: { w, b: [], s: [] }, succ, diff, tier, tierName: TUT_TIER[tier], text, fx: fx || null, ctl: m.role === 'ctrl' });
+}
+function tutMember(uid, name, role, hp, san, pos) { return { uid, name, num: uid.startsWith('npc') ? 'RAVEN-5' : (S.me && S.me.num) || '', role, hp, hpMax: hp, san, sanMax: san, cont: 0, sk: {}, dead: false, broken: false, acted: false, ready: true, pos: pos || null }; }
+function tutNewRun(role) {
+  const dv = S.me ? derived(S.me.stats, S.me.traits) : { hp: 100, san: 100 }, g = (S.me && S.me.gear) || {};
+  const me = tutMember(S.user.uid, (S.me && S.me.name) || '신입', role, dv.hp + (g.hp || 0), dv.san + (g.san || 0), role === 'field' ? 'mid' : null);
+  const M = [tutMember('npc-magpie', '맥파이', 'field', 120, 100, 'front')];
+  if (role === 'field') M.push(me); else M.push(tutMember('npc-shrike', '슈라이크', 'field', 100, 100, 'mid'));
+  M.push(tutMember('npc-finch', '핀치', 'field', 100, 100, 'rear'));
+  if (role === 'ctrl') M.push(me);
+  return { id: 'tut', tut: true, status: 'live', result: null,
+    op: { id: 'R8-T', title: '첫 출동', threat: 'Ⅰ', level: 1, countLabel: '귀환 신호', count: 6, scenes: 5, field: 3, ctrl: 1, rec: null, patrol: false, reward: { supply: 20, research: 0 }, brief: '' },
+    members: M, order: M.filter(m => m.role === 'field').map(m => m.uid), minions: [], mseq: 0, turn: 1, count: 6, support: 0, log: [], chat: [], r1: null, noise: null, ctlUsed: {}, tutItems: { calm: 0 }, _dist: 60, _pos: 0 };
+}
+// 대본에서 바꾼 값으로 화면용 값(레이더, 선택지, 공격 버튼 등)을 다시 만든다
+function tutDerive(r) {
+  const S2 = S.tut, sc = TUT[S2.role][S2.sc], me = r.members.find(m => m.uid === S.user.uid), ctl = me && me.role === 'ctrl';
+  r.scene = { idx: S2.sc, title: sc.title, text: sc.text, from: sc.from, choices: (sc.choices || []).map(c => ({ pos: null, max: null, min: null, reach: false, adv: true, ...c })) };
+  const det = r._dist <= 50;
+  r.radar = ctl ? (r.noise ? { exact: true, noise: true, dist: null, from: sc.from, speed: 5, range: 50, detected: true } : { exact: true, dist: r._dist, from: sc.from, speed: 5, range: 50, detected: det })
+    : { exact: false, from: sc.from, detected: det, near: r._dist <= 10 };
+  r.sight = null;
+  r.map = { len: 40, marks: [{ at: 0, label: '출입구' }, { at: 40, label: sc.goal || '구역 끝 문' }], pos: r._pos };
+  r.attacks = ['front', 'rear'].filter(sd => r.minions.some(x => x.side === sd)).map(sd => ({ id: 'atk-' + sd, side: sd, label: '' }));
+  r.recover = r.members.filter(m => m.role === 'field' && (m.dead || m.broken)).map(m => ({ id: 'rec-' + m.uid, uid: m.uid, name: m.name, why: m.dead ? 'dead' : 'broken' }));
+  r.heal = [];
+  return r;
+}
+// 피해·회복·처치 연출(실제 작전의 소켓 처리와 같은 방식)
+function tutFx(old, r) {
+  const fx = {};
+  r.members.forEach(m => { const q = old.members.find(x => x.uid === m.uid); if (q && (m.hp !== q.hp || m.san !== q.san)) fx['u' + m.uid] = { hp: m.hp - q.hp, san: m.san - q.san }; });
+  r.minions.forEach(x => { const q = old.minions.find(y => y.id === x.id); if (q && x.hp !== q.hp) fx['m' + x.id] = { hp: x.hp - q.hp }; });
+  const gone = old.minions.filter(q => !r.minions.some(x => x.id === q.id));
+  if (Object.keys(fx).length || gone.length) { r._fx = fx; r._gone = gone; r._fxAt = Date.now(); setTimeout(() => { if (S.tut && S.tut.r === r) syncModal(); }, 1700); }
+}
+function tutSpawn(r, side, intent) { const id = ++r.mseq; r.minions.push({ id, side, hp: 3, hpMax: 3, name: '세어진 것', intent: intent || 'bite', intentName: { bite: '물기', scream: '비명', stun: '비틀거림', brace: '웅크리기', call: '부르기' }[intent || 'bite'], braced: false, combo: null }); return r.minions[r.minions.length - 1]; }
+const tutM = (r, uid) => r.members.find(m => m.uid === uid);
+const ME = r => r.members.find(m => m.uid === S.user.uid);
+/* 대본: 장면마다 setup(r)으로 시작하고, steps를 차례로 진행한다.
+   step: who(말하는 사람), say(대사), head·text(규칙 설명), at(강조할 요소), anchor(말풍선을 붙일 요소), where('after'|'before'),
+         expect([행동, 값, 대상]): 이 버튼을 눌러야 넘어간다. 없으면 '다음' 버튼. run(r): 눌렀을 때 일어나는 일. */
+const TUT = {
+  field: [
+    { title: 'B2 승강기 앞', text: '승강기 문이 반쯤 열린 채 멈춰 있다. 안쪽 조명이 깜빡인다. 낯선 사람이 벽에 기대 이쪽을 보고 있다.', from: 'rear',
+      choices: [{ id: 't-lift', label: '승강기 문을 밀어 연다', stat: '근력', skill: '운반', diff: 1, diffName: '쉬움' }],
+      setup: r => { tutSay(r, '운영관 케스트럴: 맥파이, 핀치, 신입 하나 붙인다. B2 격리 장치를 다시 켜고 돌아와.', { kind: 'radio' }); tutChat(r, '리퍼', '5팀 신입? 구경 좀 하자. 난 신경 쓰지 마.', 'field'); tutChat(r, '핀치', '…팀장님이 왜 여기 계세요?'); },
+      steps: [
+        { who: 'reaper', at: '.form', anchor: '.form', say: '5팀 신입? 반가워. 난 구경하러 왔어. 우선 줄부터 봐.', head: '대열', text: '오른쪽이 진행 방향이에요. 맨 앞이 선두, 가운데가 중열, 맨 뒤가 후미예요. 자리마다 할 수 있는 행동이 달라요. 지금 당신은 중열이에요.' },
+        { who: 'reaper', at: '.moves', anchor: '.moves', say: '전진은 선두만, 후퇴는 후미만. 중열은… 뭐, 기다리거나 앞이랑 자리 바꾸는 정도?', head: '행동 하나 = 한 턴', text: '무엇이든 행동 하나를 하면 한 턴이 지나요. 턴마다 개체가 다가오고, 시간이 지나면 귀환 신호가 줄어요.' },
+        { who: 'reaper', at: '[data-v="t-lift"]', anchor: '.choices', expect: ['opAct', 't-lift'], say: '문 정도는 열 수 있지? 저거 눌러 봐.', head: '장면 선택지', text: '장면마다 고를 수 있는 행동이 있어요. 판정에 성공하면 다음 장면으로 넘어가요.',
+          run: r => { tutRoll(r, ME(r), '승강기 문 열기', 0, '운반', 1, 'ok', '승강기 문을 밀어 열었다. 모두 올라타자 승강기가 덜컹거리며 B2로 내려간다.'); return 'next'; } }
+      ] },
+    { title: '침수 복도 (B2)', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.', from: 'front',
+      choices: [{ id: 't-path', label: '물에 비친 길이 아니라 실제 길을 찾는다', stat: '육감', skill: '관찰', diff: 2, diffName: '보통' }],
+      setup: r => { tutChat(r, '맥파이', '물에 비친 쪽은 보지 마. 진짜야.'); },
+      steps: [
+        { who: 'reaper', at: '[data-v="t-path"]', anchor: '.choices', expect: ['opAct', 't-path'], say: '물에 비친 쪽으로 가면 재밌는 일이 생기지. 오늘은 재미없게 가자.', head: '판정', text: '능력치와 기능만큼 주사위를 굴려 5·6이 나온 개수를 세요. 필요한 수 이상이면 성공, 하나 모자라면 대가를 치르고 성공, 그보다 적으면 실패예요.',
+          run: r => { tutRoll(r, ME(r), '실제 길 찾기', 4, '관찰', 2, 'ok', '물그림자를 무시하고 벽의 긁힌 자국을 따라갔다. 길이 맞다.'); return 'step'; } },
+        { who: 'reaper', at: '#opmLog', anchor: '#opmLog', where: 'before', say: '방금 그건 오른쪽 기록에 남아. 실패해도 작전은 이어지지만, 그땐 뭔가를 잃지.', head: '작전 기록', text: '판정 결과와 장면 변화는 오른쪽 작전 기록에 쌓여요. 실패하면 다치거나 시간을 잃어요.', done: 'next' }
+      ] },
+    { title: 'B2 격리동 복도', text: '형광등 몇 개가 나가 있다. 바닥 배수구에서 이마에 숫자가 새겨진 형체가 기어 나온다.', from: 'front',
+      setup: r => { r._dist = 40; const f = tutSpawn(r, 'front', 'bite'); tutSay(r, '배수구에서 이마에 숫자가 새겨진 것이 기어 나와 앞을 막았다.', { kind: 'spawn' });
+        tutRoll(r, tutM(r, 'npc-magpie'), '근접 공격 (앞)', 0, '격투', 2, 'ok', '세어진 것을 밀어붙였다.', { foe: 2 }, [14, 12, 10, 8, 8, 10]); f.hp = 1; f.combo = 'npc-magpie';
+        tutChat(r, '맥파이', '한 대 먹였다. 신입, 지금 이어서!'); },
+      steps: [
+        { who: 'reaper', at: '.fore', anchor: '.fore', say: '저 녀석, 다음에 누굴 물지 벌써 써 붙이고 있네. 친절하지?', head: '하수인의 예고', text: '하수인 칩과 이 줄에 다음 행동이 보여요. 누구든 행동 하나를 마치면 하수인은 이대로 움직여요. 지금은 선두의 맥파이를 물려고 해요.' },
+        { who: 'reaper', at: '[data-v="atk-front"]', anchor: '.cacts', expect: ['opAct', 'atk-front'], say: '맥파이가 방금 한 대 먹였어. 신입, 식기 전에 이어서 쳐 봐.', head: '협공', text: '다른 요원이 직전에 친 하수인을 이어서 치면 협공으로 피해가 2 늘어나요. 공격을 눌러 마무리하세요.',
+          run: r => { tutRoll(r, ME(r), '사격 (앞)', 2, '사격', 2, 'ok', '세어진 것을 밀어붙였다.', { foe: 4 }); tutSay(r, '협공. 세어진 것이 연달아 맞아 피해 +2.', { kind: 'kill' }); r.minions = []; tutSay(r, `${ME(r).name} 요원이 세어진 것을 쓰러뜨렸다.`, { kind: 'kill' }); tutChat(r, '맥파이', '나쁘지 않네.'); return 'step'; } },
+        { who: 'reaper', at: '#opmChat', anchor: '#opmChat', where: 'before', say: '5팀 애들은 말이 많아. 그래도 들어 둬, 쓸 만한 말도 섞여 있으니까.', head: '동료의 무전', text: 'NPC 동료도 작전 채팅으로 말을 걸어요. 작전 채팅은 같은 작전에 나간 사람끼리만 보여요.', done: 'next' }
+      ] },
+    { title: '배수 펌프실', text: '멈춘 펌프가 늘어선 방. 벽 너머에서 누군가 숫자를 세는 소리가 들린다.', from: 'rear',
+      setup: r => { r._dist = 35; const f = tutM(r, 'npc-finch'); r.log.push({ kind: 'contact', text: '벽 너머에서 비명이 터졌다. 핀치 요원이 귀를 틀어막고 주저앉는다.', fx: { san: -f.san } }); f.san = 0; f.broken = true;
+        tutSay(r, '핀치 요원의 정신이 붕괴했다. 관제팀이 안정시키거나 동료가 회수해야 한다.', { kind: 'warn' }); r.tutItems.calm = 1; tutChat(r, '핀치', '…셋, 넷… 아니야, 아니야…'); },
+      steps: [
+        { who: 'reaper', at: '.form .fm.broken', anchor: '.form', say: '핀치가 무너졌네. 난 안 도와. 신입이 어떻게 하나 보고 싶거든.', head: '정신 붕괴', text: '정신력이 0이 되면 붕괴해서 아무것도 할 수 없어요. 진정제, 관제팀의 바이탈 안정, 동료의 회수로 되돌릴 수 있어요.' },
+        { who: 'reaper', at: '[data-act="opItem"][data-v="calm"]', anchor: '.opitems', expect: ['opItem', 'calm'], say: '주머니에 진정제 하나 있지? 아껴 봤자 좋을 거 없어.', head: '소모품', text: '소모품은 차례마다 하나씩 쓸 수 있어요. 기지의 보급 탭에서 살 수 있어요.',
+          run: r => { const f = tutM(r, 'npc-finch'); f.san = 30; f.broken = false; r.tutItems.calm = 0; tutSay(r, `${ME(r).name} 요원이 진정제를 썼다. 핀치 요원 정신력 +30.`); tutChat(r, '핀치', '…고마워요. 이제 괜찮아요.'); return 'step'; } },
+        { who: 'reaper', at: '.form', anchor: '.form', say: '좋아. 업고 갈 줄 알았는데.', head: '회수', text: '회복 수단이 없으면 「회수」 선택지로 동료를 업어 와야 해요. 아무도 회수하지 못하면 RAVEN-4가 출동하고 벌점이 있어요.', done: 'next' }
+      ] },
+    { title: '격리 장치실', text: '꺼진 격리 장치가 방 가운데 서 있다. 등 뒤 복도에서 무언가 끌리는 소리가 가까워진다.', from: 'rear', goal: '격리 장치',
+      choices: [{ id: 't-dev', label: '격리 장치를 다시 켠다', reach: true, stat: '지능', skill: '장비 운용', diff: 2, diffName: '보통' }],
+      setup: r => { r._dist = 15; r._pos = 40; r.count = 3; tutSay(r, '귀환 신호가 약해진다. 남은 칸이 얼마 없다.', { kind: 'warn' }); tutChat(r, '맥파이', '뒤에서 뭐가 와. 빨리 끝내자.'); },
+      steps: [
+        { who: 'reaper', at: '.prog .cnt', anchor: '.prog', say: '저 빨간 칸, 다 떨어지면 다 같이 못 돌아가. 난 상관없지만.', head: '귀환 신호', text: '시간이 지나면 귀환 신호가 줄어요. 0이 되면 작전 실패예요. 판정에서 대성공하면 조금 되찾을 수 있어요.' },
+        { who: 'reaper', at: '[data-v="t-dev"]', anchor: '.choices', expect: ['opAct', 't-dev'], say: '마무리는 신입이 해. 그래야 재밌지.', head: '목표 선택지', text: '「구역 끝 도착」 표시가 붙은 선택지는 구역 끝에 닿아야 고를 수 있어요. 마지막 장면의 목표에 성공하면 작전이 끝나요.',
+          run: r => { tutRoll(r, ME(r), '격리 장치 재가동', 3, '장비 운용', 2, 'crit', '격리 장치가 낮게 울리며 다시 켜졌다. 복도 끝에서 끌리던 소리가 멈춘다.'); tutChat(r, '리퍼', '5팀은 역시 재밌어. 다음에 또 보자, 신입.'); return 'finish'; } }
+      ] }
+  ],
+  ctrl: [
+    { title: '관제실', text: '모니터 열두 대가 B2를 비춘다. 옆자리의 벌처는 화면만 보고 있다.', from: 'rear',
+      setup: r => { tutChat(r, '벌처', '앉아. 설명은 한 번만 한다.', 'ctrl'); tutSay(r, '현장팀 맥파이, 슈라이크, 핀치가 B2로 내려갔다.'); },
+      steps: [
+        { who: 'vulture', at: '.radar', anchor: '.camrow', say: '현장 감지기는 방향만 안다. 숫자는 여기만 있다. 그러니 네가 필요한 거다.', head: '관제팀만 보는 것', text: '현장팀 감지기는 「뒤쪽에 신호」 정도만 알려 줘요. 정확한 거리는 관제실 레이더에만 보여요.' },
+        { who: 'vulture', at: '.form', anchor: '.form', say: '셋 다 5팀이다. 바이탈은 여기서 본다. 숫자가 빨개지면 말해.', head: '현장 바이탈', text: '현장 요원의 HP와 정신력이 실시간으로 보여요. 관제 요원은 작전 중에 다치지 않지만, 정신력은 깎일 수 있어요.', done: 'next' }
+      ] },
+    { title: '침수 복도 (B2)', text: '현장팀이 물이 찬 복도를 지난다. 레이더 뒤쪽에 점이 하나 떴다.', from: 'rear',
+      setup: r => { r._dist = 20; tutChat(r, '맥파이', '관제, 뒤에서 뭐가 끌리는 소리 난다. 얼마나 남았어?'); tutChat(r, '벌처', '대답은 신입이 한다.', 'ctrl'); },
+      steps: [
+        { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m. 알리지 않으면 다음 턴에 하나는 물린다. 눌러.', head: '거리 알리기', text: '판정 없이 턴마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
+          run: r => { r.log.push({ kind: 'radio', text: '관제 보고: 개체는 대열 뒤 20m. 접근 중입니다.' }); tutChat(r, '맥파이', '들었다. 서두르자.'); return 'step'; } },
+        { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 산다. 격벽.', head: '원격 조작', text: '조명과 격벽은 장면마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이에요. 격벽에 성공하면 개체가 물러나요.',
+          run: r => { tutRoll(r, ME(r), '격벽 제어', 3, '장비 운용', 2, 'ok', '원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 12m 멀어졌다.'); r._dist = 32; r.ctlUsed.door = true; return 'next'; } }
+      ] },
+    { title: '사물함 구역', text: '조명이 나간 사물함 사이. 현장 카메라에는 거의 아무것도 보이지 않는다.', from: 'rear',
+      setup: r => { r._dist = 30; r.ctlUsed = {}; tutSpawn(r, 'front', 'bite'); tutSay(r, '사물함 틈에서 세어진 것이 기어 나와 앞을 막았다.', { kind: 'spawn' }); tutChat(r, '슈라이크', '앞에 뭐가 있어! 안 보여!'); },
+      steps: [
+        { who: 'vulture', at: '[data-v="light"]', anchor: '.ctl .choices', expect: ['opCtl', 'light'], say: '어두워서 못 맞힌다. 불을 켜.', head: '조명 제어', text: '하수인이 있을 때 쓸 수 있어요. 성공하면 하수인 전원이 다음 행동에서 비틀거려요. 실패하면 화면에 잡음이 낄 수 있어요.',
+          run: r => { tutRoll(r, ME(r), '조명 제어', 3, '장비 운용', 2, 'ok', '구역 조명을 최대로 올렸다. 세어진 것이 빛에 눈이 멀어 비틀거린다.'); r.ctlUsed.light = true; r.minions.forEach(x => { x.intent = 'stun'; x.intentName = '비틀거림'; });
+            setTimeout(() => { if (!S.tut || S.tut.r !== r) return; const old = JSON.parse(JSON.stringify(r)); tutRoll(r, tutM(r, 'npc-magpie'), '근접 공격 (앞)', 0, '격투', 2, 'crit', '정확히 급소를 노렸다.', { foe: 4 }, [14, 12, 10, 8, 8, 10]); r.minions = []; tutSay(r, '맥파이 요원이 세어진 것을 쓰러뜨렸다.', { kind: 'kill' }); tutChat(r, '맥파이', '보인다! 처리했다.'); tutDerive(r); tutFx(old, r); syncModal(); }, 900);
+            return 'step'; } },
+        { who: 'vulture', at: '[data-v="support"]', anchor: '.ctl .choices', expect: ['opCtl', 'support'], say: '다음은 문이다. 슈라이크가 연다. 판정 전에 주사위를 얹어 둬.', head: '지원 주사위', text: '지능 + 통신, 쉬움(1). 성공하면 다음 현장 판정에 주사위가 붙어요. 최대 4개까지 쌓여요.',
+          run: r => { tutRoll(r, ME(r), '지원', 3, '통신', 1, 'ok', '관제 지원 연결. 다음 현장 판정에 지원 주사위 1개를 보탠다.'); tutRoll(r, tutM(r, 'npc-shrike'), '출입문 개방', 3, '장비 운용', 2, 'ok', '지원 주사위 덕에 잠긴 문을 열었다. 현장팀이 다음 구역으로 들어간다.', null, [10, 10, 10, 12, 10, 10]); return 'next'; } }
+      ] },
+    { title: '출입 기록실', text: '벽 가득한 단말에 출입 기록이 흐른다. 관제실 화면이 지직거린다.', from: 'rear',
+      setup: r => { r._dist = 25; r.ctlUsed = {}; r.noise = { shown: tutGarble(TUT_NOISE), turns: 0 }; r.log.push({ kind: 'noise', text: '관제 화면에 잡음이 끼었다. 알 수 없는 신호가 흘러든다.' }); },
+      steps: [
+        { who: 'vulture', at: '[data-v="decode"]', anchor: '.noisebox', expect: ['opCtl', 'decode'], say: '잡음이다. 읽으면 깎인다. 그래도 읽어. 차단하면 아무것도 못 건진다.', head: '알 수 없는 신호', text: '잡음이 있는 동안에는 거리를 읽을 수 없고 턴마다 정신력이 깎여요. 해독하면 정신력을 대가로 귀환 신호를 되찾아요.',
+          run: r => { const m = ME(r), d = Math.min(m.san - 1, 9); m.san -= d; tutRoll(r, m, '신호 해독', 3, '기록 해독', 2, 'ok', `신호를 해독했다: 「${TUT_NOISE}」 잡음이 걷히며 귀환 신호가 돌아온다. 귀환 신호 +1.`, { san: -d }); r.noise = null; r.count = Math.min(6, r.count + 1); return 'step'; } },
+        { who: 'vulture', at: '.ctlline .cm.me', anchor: '.stage .prog', say: '정신력이 줄었지. 관제도 무너진다. 무너지면 아무도 못 지킨다.', head: '관제 정신력', text: '관제 요원도 정신력이 0이 되면 붕괴해서 행동할 수 없어요. 다른 관제 요원의 바이탈 안정으로만 되돌릴 수 있어요.', done: 'next' }
+      ] },
+    { title: '상층 승강기', text: '승강기 표시등이 깜빡인다. 핀치의 바이탈이 흔들린다.', from: 'rear',
+      setup: r => { r._dist = 15; r.count = 3; const f = tutM(r, 'npc-finch'); r.log.push({ kind: 'contact', text: '벽 너머의 비명이 핀치 요원의 귀를 파고든다.', fx: { san: -78 } }); f.san = 22; tutChat(r, '핀치', '…괜찮아요, 괜찮…'); },
+      steps: [
+        { who: 'vulture', at: '[data-v="stabilize"][data-t="npc-finch"]', anchor: '.ctl .choices', expect: ['opCtl', 'stabilize', 'npc-finch'], say: '핀치 정신력 22. 붕괴하면 회수에 두 턴을 쓴다. 그 전에 잡는다.', head: '바이탈 안정', text: '의지 + 응급처치, 보통(2). 성공하면 정신력을 되찾고, 붕괴한 요원도 다시 일으켜요.',
+          run: r => { tutRoll(r, ME(r), '바이탈 안정', 5, '응급처치', 2, 'ok', '핀치 요원의 바이탈이 안정됐다. (정신력 +25)'); tutM(r, 'npc-finch').san = 47; return 'step'; } },
+        { who: 'vulture', at: '[data-v="raven1"]', anchor: '.ctl .choices', say: 'RAVEN-1. 부르면 다 치워 준다. 대가는 보급품 20씩, 보상 절반. 리퍼한테 빚지는 건 덤이고. 이번엔 안 부른다.', head: 'RAVEN-1 지원', text: '작전당 한 번. 하수인을 모두 없애고, 개체를 밀어내고, 귀환 신호를 2 채워요. 정말 위험할 때만 쓰세요.',
+          done: r => { tutSay(r, '현장팀이 승강기에 올랐다. 문이 닫혔다.'); tutChat(r, '벌처', '결과는 합격. 다음엔 설명 안 한다.', 'ctrl'); return 'finish'; } }
+      ] }
+  ]
+};
+const TUT_PROG = { field: ['집결', '판정', '교전', '회수', '귀환'], ctrl: ['착석', '무전', '원격', '잡음', '바이탈'] };
+function tutStart(role) {
+  if (myModalOp()) { S.toast = { text: '진행 중인 작전이 끝난 뒤에 훈련할 수 있습니다.', level: 'warn', at: Date.now() }; showToast(); return; }
+  S.tut = { stage: 'wake', k: 0, role: role || (S.me && +S.me.role === 1 ? 'ctrl' : 'field'), sc: 0, st: 0, r: null, nag: 0 };
+  syncTut();
+}
+function tutEnterScene() {
+  const T = S.tut, sc = TUT[T.role][T.sc], r = T.r;
+  r.log.push({ kind: 'scene', title: sc.title, text: sc.text });
+  r.turn++; T.st = 0;
+  if (sc.setup) sc.setup(r);
+  tutDerive(r);
+}
+function tutAdvance(how) {
+  const T = S.tut, r = T.r;
+  if (how === 'finish') { r.status = 'done'; r.result = 'success'; tutFinish(false); return syncModal(); }
+  if (how === 'next') { T.sc++; tutEnterScene(); return syncModal(); }
+  T.st++; tutDerive(r); syncModal();
+}
+function tutAct(a, v, t) {
+  const T = S.tut, r = T.r;
+  if (a === 'opAbort') return tutSkip();
+  if (a === 'opClose') return tutEnd();
+  if (r.status !== 'live') return;
+  const step = TUT[T.role][T.sc].steps[T.st], ex = step && step.expect;
+  if (ex && ex[0] === a && ex[1] === v && (!ex[2] || ex[2] === t.dataset.t)) {
+    const old = JSON.parse(JSON.stringify(r)); T.nag = 0;
+    const how = step.run ? step.run(r) : 'step';
+    tutDerive(r); tutFx(old, r);
+    return tutAdvance(how);
+  }
+  T.nag = Date.now(); syncModal();
+}
+function tutNext() {
+  const T = S.tut, step = TUT[T.role][T.sc].steps[T.st]; if (!step || step.expect) return;
+  const how = typeof step.done === 'function' ? step.done(T.r) : step.done || 'step';
+  tutAdvance(how);
+}
+function tutSkip() {
+  if (!confirm('튜토리얼을 건너뛸까요? 홈의 할 일 목록에서 언제든 다시 할 수 있습니다.')) return;
+  tutFinish(true); tutEnd();
+}
+function tutFinish(skip) {
+  B.tutDone(!!skip).then(res => { if (res && res.agent) S.me = res.agent; if (S.tut) S.tut.first = res && res.first; if (!skip) syncModal(); refreshLobby(); }).catch(() => {});
+}
+function tutEnd() { S.tut = null; syncTut(); syncModal(); render(); }
+function tutDoneHTML() {
+  const T = S.tut, first = T.first;
+  return `<div class="stage done"><span class="bb res success">TRAINING COMPLETE</span><b class="st">첫 출동 완료</b>
+    <p>${T.role === 'ctrl' ? '벌처: 「결과는 합격. 다음엔 설명 안 한다.」' : '리퍼: 「5팀은 역시 재밌어. 다음에 또 보자, 신입.」'}</p>
+    <p>${first === false ? '이미 보상을 받은 훈련입니다.' : '보급품 20과 칭호 「첫 출동」을 받았습니다.'} 이제 작전 탭에서 정식 작전에 참가할 수 있습니다.</p>
+    <div class="acts"><button class="btn" data-act="opClose">기지로 돌아가기</button></div></div>`;
+}
+// 말풍선: 실제 작전 화면을 그린 뒤, 안내할 요소를 강조하고 그 옆에 붙인다
+function tutCoach(host) {
+  host.querySelectorAll('.tut-bub').forEach(x => x.remove()); host.querySelectorAll('.tut-hl').forEach(x => x.classList.remove('tut-hl'));
+  const T = S.tut; if (!T || T.stage !== 'op' || T.r.status !== 'live') return;
+  const step = TUT[T.role][T.sc].steps[T.st]; if (!step) return;
+  const at = host.querySelector(step.at), an = (step.anchor && host.querySelector(step.anchor)) || at;
+  if (at) at.classList.add('tut-hl');
+  const W = TUT_WHO[step.who], nagged = T.nag && Date.now() - T.nag < 4000;
+  const nag = step.who === 'vulture' ? '그거 아니다. 표시한 거.' : '그거 말고, 반짝이는 거. 재미없게 굴지 말고.';
+  const html = `<div class="tut-bub${nagged ? ' nag' : ''}" role="dialog" aria-label="안내"><span class="tbh"><span class="ch">${W[2]}</span><i></i><b>${W[0]}</b><small>${W[1]}</small><em>${T.sc + 1}/5 ${TUT_PROG[T.role][T.sc]} · 안내 ${T.st + 1}/${TUT[T.role][T.sc].steps.length}</em></span>
+    <p class="tsay">— ${esc(nagged ? nag : step.say)}</p><p class="trule"><b>${esc(step.head)}</b> · ${esc(step.text)}</p>
+    <span class="tbb">${step.expect ? '<small>빛나는 버튼을 누르세요</small>' : '<button class="btn s" data-act="tutNext">다음</button>'}</span></div>`;
+  if (an) an.insertAdjacentHTML(step.where === 'before' ? 'beforebegin' : 'afterend', html);
+  ['opmLog', 'opmChat'].forEach(id => { const el = document.getElementById(id); if (el && step.at !== '#' + id) el.scrollTop = el.scrollHeight; });
+  const b = host.querySelector('.tut-bub'); if (b && T._lastStep !== T.sc + ':' + T.st) { T._lastStep = T.sc + ':' + T.st; b.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' }); }
+}
+// 수조에서 깨어남 · 경보 화면
+function syncTut() {
+  const host = document.getElementById('tutScreen'); if (!host) return;
+  const T = S.tut;
+  if (!T || (T.stage !== 'wake' && T.stage !== 'alarm')) { if (host.classList.contains('on')) { host.innerHTML = ''; host.classList.remove('on'); } return; }
+  host.classList.add('on');
+  const name = (S.me && S.me.name) || '신입', ctrl = T.role === 'ctrl';
+  const skip = `<button class="tskip" data-act="tutSkip">튜토리얼 건너뛰기</button>`;
+  if (T.stage === 'wake') {
+    const L = ['…차갑다.', '유리 너머에서 누군가 숫자를 읽고 있다. 일곱, 여덟, 아홉.', `「재생 완료. 피험자 ${name}, 생체 신호 안정. 기억 손실 경미.」`, '수조의 물이 빠져나가기 시작한다. 손끝에 감각이 돌아온다.'];
+    const k = Math.min(T.k, 3), cta = ['눈을 뜬다', '귀를 기울인다', '숨을 들이쉰다', '몸을 일으킨다'][k];
+    host.innerHTML = `<div class="twake">${skip}<span class="tvat" aria-hidden="true"></span><span class="tosd">REGEN VAT 03<br><small>CYCLE COMPLETE · VITALS ${['--', 'LOW', 'STABLE', 'STABLE'][k]}</small></span>
+      <div class="tlines">${L.slice(0, k + 1).map((t, i) => `<p class="${i === k ? 'now' : ''}">${esc(t)}</p>`).join('')}<button class="btn" data-act="tutWake">${cta}</button></div></div>`;
+  } else {
+    const lines = ctrl ? ['3번 수조 신입. 정신 들었으면 관제실로.', 'B2 격리 장치가 꺼졌다. 관제 자리가 하나 빈다.', '설명은 한 번만 한다. 30초 안에 와.'] : [`수조 3번, RAVEN-5 신입 ${name} 요원. 정신 들었으면 대답해.`, 'B2에서 격리 장치가 꺼졌다. 5팀에서 남은 건 맥파이와 핀치뿐이야.', '사물함에서 장비 챙기고 B2 승강기 앞으로.'];
+    host.innerHTML = `<div class="talarm">${skip}<div class="tband">${ico('alert', 18, 2.4)}경보 · 하층 B2 격리 이상 · 가용 요원은 즉시 집결하십시오</div>
+      <div class="tucard"><span class="th"><span class="bb">RADIO · CTRL</span><small>${ctrl ? '벌처 · RAVEN-3 팀장' : '운영관 케스트럴'}</small></span>
+        <div class="tmsg">${lines.map(l => `<span>— ${esc(l)}</span>`).join('')}</div>
+        <span class="turole"><small>내 소속</small><b>RAVEN-5 · ${ctrl ? '관제팀' : '현장팀'}</b><span class="sw"><button data-act="tutRole" data-v="field" aria-pressed="${!ctrl}">현장</button><button data-act="tutRole" data-v="ctrl" aria-pressed="${ctrl}">관제</button></span></span>
+        <button class="btn tgo" data-act="tutGo">${ctrl ? '관제실로 올라간다' : 'B2 승강기로 내려간다'}</button></div></div>`;
+  }
 }
 function syncMode() {
-  syncModal(); syncGMModal();
+  syncModal(); syncGMModal(); syncTut();
   const sh = app.querySelector('.shell'); if (!sh) return;
   const r = curOp(), live = !!(r && r.status === 'live');
   const mine = Object.values(S.ops || {}).some(x => x.status === 'live' && x.members.some(m => m.uid === S.user.uid));
@@ -2918,7 +3378,8 @@ function enterLobby() {
   S.view = 'home'; S.unread = 0; watchAll();
   // 요원 목록이 처음 도착하면(또는 잠시 뒤) 한 번에 그린다
   let shown = false;
-  const show = () => { if (shown) return; shown = true; S.phase = 'lobby'; render(); window.scrollTo(0, 0); };
+  const show = () => { if (shown) return; shown = true; S.phase = 'lobby'; render(); window.scrollTo(0, 0);
+    if (S.tutAuto) { const role = S.tutAuto; S.tutAuto = null; setTimeout(() => { if (!(S.me && S.me.ach && S.me.ach.tutSeen)) tutStart(role); }, 400); } };
   setTimeout(show, 700);
   let seen = -1;
   unsub.push(B.watchAgents(list => {
@@ -2958,7 +3419,14 @@ app.addEventListener('click', e => {
   const t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
   const a = t.dataset.act, v = t.dataset.v, c = S.c;
   const re = () => render();
+  if (S.tut && S.tut.stage === 'op' && /^(opAct|opCtl|opMove|opItem|opAbort|opClose|modalHide)$/.test(a)) return tutAct(a === 'modalHide' ? 'opClose' : a, v, t);
   switch (a) {
+    case 'tutStart': return tutStart();
+    case 'tutWake': if (S.tut.k >= 3) S.tut.stage = 'alarm'; else S.tut.k++; return syncTut();
+    case 'tutRole': S.tut.role = v; return syncTut();
+    case 'tutGo': S.tut.stage = 'op'; S.tut.sc = 0; S.tut.r = tutNewRun(S.tut.role); S.tut.r.log.push({ kind: 'sys', text: '훈련 작전 R8-T 개시. 이 작전에서는 쓰러지지 않습니다.' }); tutEnterScene(); syncTut(); return syncModal();
+    case 'tutNext': return tutNext();
+    case 'tutSkip': return tutSkip();
     case 'loginMode': S.loginMode = S.loginMode === 'in' ? 'up' : 'in'; S.err = ''; return re();
     case 'signOut': return B.signOut();
     case 'theme': setTheme(S.theme === 'dark' ? 'light' : 'dark'); return re();
@@ -2986,7 +3454,7 @@ app.addEventListener('click', e => {
       return;
     }
     case 'issue': return issue();
-    case 'enter': return enterLobby();
+    case 'enter': S.tutAuto = c && c.role === 1 ? 'ctrl' : 'field'; return enterLobby();
     // 로비
     case 'view': { S.view = v; S.reveal = false; S.framePrev = null; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0);
       requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return; }
@@ -3004,6 +3472,8 @@ app.addEventListener('click', e => {
     }
     case 'recReload': S.records = null; return renderCenter();
     case 'agentTab': S.agentTab = v; return renderCenter();
+    case 'sceneOpen': S.sceneOpen = S.sceneOpen || {}; S.sceneOpen[v] = !S.sceneOpen[v]; return render();
+    case 'otherOpen': S.otherOpen = S.otherOpen || {}; S.otherOpen[v] = !S.otherOpen[v]; return render();
     case 'logFold': S.logOpen = S.logOpen || {}; S.logOpen[v] = !S.logOpen[v]; return renderCenter();
     case 'opFilter': S.opFilter = v; return renderCenter();
     case 'opSel': S.opSel = v; S.opErr = ''; return renderCenter();
@@ -3193,6 +3663,7 @@ app.addEventListener('submit', async e => {
   if (kind === 'opchat') {
     const r = myModalOp(), inp = f.text, text = inp.value.trim(); if (!r || !text) return;
     inp.value = '';
+    if (S.tut && S.tut.r) { S.tut.r.chat.push({ uid: S.user.uid, name: (S.me && S.me.name) || '나', role: S.tut.role, text, ts: Date.now() }); return syncModal(); }
     try { await B.opCall('op:chat', { op: r.op.id, text }); } catch (err) { inp.value = text; inp.placeholder = errMsg(err); }
   }
   if (kind === 'dm') {
