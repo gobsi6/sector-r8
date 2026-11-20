@@ -30,12 +30,19 @@ BOTS.forEach((b, i) => {
   Q.addAgent.run({ user_id: uid, num: 'S-' + i, name: b.name, role: i === 4 ? 1 : 0, head: 0, photo: null, age: 30, stats: JSON.stringify(b.stats), trait: 1, skills: JSON.stringify(skills), res: JSON.stringify({ supply: 100, research: 0, pass: 0 }), created: now() });
   db.prepare('UPDATE agents SET traits = ? WHERE user_id = ?').run(JSON.stringify([]), uid);
 });
-const resetBots = () => db.prepare('UPDATE agents SET contamination = 0, regen_until = NULL, quar_until = NULL, traits = ?, career = 0').run('[]');
+const SKLV = Math.max(1, Math.min(5, +(process.env.SKLV || 1))); // 봇 기능 등급(SKLV=3이면 중견 요원)
+// 판마다 봇을 처음 상태로 되돌린다. 기능 경험치도 지워야 뒤에 도는 판이 더 강해지지 않는다.
+const resetBots = () => { db.prepare('UPDATE agents SET contamination = 0, regen_until = NULL, quar_until = NULL, traits = ?, career = 0, skill_xp = ?').run('[]', '{}');
+  BOTS.forEach(b => db.prepare('UPDATE agents SET skills = ? WHERE user_id = ?').run(JSON.stringify(Object.fromEntries(b.sk.map(k => [k, SKLV]))), b.uid)); };
 const dice = (b, statIdx, skill) => Math.max(1, Math.floor(b.stats[statIdx] / 2) - 1 + (b.sk.includes(skill) ? 1 : 0));
 // 현장 봇의 판단: 쓰러진 동료 회수 → 교전(막기·공격) → 장면 진행(목표 선택지, 필요하면 전진)
 function fieldPick(r, mem, taken) {
   const b = BOTS.find(x => String(x.uid) === mem.uid), o = D(r), sc = o.scenes[r.scene], p = posOf(r, mem.uid), L = lineOf(r);
   const down = r.members.find(x => x.role === 'field' && x.uid !== mem.uid && (x.dead || x.broken) && !x.recovered);
+  if (sc.fork) { // 갈림길: 관제가 들여다본 문 중 위험 없는 쪽, 아니면 들여다본 위험 문의 반대쪽, 그것도 없으면 문 A
+    const good = sc.doors.find(d => d.peeked && (d.risk === 'none' || d.risk === 'cache')), bad = sc.doors.find(d => d.peeked && !(d.risk === 'none' || d.risk === 'cache'));
+    return ['act', 'fork-' + (good ? good.id : bad ? (bad.id === 'a' ? 'b' : 'a') : 'a')];
+  }
   if (down && !taken.has('rec')) { taken.add('rec'); return ['act', 'rec-' + down.uid]; }
   for (const side of ['front', 'rear']) {
     const f = r.minions.find(x => x.side === side); if (!f) continue;
@@ -69,8 +76,12 @@ function ctrlAct(r, mem) {
   const CM = process.env.CTRL || 'all'; if (CM === 'none') return;
   const opid = r.op, facsOf = G('facsOf');
   if (r.noise) return opCtl(mem.uid, opid, mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam');
+  const scN = D(r).scenes[r.scene];
+  if (scN.fork && CM !== 'nofork') { const d = scN.doors.find(x => !x.peeked); if (d && !scN.doors.some(x => x.peeked && (x.risk === 'none' || x.risk === 'cache'))) return opCtl(mem.uid, opid, 'peek', d.id); }
+  if (r.shift && CM !== 'nobeacon' && facsOf) return opCtl(mem.uid, opid, 'fac', 'beacon');
   const low = r.members.filter(x => x.role === 'field' && !x.dead && x.san < x.sanMax * 0.35).sort((a, c) => a.san - c.san)[0];
   if (facsOf && CM !== 'nofac') {
+    if (scN.fork) return opCtl(mem.uid, opid, 'support');
     const F = facsOf(r), pwr = F.find(x => x.id === 'pwr'), sp = F.find(x => x.id === 'sp'), wall = F.find(x => x.id === 'wall');
     if (!pwr.on) return opCtl(mem.uid, opid, 'fac', 'pwr');
     if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
@@ -109,7 +120,7 @@ function runOne(opId, nField, withCtrl) {
 }
 if (process.env.PEEK) { const [op, nf, c] = process.env.PEEK.split(','); const res = runOne(op, +nf, c === '1'); const r = runs.get(op); console.log(JSON.stringify(res)); r.log.forEach(L => console.log('-', L.kind, L.label || '', L.tierName || '', (L.text || '').slice(0, 90), L.fx ? JSON.stringify(L.fx) : '')); process.exit(0); }
 const out = [];
-for (const opId of ['R8-14', 'R8-P']) for (const nf of [1, 2, 3, 4]) for (const ctl of [false, true]) {
+for (const opId of (process.env.OPS || 'R8-14,R8-P').split(',')) for (const nf of [1, 2, 3, 4]) for (const ctl of [false, true]) {
   const R = []; for (let i = 0; i < N; i++) R.push(runOne(opId, nf, ctl));
   const pct = k => Math.round(R.filter(x => x.why === k).length / N * 100);
   const avg = k => +(R.reduce((a, x) => a + x[k], 0) / N).toFixed(2);

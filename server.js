@@ -475,7 +475,7 @@ const OPS = [{
 /* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
 // 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
 const PATROL_SECTIONS = 3, REACH_M = 6, PATROL_STAB = 15;
-OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 4, ctrl: 2, level: 2, rec: { field: [2, 3], ctrl: [1, 1] }, count: 6, countEvery: 4, recoil: 12,
+OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 4, ctrl: 2, level: 2, rec: { field: [2, 3], ctrl: [1, 1] }, count: 8, countEvery: 4, recoil: 12,
   brief: '하층 B3 구역 정기 순찰입니다. 구역 문을 지나 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
   sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
   countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
@@ -502,19 +502,19 @@ const CRAWLERS = [
 const ODDITIES = ['자기 넘버가 붙은 사물함', '벽을 가리키는 비상구 표지', 'B3 층 표시', '고인 물에 비친 다른 복도', '꺼진 형광등 구간', '사망자 출입 기록 단말', '안쪽에서 잠긴 격리실', '같은 날짜의 근무 일지', '거꾸로 매달린 소화기', '벽에 긁힌 까마귀 그림', '물이 새는 천장', '멈춘 벽시계'];
 // 구역 틀: 장면 설명과 목표 행동
 const SECTIONS_T = [
-  { title: '반복 복도', text: '같은 복도가 세 번째 반복된다. 벽의 층 표시는 계속 B3다.',
+  { title: '반복 복도', door: '문틈으로 방금 지나온 것과 같은 복도가 보인다', text: '같은 복도가 세 번째 반복된다. 벽의 층 표시는 계속 B3다.',
     goal: { label: '반복 구간의 끝 문을 연다', stat: 4, skill: '관찰', diff: 2, crit: '반복의 틈을 찾았다. 문 너머로 새 구역이 이어진다.', ok: '구역 문이 열렸다.', cost: { text: '문은 열렸지만 같은 복도를 한 번 더 걸은 기억이 남았다.', san: -1 }, fail: { text: '문 너머도 같은 복도였다.', count: -1 } },
     side: { label: '반복 패턴을 기록한다', pos: 'mid', stat: 3, skill: '기록 해독', diff: 2, crit: { text: '반복의 주기를 알아냈다. 귀환 신호를 보정했다.', count: 2 }, ok: { text: '반복 패턴을 기록했다. 귀환 신호가 조금 맑아졌다.', count: 1 }, cost: { text: '기록하는 사이 같은 문장을 두 번 적었다.', san: -1 }, fail: { text: '기록이 뒤죽박죽이 됐다.', count: -1 } } },
-  { title: '사물함 구역', text: '양쪽 벽을 따라 사물함이 끝없이 늘어서 있다. 몇 개는 안쪽에서 두드리는 소리가 난다.',
+  { title: '사물함 구역', door: '안쪽에서 금속을 두드리는 소리가 난다', text: '양쪽 벽을 따라 사물함이 끝없이 늘어서 있다. 몇 개는 안쪽에서 두드리는 소리가 난다.',
     goal: { label: '구역 끝 보안문을 해제한다', stat: 3, skill: '장비 운용', diff: 2, crit: '보안문이 소리 없이 열렸다.', ok: '보안문이 열렸다.', cost: { text: '문은 열렸지만 경보음이 울렸다.', count: -1 }, fail: { text: '보안 코드가 맞지 않는다. 사물함 두드리는 소리가 커졌다.', san: -1 } },
     side: { label: '두드리는 사물함을 연다', pos: 'mid', stat: 5, skill: '인내', diff: 2, crit: { text: '안에는 섹터 보급 상자가 있었다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '안에서 쓸 만한 장비를 찾았다.', sup: 1 }, cost: { text: '안에는 자기 넘버가 적힌 제복이 걸려 있었다.', san: -2, sup: 1 }, fail: { text: '사물함 안에서 무언가 손을 뻗었다.', hp: -2 } } },
-  { title: '침수 통로', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.',
+  { title: '침수 통로', door: '문 아래로 차가운 물이 스며 나온다', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.',
     goal: { label: '물에 비친 길이 아니라 실제 길로 건넌다', stat: 2, skill: '운반', diff: 2, crit: '흔들림 없이 통로를 건넜다.', ok: '통로를 건넜다.', cost: { text: '건넜지만 물속의 무언가가 발목을 스쳤다.', hp: -1 }, fail: { text: '물에 비친 길을 따라가 버렸다.', count: -1, san: -1 } },
     side: { label: '배수 밸브를 연다', pos: 'mid', stat: 0, skill: '운반', diff: 2, crit: { text: '물이 빠지며 바닥의 길이 드러났다. 귀환 신호가 맑아졌다.', count: 1, sup: 1 }, ok: { text: '물이 조금 빠졌다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '밸브는 열렸지만 손이 미끄러져 다쳤다.', hp: -1, sup: 1 }, fail: { text: '밸브가 꿈쩍하지 않는다.', count: -1 } } },
-  { title: '정전 구역', text: '조명이 모두 꺼져 있다. 손전등 빛이 닿는 곳만 존재하는 것처럼 보인다.',
+  { title: '정전 구역', door: '문틈이 완전히 어둡다. 빛이 새어 나오지 않는다', text: '조명이 모두 꺼져 있다. 손전등 빛이 닿는 곳만 존재하는 것처럼 보인다.',
     goal: { label: '예비 전원을 켜고 문을 연다', stat: 3, skill: '장비 운용', diff: 2, crit: '구역 전체에 불이 들어왔다. 문이 열렸다.', ok: '예비 전원이 들어왔다. 문이 열렸다.', cost: { text: '전원은 들어왔지만 감전으로 손이 저렸다.', hp: -1 }, fail: { text: '배전반에서 불꽃이 튀었다.', hp: -1, count: -1 } },
     side: { label: '어둠 속 기척을 살핀다', pos: 'mid', stat: 4, skill: '관찰', diff: 2, crit: { text: '기척의 위치를 정확히 짚었다. 개체가 물러났다.', push: 15 }, ok: { text: '기척 쪽으로 빛을 비췄다. 개체가 물러났다.', push: 10 }, cost: { text: '빛을 비춘 곳에 얼굴이 있었다.', san: -2, push: 10 }, fail: { text: '아무것도 찾지 못했다.', count: -1 } } },
-  { title: '출입 기록실', text: '벽 가득한 단말에 출입 기록이 흐른다. 사망한 직원들의 넘버가 지금도 출입하고 있다.',
+  { title: '출입 기록실', door: '문 너머에서 단말 작동음이 웅웅거린다', text: '벽 가득한 단말에 출입 기록이 흐른다. 사망한 직원들의 넘버가 지금도 출입하고 있다.',
     goal: { label: '기록을 위조해 구역 문을 통과한다', stat: 3, skill: '기록 해독', diff: 2, crit: '단말이 대열을 직원으로 인식했다. 문이 열렸다.', ok: '문이 열렸다.', cost: { text: '문은 열렸지만 단말에 자기 사망 일시가 떴다.', san: -1 }, fail: { text: '단말이 경보를 울렸다.', count: -1 } },
     side: { label: '자기 넘버의 기록을 찾아본다', pos: 'mid', stat: 5, skill: '기록 해독', diff: 3, crit: { text: '기록 속에서 잃어버린 기억 한 조각을 찾았다.', san: 2, sup: 1 }, ok: { text: '자기 넘버의 출입 기록을 찾았다. 마지막 출입은 오늘이다.', sup: 1 }, cost: { text: '찾지 말았어야 했다.', san: -2 }, fail: { text: '기록이 빠르게 지워졌다.', count: -1 } } }
 ];
@@ -529,21 +529,70 @@ function genMap(len, endLabel) {
   marks.push({ at: len, label: endLabel, kind: 'door' });
   return { len, start: 2, marks };
 }
+/* ───────── 갈림길: 구역 사이마다 도면에 없던 문 두 개가 나타난다 ─────────
+   현장팀은 투표로 문을 고른다(동률이면 먼저 고른 쪽, 아무도 고르지 않으면 무작위).
+   관제는 관제 행동 하나로 한쪽 문 너머의 감시 카메라를 들여다볼 수 있다. */
+const DOOR_RISK = {
+  none: { name: '특이 사항 없음', text: '문 너머는 조용하다. 도면과 크게 다르지 않다.' },
+  loop: { name: '루프 위험', text: '같은 구간이 되풀이되는 흔적이 있다. 들어가면 절반 확률로 귀환 신호 −1.' },
+  nest: { name: '하수인 둥지', text: '바닥과 천장에 무언가 웅크린 형체가 여럿 보인다. 들어가자마자 하수인 2마리.' },
+  close: { name: '개체 근접', text: '배회 개체가 문 바로 너머에 있다. 개체가 10m 더 가까이에서 시작한다.' },
+  cache: { name: '보급 상자', text: '쓰러진 선반 아래 섹터 보급 상자가 보인다. 들어가면 지원 주사위 +1.' }
+};
+const RISK_POOL = ['none', 'none', 'loop', 'nest', 'close', 'cache'];
+function genSection(t, i) {
+  const from = die(10) <= 6 ? 'rear' : 'front', len = 30 + 5 * (die(5) - 1);
+  return { title: `${t.title} (하층 B3-${i + 1})`, text: t.text, from, dist: from === 'rear' ? 15 + 5 * die(3) : len + 5 * die(3), speed: 5,
+    spawn: die(10) <= 5 ? { [die(2) === 1 ? 'front' : 'rear']: 1 } : null, map: genMap(len, '구역 문'), shiftable: true,
+    choices: [{ id: 'goal', pos: 'front', reach: true, ...t.goal }, { id: 'side', adv: false, ...t.side }, { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] };
+}
+function genFork(pool, i) {
+  const ts = shuffle(pool).slice(0, 2), rk = shuffle(RISK_POOL);
+  const r2 = rk[0] === rk[1] ? rk.find(x => x !== rk[0]) : rk[1];
+  const doors = ts.map((t, k) => ({ id: k ? 'b' : 'a', name: k ? '문 B' : '문 A', tpl: t.title, hint: t.door, risk: k ? r2 : rk[0], scene: genSection(t, i), peeked: false }));
+  return { title: '갈림길', fork: true, text: '복도가 둘로 갈라졌다. 도면에는 없던 문이다. 어느 쪽이든 아까와 같은 곳으로 이어진다는 보장은 없다.', from: 'rear', dist: 60, speed: 0,
+    map: { len: 10, start: 5, marks: [{ at: 0, label: '지나온 구역 문', kind: 'door' }, { at: 10, label: '문 A와 문 B', kind: 'door' }] }, choices: [], doors };
+}
 function genPatrol(base) {
-  const w = pick(WANDERERS), cr = pick(CRAWLERS), secs = shuffle(SECTIONS_T).slice(0, PATROL_SECTIONS);
-  const scenes = secs.map((t, i) => {
-    const from = die(10) <= 6 ? 'rear' : 'front', len = 30 + 5 * (die(5) - 1);
-    return { title: `${t.title} (하층 B3-${i + 1})`, text: t.text, from, dist: from === 'rear' ? 15 + 5 * die(3) : len + 5 * die(3), speed: 5,
-      spawn: die(10) <= 5 ? { [die(2) === 1 ? 'front' : 'rear']: 1 } : null, map: genMap(len, '구역 문'),
-      choices: [{ id: 'goal', pos: 'front', reach: true, ...t.goal }, { id: 'side', adv: false, ...t.side }, { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] };
-  });
+  const w = pick(WANDERERS), cr = pick(CRAWLERS), order = shuffle(SECTIONS_T), first = order[0];
+  const scenes = [genSection(first, 0)];
+  let used = [first];
+  for (let i = 1; i < PATROL_SECTIONS; i++) {
+    if (process.env.R8_FORK === '0') { const t = order[i]; used.push(t); scenes.push(genSection(t, i)); continue; }
+    const pool = SECTIONS_T.filter(t => !used.includes(t)), f = genFork(pool.length >= 2 ? pool : SECTIONS_T, i);
+    used = used.concat(f.doors.map(d => SECTIONS_T.find(t => t.title === d.tpl)));
+    scenes.push(f, f.doors[0].scene); // 고르기 전까지 다음 칸은 문 A로 채워 둔다(GM 장면 넘기기용)
+  }
   scenes.push({ title: '상층 승강기', text: '승강기 표시등이 깜빡인다. 층 표시는 B3과 B4 사이를 오간다. 뒤에서 무언가 따라온다.', from: 'rear', dist: 20, speed: 10,
     spawn: { rear: 1 }, map: genMap(40, '상층 승강기'),
     choices: [{ id: 'goal', label: '승강기를 호출해 탑승한다', pos: 'front', reach: true, stat: 2, skill: '운반', diff: 2, crit: '모두가 승강기에 올랐다. 문이 닫혔다.', ok: '승강기 문이 닫혔다. 위로 올라간다.', cost: { text: '문이 닫히기 직전 무언가 손을 들이밀었다.', hp: -2 }, fail: { text: '승강기가 오지 않는다. 표시등이 B4를 가리킨다.', count: -1 } },
       { id: 'side', label: '수동으로 승강기를 끌어올린다', pos: 'mid', stat: 0, skill: '장비 운용', diff: 2, adv: false, crit: { text: '승강기가 빠르게 내려온다.', count: 1, sup: 1 }, ok: { text: '승강기가 내려오고 있다.', sup: 1 }, cost: { text: '손잡이가 손을 할퀴었다.', hp: -1, sup: 1 }, fail: { text: '줄이 끊어질 듯 삐걱댄다.', count: -1 } },
       { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] });
   return { ...base, entity: w.name, forms: w.forms, contact: w.contact, minion: { name: cr.name, hp: cr.hp, spawn: cr.spawn, kill: cr.kill }, scenes,
-    title: `하층 정기 순찰: ${secs.map(t => t.title).join(', ')}` };
+    title: `하층 정기 순찰: ${first.title}부터` };
+}
+// 갈림길 투표 결과로 다음 구역을 정하고 들어간다
+function forkResolve(r) {
+  const o = D(r), sc = o.scenes[r.scene]; if (!sc || !sc.fork) return;
+  const votes = Object.values(r.picks || {}).filter(p => /^fork-[ab]$/.test(p.v)).sort((a, b) => a.at - b.at);
+  const n = { a: 0, b: 0 }; votes.forEach(p => { n[p.v.slice(5)]++; });
+  let id, why;
+  if (!votes.length) { id = die(2) === 1 ? 'a' : 'b'; why = '아무도 고르지 않아 대열은 먼저 눈에 띈 문으로 들어섰다.'; }
+  else if (n.a === n.b) { id = votes[0].v.slice(5); why = `표가 갈렸다(${n.a}:${n.b}). 먼저 손을 든 쪽을 따른다.`; }
+  else { id = n.a > n.b ? 'a' : 'b'; why = `투표 ${n.a}:${n.b}.`; }
+  const d = sc.doors.find(x => x.id === id);
+  say(r, `${why} 대열은 ${jo(d.name, "을", "를")} 열었다.`, { kind: 'move' });
+  const nx = { ...d.scene };
+  if (d.risk === 'close') nx.dist = Math.max(8, nx.dist - 10);
+  o.scenes[r.scene + 1] = nx;
+  r.scene++; r.dist = nx.dist; r.pos = nx.map.start;
+  say(r, nx.text, { kind: 'scene', title: nx.title });
+  sceneEnter(r);
+  if (d.risk === 'loop') { if (Math.random() < 0.5) { r.count = Math.max(0, r.count - 1); say(r, `문을 지나자 방금 지나온 복도가 다시 나타났다. 같은 구간을 한 번 더 걸었다. ${o.countLabel} −1.`, { kind: 'warn', fx: { count: -1 } }); } else say(r, '같은 구간이 되풀이되려다 멈췄다. 운이 좋았다.', { kind: 'sys' }); }
+  else if (d.risk === 'nest') { spawnMinion(r, 'front', 1); spawnMinion(r, 'rear', 1); }
+  else if (d.risk === 'close') say(r, '문을 열자마자 레이더가 울렸다. 개체가 가까이에 있다.', { kind: 'warn' });
+  else if (d.risk === 'cache') { r.support = Math.min(SUPPORT_MAX, r.support + 1); say(r, '쓰러진 선반 아래에서 보급 상자를 찾았다. 다음 판정에 지원 주사위 1개.', { kind: 'sys' }); }
+  r._sceneChanged = true;
 }
 
 const traitsOf = row => {
@@ -626,7 +675,7 @@ function runOut(r, viewer, gm) {
   const radar = live ? (r.noise && vm && vm.role === 'ctrl' ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
     : ctl ? { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }
     : { exact: false, from: sc.from, detected: r.dist <= RADAR_RANGE, near: r.dist <= 10 }) : null;
-  return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS + 1 : o.scenes.length,
+  return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
       patrol: !!o.patrol, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
     status: r.status, scene: live ? { idx: r.scene, title: sc.title, text: sc.text, from: sc.from,
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
@@ -634,6 +683,10 @@ function runOut(r, viewer, gm) {
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     noise: live && r.noise ? (vm && vm.role === 'ctrl' ? { shown: r.noise.shown, turns: r.noise.turns } : { on: true }) : null,
+    shift: live && r.shift && ctl ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
+    shiftFx: live && r.shiftFx && r.shiftFx.turn === r.turn ? r.shiftFx : null,
+    beacon: live && r.beaconUntil > r.turn ? r.beaconUntil - r.turn : 0,
+    fork: live && sc.fork ? sc.doors.map(d => ({ id: d.id, name: d.name, hint: d.hint, peeked: d.peeked, tpl: d.peeked ? d.tpl : null, risk: d.peeked ? d.risk : null, riskName: d.peeked ? DOOR_RISK[d.risk].name : null, riskText: d.peeked ? DOOR_RISK[d.risk].text : null, from: d.peeked ? d.scene.from : null })) : null,
     facs: live ? facsOf(r) : [], dark: live ? isDark(r) : false, ease: live ? !!(r.fac && r.fac.ease) : false,
     sight: live ? { stage: sightStage(r.dist), text: o.forms[sightStage(r.dist)], from: sc.from } : null,
     map: live ? { len: sc.map.len, marks: sc.map.marks, pos: r.pos } : null,
@@ -719,6 +772,12 @@ const ROUND_MS = Math.max(15, Number(process.env.ROUND_SECONDS || 60)) * 1000;
 const canPick = m => m.role === 'field' && !m.dead && !m.broken;
 function pickCheck(r, uid, kind, v) {
   const m = fieldMember(r, uid), o = D(r), sc = o.scenes[r.scene], p = posOf(r, uid), L = lineOf(r);
+  if (sc.fork) {
+    const fm = /^fork-([ab])$/.exec(v);
+    if (kind === 'act' && fm) return [null, `${sc.doors.find(d => d.id === fm[1]).name} 쪽에 한 표`];
+    if (kind === 'move' && (v === 'fwd' || v === 'back')) return ['op/fork'];
+    if (kind === 'act' && !/^(rec|heal)-/.test(v)) return ['op/fork'];
+  }
   if (kind === 'move') {
     if (v === 'wait') return [null, '대기'];
     if (v === 'swap') return L.findIndex(x => x.uid === m.uid) <= 0 ? ['op/no-ahead'] : [null, '자리 바꾸기'];
@@ -777,10 +836,12 @@ function resolveRound(r) {
     if (r.status !== 'live') break;
     const m = r.members.find(x => x.uid === uid); if (!m) continue;
     if (r.scene !== sc0) { say(r, `장면이 바뀌어 ${m.name} 요원의 「${p.label}」은(는) 취소됐다.`, { kind: 'move', uid }); continue; }
+    if (/^fork-[ab]$/.test(p.v)) continue;
     if (p.kind === 'move' && p.v === 'wait') { say(r, `${m.name} 요원은 자리를 지키며 기다렸다.`, { kind: 'move', uid }); continue; }
     const e = p.kind === 'move' ? moveExec(r, uid, p.v) : actExec(r, uid, p.v);
     if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
   }
+  if (r.status === 'live' && r.scene === sc0 && D(r).scenes[r.scene].fork) forkResolve(r);
   r.batch = false; r.picks = {};
   if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
   if (r.status === 'live') startRound(r);
@@ -796,7 +857,7 @@ function opStart(uid, opId) {
   const o = D(r);
   // 인원 보정 기준: 현장 인원
   r.nf = r.members.filter(m => m.role === 'field').length; r.nt = r.nf;
-  r.status = 'live'; r.started = now(); r.noise = null; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
+  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
   say(r, `작전 ${o.id} 개시. 현장팀 ${r.members.filter(m => m.role === 'field').length}명, 관제팀 ${r.members.filter(m => m.role === 'ctrl').length}명.`, { kind: 'sys' });
@@ -867,18 +928,66 @@ const FAC_SP = [
 ];
 function facsOf(r) {
   if (!r.fac) r.fac = {};
+  if (D(r).scenes[r.scene].fork) return [];
   const o = D(r), last = r.scene === o.scenes.length - 1, sp = last ? { name: '화물 승강기', kind: '이동', type: 'ease', eff: '승강기를 미리 불러 귀환 판정이 한 단계 쉬워진다' } : FAC_SP[r.scene % FAC_SP.length];
   const from = o.scenes[r.scene].from;
   return [
     { id: 'pwr', name: '구역 전원', kind: '전력', diff: 1, eff: '조명이 돌아와 현장 시야가 트인다(하수인 예고 공개, 판정 주사위 −1 해제)', on: !!r.fac.pwr, state: r.fac.pwr ? '정상 전력' : '비상등', x: 20 },
     { id: 'sp', name: sp.name, kind: sp.kind, type: sp.type, diff: 2, eff: sp.eff, on: !!r.fac.sp, state: r.fac.sp ? '작동 중' : sp.type === 'short' ? '잠김' : '정지', x: 62 },
     { id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }
-  ];
+  ].concat(r.shift ? [{ id: 'beacon', name: '기준점 비컨', kind: '비컨', diff: 2, skill: '통신', eff: `원래 도면 좌표를 송출해 이번 변형(${SHIFT_KINDS[r.shift.kind].name})을 막는다. 심연도 이 신호를 듣는다: ${BEACON_TURNS}라운드 동안 잡음 확률 2배`, on: false, state: '대기', x: 50 }] : []);
 }
 const isDark = r => !(r.fac && r.fac.pwr);
+/* ───────── 하층 구조 변형 ─────────
+   하층은 기지 구조가 꼬여 있고 계속 확장·변형된다. 구역마다 한 번, 관제 계기판에 변형이 먼저 잡히고
+   다음 턴이 끝날 때 구조가 바뀐다. 관제는 그 사이에 기준점 비컨(지능 + 통신, 보통)으로 변형을 막을 수 있다.
+   비컨은 원래 도면 좌표를 송출하는 장치라 심연도 그 신호를 듣는다: 켜면 3라운드 동안 잡음 확률이 두 배가 된다. */
+const SHIFT_CHANCE = Number(process.env.R8_SHIFT ?? 0.35), BEACON_TURNS = 3;
+const SHIFT_KINDS = {
+  extend: { name: '복도 연장', warn: '구역 끝까지의 복도가 12m 늘어난다' },
+  marks: { name: '표지물 이동', warn: '지나온 표지물이 앞쪽으로 옮겨진다. 대열이 8m 되돌아간다' },
+  power: { name: '전원 차단', warn: '구역 회선이 끊겨 비상등으로 돌아간다' },
+  flip: { name: '방향 반전', warn: '복도의 앞뒤가 뒤집혀 개체와 하수인이 반대쪽에서 나타난다' }
+};
+function shiftTick(r) {
+  const o = D(r), sc = o.scenes[r.scene];
+  if (r.shift && r.turn >= r.shift.at) return shiftApply(r);
+  if (!o.patrol || !sc.shiftable || r.shift || r.shiftDone || r.turn - (r.sceneT0 || 0) < 2) return;
+  if (Math.random() >= SHIFT_CHANCE) return;
+  const kinds = ['extend', 'marks', 'flip'].concat(r.fac && r.fac.pwr ? ['power', 'power'] : []);
+  r.shift = { kind: pick(kinds), at: r.turn + 1 };
+  if (r.members.some(m => m.role === 'ctrl' && !m.dead)) say(r, '관제실 계기판에 경보등이 켜졌다. 하층 도면의 좌표가 흔들리고 있다.', { kind: 'shift' });
+}
+function shiftApply(r) {
+  const o = D(r), sc = o.scenes[r.scene], k = r.shift.kind; let text, fx = null;
+  r.shift = null; r.shiftDone = true;
+  if (k === 'extend') {
+    const before = Math.max(0, sc.map.len - r.pos);
+    sc.map = { ...sc.map, len: sc.map.len + 12, marks: sc.map.marks.map(x => x.at > r.pos ? { ...x, at: x.at + 12 } : x) };
+    if (sc.from === 'front') r.dist = Math.min(60, r.dist + 12);
+    text = '벽이 숨을 쉬듯 밀려났다. 구역 끝까지의 복도가 12m 늘어났다.'; fx = { before, after: before + 12, unit: '구역 끝까지' };
+  } else if (k === 'marks') {
+    const np = Math.max(0, r.pos - 8), moved = np - r.pos, before = Math.max(0, sc.map.len - r.pos);
+    r.pos = np; r.dist = Math.max(1, Math.min(60, r.dist + (sc.from === 'front' ? -moved : moved)));
+    const odd = sc.map.marks.filter(x => !x.kind), labels = shuffle(odd.map(x => x.label));
+    sc.map = { ...sc.map, marks: sc.map.marks.map(x => x.kind ? x : { ...x, label: labels.shift() }) };
+    text = '방금 지나친 표지가 다시 앞에 있다. 대열은 어느새 8m 뒤로 되돌아와 있었다.'; fx = { before, after: before - moved, unit: '구역 끝까지' };
+  } else if (k === 'power') {
+    if (r.fac) { r.fac.pwr = false; }
+    text = '배선이 벽 속으로 빨려 들어갔다. 구역이 다시 비상등으로 돌아갔다.';
+  } else {
+    sc.from = sc.from === 'rear' ? 'front' : 'rear';
+    r.minions.forEach(x => { x.side = x.side === 'front' ? 'rear' : 'front'; });
+    text = `복도의 앞과 뒤가 뒤바뀌었다. 개체의 기척이 이제 대열 ${sc.from === 'rear' ? '뒤' : '앞'}에서 들린다.`;
+  }
+  r.shiftFx = { kind: k, name: SHIFT_KINDS[k].name, text, turn: r.turn, ...(fx || {}) };
+  say(r, text, { kind: 'shift', title: SHIFT_KINDS[k].name });
+}
 function sceneEnter(r) {
-  r.ctlUsed = {}; r.fac = {};
-  const sp = D(r).scenes[r.scene].spawn;
+  r.ctlUsed = {}; r.fac = {}; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
+  const sc0 = D(r).scenes[r.scene];
+  if (sc0.fork) { r.minions = []; return; }
+  const sp = sc0.spawn;
   if (sp) for (const sd of ['front', 'rear']) if (sp[sd]) spawnMinion(r, sd, sp[sd] + scaleOf(r).spawn);
 }
 // 하수인의 다음 행동. 칩에 미리 보여서 요원이 막을지 칠지 고를 수 있다.
@@ -952,7 +1061,7 @@ function noiseStart(r) {
   say(r, '관제 화면에 잡음이 끼었다. 알 수 없는 신호가 흘러든다.', { kind: 'noise' });
 }
 function noiseTick(r) {
-  if (!r.noise) { if (r.turn >= 2 && Math.random() < NOISE_CHANCE) noiseStart(r); return; }
+  if (!r.noise) { if (r.turn >= 2 && Math.random() < NOISE_CHANCE * (r.beaconUntil >= r.turn ? 2 : 1)) noiseStart(r); return; }
   r.noise.turns++; r.noise.shown = garble(r.noise.text);
   r.members.filter(m => m.role === 'ctrl' && !m.broken).forEach(m => { const d = grit(m, sanD(-0.4)); m.san = Math.max(0, m.san + d); say(r, `잡음 속 속삭임이 ${m.name} 요원의 귀에 남는다.`, { kind: 'noise', uid: m.uid, fx: { san: d } }); });
 }
@@ -968,6 +1077,7 @@ function endTurn(r, moved) {
     if (o.tickSpawn !== false && r.minions.length < SC.cap) spawnMinion(r, o.scenes[r.scene].from, 1 + (SC.spawn && Math.random() < 0.5 ? SC.spawn : 0));
   }
   noiseTick(r);
+  if (moved !== false) shiftTick(r);
   r.members.forEach(x => { x.acted = false; x.radioed = false; });
   checkBodies(r);
   if (r.count <= 0) {
@@ -1197,8 +1307,26 @@ function opCtl(uid, opId, kind, target) {
     m.san = Math.max(0, m.san + extra);
     say(r, txt, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '신호 해독', stat: res.stat, statVal: res.statVal, skill: '기록 해독', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: { san: read + extra } });
     checkBodies(r);
+  } else if (kind === 'peek') {
+    const sc = o2.scenes[r.scene], d = sc.fork && sc.doors.find(x => x.id === target);
+    if (!d) return 'op/bad-choice';
+    if (d.peeked) return 'op/used';
+    if (r.noise) return 'op/noise';
+    d.peeked = true; m.acted = true;
+    const R = DOOR_RISK[d.risk], ns = d.scene;
+    say(r, `관제 ${m.name} 요원이 ${d.name} 너머의 감시 카메라를 확인했다. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '뒤' : '앞'}쪽에서 접근한다.`, { kind: 'radio', uid: m.uid, name: m.name, peek: d.id });
+    return null;
   } else if (kind === 'fac') {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
+    if (F.id === 'beacon') {
+      m.acted = true; r.beaconUntil = r.turn + BEACON_TURNS;
+      const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, F.diff);
+      let txt;
+      if (tier === 'fail') txt = '비컨 신호가 하층의 잡음에 묻혔다. 좌표를 붙들지 못했다. 심연은 신호를 들었다.';
+      else { const k = SHIFT_KINDS[r.shift.kind].name; r.shift = null; r.shiftDone = true; txt = `기준점 비컨이 원래 도면 좌표를 송출했다. 구조가 제자리에 붙들렸다(${k} 차단). 심연도 그 신호를 들었다.`; }
+      say(r, txt, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '기준점 비컨', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
+      return null;
+    }
     if (F.on) return 'op/used';
     if (F.id === 'wall' && !F.need) return 'op/no-target';
     m.acted = true;
@@ -1725,6 +1853,7 @@ app.post('/api/gm/op', need, needGM, (req, res) => {
   else if (act === 'dist') { if (!(err = needLive())) { r.dist = Math.max(0, Math.min(80, Math.round(Number(b.v) || 0))); say(r, `[GM] 개체 거리 조정: ${r.dist}m.`, { kind: 'gmsys' }); } }
   else if (act === 'count') { if (!(err = needLive())) { r.count = Math.max(0, Math.min(o.count, r.count + (Number(b.v) || 0))); say(r, `[GM] ${o.countLabel || '셈'} 조정: ${r.count}.`, { kind: 'gmsys' }); } }
   else if (act === 'noise') { if (!(err = needLive())) { if (r.noise) r.noise = null; else noiseStart(r); } }
+  else if (act === 'shift') { if (!(err = needLive())) { if (!D(r).scenes[r.scene].shiftable) err = 'op/bad-choice'; else { r.shift = { kind: SHIFT_KINDS[b.kind] ? b.kind : pick(['extend', 'marks', 'flip']), at: r.turn + 1 }; say(r, '[GM] 구조 변형을 일으켰다.', { kind: 'gmsys' }); } } }
   else if (act === 'spawn') { if (!(err = needLive())) spawnMinion(r, b.side === 'rear' ? 'rear' : 'front', 1); }
   else if (act === 'clearMinions') { if (!(err = needLive())) { r.minions = []; say(r, '[GM] 하수인을 모두 치웠다.', { kind: 'gmsys' }); } }
   else if (act === 'restore') {

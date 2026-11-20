@@ -1123,6 +1123,26 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 @keyframes nzScroll{0%{background-position:0 0}100%{background-position:0 12px}}
 @keyframes nzJit{0%,88%,100%{transform:none}90%{transform:translateX(2px) skewX(-6deg)}94%{transform:translateX(-3px)}}
 .lg.noise{box-shadow:inset 2px 0 0 #C86BB0}.lg.noise>span{color:#D9A6CF}
+.lg.shift{box-shadow:inset 2px 0 0 #C86BB0;background:color-mix(in srgb,#C86BB0 7%,transparent)}.lg.shift>span{color:#E7C3DF}
+/* 하층 구조 변형 · 기준점 비컨 · 갈림길 */
+.shiftbox,.shiftban{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:4px;background:color-mix(in srgb,#C86BB0 9%,#0E1416);box-shadow:inset 0 0 0 1px color-mix(in srgb,#C86BB0 60%,transparent)}
+.shiftbox>.bb,.shiftban>.bb{flex:none;font-size:15px;letter-spacing:.14em;color:#C86BB0}
+.shiftbox>span:not(.bb),.shiftban>span:not(.bb){display:flex;flex-direction:column;gap:2px;min-width:0}.shiftbox b,.shiftban b{font-size:14px}.shiftbox small,.shiftban small{font-size:12px;line-height:1.45;color:var(--sub)}
+.shiftban>span.dd{margin-left:auto;flex:none;flex-direction:row;align-items:baseline;gap:6px;font-size:13px;color:var(--sub)}.shiftban .dd s{opacity:.7}.shiftban .dd b{color:#E7C3DF;font-size:16px}
+.facp .bq{font-size:11px;font-weight:700;color:#D9A6CF}
+.fcd.bcn{box-shadow:inset 0 0 0 1.5px #C86BB0}.fcd.bcn .led{background:#C86BB0;box-shadow:0 0 6px #C86BB0}.fcd.bcn .fh small{color:#D9A6CF}.fcd.bcn .fd{color:#D9A6CF}
+.fmk.bcn{background:#C86BB0}
+.forkw{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:4px;background:#101517;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 30%,transparent)}
+.forkw .hh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.forkw .hh .bb{font-size:15px;letter-spacing:.12em;color:var(--navyLine)}.forkw .hh small{font-size:12px;color:var(--sub)}
+.forkp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.door{padding:12px 14px;border:0;border-radius:6px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;background:var(--faint);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 40%,transparent)}
+.door:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine)}.door:disabled{cursor:default;opacity:1}.door:disabled .dgo{opacity:.6}
+.door .dh{display:flex;align-items:baseline;gap:8px;width:100%}.door .dh b{font-size:16px}.door .dh small{margin-left:auto;font-size:12px;color:var(--sub)}
+.door .dt{font-size:13px;line-height:1.5;color:var(--ink)}
+.door .dpk{display:flex;flex-direction:column;gap:2px;width:100%;padding:7px 9px;border-radius:3px;font-size:12px;line-height:1.45;color:var(--sub);background:rgba(0,0,0,.25)}
+.door .dpk b{font-size:12px}.door .dpk.ok b{color:#7FD39B}.door .dpk.bad b{color:#E5A15A}.door .dpk.unk{font-style:italic}
+.door .dgo{font-size:11px;font-weight:700;color:var(--navyLine)}
+@media (max-width:640px){.forkp{grid-template-columns:1fr}.shiftban{flex-wrap:wrap}.shiftban .dd{margin-left:0}}
 .ctlline .cm small{margin-left:6px;font-size:11px;color:var(--sub)}.ctlline .cm.brk{color:var(--red)}
 .choice2.rmt .req i.a{color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--navyLine)}
 @media (prefers-reduced-motion:reduce){.noisebox::before,.noisebox .ntx,.stage.noisy .cctv::after,.stage.noisy .radar::after,.stage.noisy .cbar2::after,.stage.noisy .cctv .cap2,.rd .glt{animation:none}}
@@ -1796,7 +1816,7 @@ const AUTH_MSG = {
   'op/sealed': 'RAVEN-3이 현장을 관리하고 있습니다. 봉쇄가 풀린 뒤 참가할 수 있습니다.', 'base/raven': 'RAVEN-3이 관리 중인 격리실입니다. 봉쇄가 풀린 뒤 점검할 수 있습니다.',
   'op/pos': '대열 위치가 맞지 않는 행동입니다.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.', 'op/map-start': '이 구역의 시작 지점입니다. 더 물러날 수 없습니다.', 'op/no-foe': '그쪽에는 싸울 상대가 없습니다.',
   'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/resolving': '라운드를 진행하는 중입니다. 잠시 뒤에 다시 고르십시오.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제팀만 할 수 있습니다.', 'op/bad-choice': '할 수 없는 행동입니다.',
-  'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-noise': '지금은 잡음이 없습니다.', 'op/used': '이 장면에서는 이미 썼습니다.', 'op/noise': '잡음 때문에 거리를 읽을 수 없습니다. 먼저 해독하거나 차단하십시오.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
+  'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-noise': '지금은 잡음이 없습니다.', 'op/used': '이 장면에서는 이미 썼습니다.', 'op/fork': '갈림길에서는 문을 고르거나 기다릴 수만 있습니다.', 'op/noise': '잡음 때문에 거리를 읽을 수 없습니다. 먼저 해독하거나 차단하십시오.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
   'demo': '데모 모드에서는 이 기능을 쓸 수 없습니다.',
   'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
   'gm/forbidden': 'GM 계정만 쓸 수 있습니다.', 'gm/bad': '입력값을 확인하십시오.', 'dm/bad-target': '메시지를 보낼 수 없는 상대입니다.', 'op/none': '작전을 찾을 수 없습니다.',
@@ -2474,16 +2494,41 @@ setInterval(() => document.querySelectorAll('.rbar[data-dl]').forEach(el => {
   if (s2) s2.textContent = left + '초'; if (bar) bar.style.width = Math.min(100, left * 1000 / +el.dataset.ms * 100) + '%'; el.classList.toggle('hurry', left <= 10);
 }), 500);
 // 관제 시설 도면: 구역 복도 위에 현장팀·개체·시설 위치를 그리고, 아래에 시설 카드를 둔다. 카드를 누르면 바로 조작한다.
+// 관제 계기판: 다음 턴이 끝나면 하층 구조가 바뀐다
+function shiftBoxHTML(r) {
+  const X = r.shift; if (!X) return '';
+  return `<div class="shiftbox" role="alert"><span class="bb">SHIFT DETECTED</span><span><b>${esc(X.name)}: ${esc(X.warn)}</b><small>다음 턴이 끝나면 구조가 바뀝니다. 기준점 비컨으로 막거나, 현장에 미리 알리십시오.</small></span></div>`;
+}
+// 현장: 구조가 바뀐 직후 한 턴 동안 띠를 보여 준다
+function shiftBanHTML(r) {
+  const X = r.shiftFx; if (!X) return '';
+  return `<div class="shiftban" role="status"><span class="bb">SHIFT</span><span><b>${esc(X.name)}</b><small>${esc(X.text)}</small></span>${X.before != null ? `<span class="dd">${esc(X.unit || '')} <s>${X.before}m</s> → <b>${X.after}m</b></span>` : ''}</div>`;
+}
+// 갈림길: 현장은 투표, 관제는 들여다보기
+function forkHTML(r, me) {
+  const F = r.fork; if (!F) return '';
+  const ctl = me && me.role === 'ctrl', canV = me && me.role === 'field' && !me.dead && !me.broken;
+  const card = d => {
+    const vs = (r.picks || []).filter(p => p.v === 'fork-' + d.id), names = vs.map(p => (r.members.find(m => m.uid === p.uid) || {}).name).filter(Boolean);
+    const good = d.risk === 'none' || d.risk === 'cache';
+    const info = d.peeked ? `<span class="dpk ${good ? 'ok' : 'bad'}"><b>${esc(d.riskName)} · ${esc(d.tpl)}</b>${esc(d.riskText)} 개체는 대열 ${d.from === 'rear' ? '뒤' : '앞'}쪽에서 접근한다.</span>`
+      : `<span class="dpk unk">${ctl ? '아직 들여다보지 않았습니다.' : '관제가 들여다보기 전에는 문 너머를 알 수 없습니다.'}</span>`;
+    const body = `<span class="dh"><b>${esc(d.name)}</b><small>${vs.length}표${names.length ? ' · ' + esc(names.join(', ')) : ''}</small></span><span class="dt">${esc(d.hint)}</span>${info}`;
+    if (ctl) return `<button class="door" data-act="opCtl" data-v="peek" data-t="${d.id}" ${d.peeked || me.acted || me.broken || r.noise ? 'disabled' : ''}>${body}<span class="dgo">${d.peeked ? '확인함' : r.noise ? '잡음 때문에 카메라를 볼 수 없습니다' : '감시 카메라 확인 · 관제 행동 하나'}</span></button>`;
+    return `<button class="door" data-act="opAct" data-v="fork-${d.id}" ${canV ? '' : 'disabled'}>${body}${canV ? '<span class="dgo">이 문에 한 표</span>' : ''}</button>`;
+  };
+  return `<div class="forkw"><span class="hh"><span class="bb">FORK</span><small>${ctl ? '한쪽 문 너머를 들여다볼 수 있습니다. 확인한 내용은 현장 기록에도 남습니다.' : '표를 많이 받은 문으로 갑니다. 동률이면 먼저 고른 쪽, 아무도 고르지 않으면 무작위입니다.'}</small></span><div class="forkp">${F.map(card).join('')}</div></div>`;
+}
 function facilityHTML(r, me) {
   const F = r.facs || []; if (!F.length) return '';
   const off = me.acted || me.broken, R = r.radar || {}, M = r.map || { pos: 0, len: 40 };
   const team = Math.max(4, Math.min(96, M.pos / Math.max(1, M.len) * 100));
   const entX = R.detected && R.dist != null ? Math.max(2, Math.min(98, team + (R.from === 'rear' ? -1 : 1) * R.dist / Math.max(1, M.len) * 100)) : null;
-  const marks = F.map((f, i) => `<span class="fmk${f.on ? ' on' : ''}" style="left:${f.x}%">${i + 1}</span>`).join('');
+  const marks = F.map((f, i) => `<span class="fmk${f.on ? ' on' : ''}${f.id === 'beacon' ? ' bcn' : ''}" style="left:${f.x}%">${i + 1}</span>`).join('');
   const card = (f, i) => { const dis = off || f.on || (f.id === 'wall' && !f.need);
-    return `<button class="fcd${f.on ? ' on' : ''}" data-act="opCtl" data-v="fac" data-t="${f.id}" ${dis ? 'disabled' : ''}><span class="fh"><i class="led"></i><em>${i + 1}</em><b>${esc(f.name)}</b><small>${esc(f.state)}</small></span>
-      <span class="fe">${esc(f.eff)}</span><span class="fd">${f.on ? (f.id === 'wall' ? '이번 작전에서 사용함' : '작동 중') : f.id === 'wall' && !f.need ? '개체가 레이더에 잡힐 때만' : `지능 + 장비 운용 · ${['', '쉬움', '보통', '어려움'][f.diff]}(${f.diff})`}</span></button>`; };
-  return `<div class="facp"><span class="hh"><span class="bb">FACILITY</span><small>${esc(r.scene ? r.scene.title : '')} · 시설 조작은 관제 행동 하나를 씁니다</small>${r.dark ? '<span class="dk">비상등</span>' : '<span class="lt">정상 전력</span>'}</span>
+    return `<button class="fcd${f.on ? ' on' : ''}${f.id === 'beacon' ? ' bcn' : ''}" data-act="opCtl" data-v="fac" data-t="${f.id}" ${dis ? 'disabled' : ''}><span class="fh"><i class="led"></i><em>${i + 1}</em><b>${esc(f.name)}</b><small>${esc(f.state)}</small></span>
+      <span class="fe">${esc(f.eff)}</span><span class="fd">${f.on ? (f.id === 'wall' ? '이번 작전에서 사용함' : '작동 중') : f.id === 'wall' && !f.need ? '개체가 레이더에 잡힐 때만' : `지능 + ${f.skill || '장비 운용'} · ${['', '쉬움', '보통', '어려움'][f.diff]}(${f.diff})`}</span></button>`; };
+  return `<div class="facp"><span class="hh"><span class="bb">FACILITY</span><small>${esc(r.scene ? r.scene.title : '')} · 시설 조작은 관제 행동 하나를 씁니다</small>${r.beacon ? `<span class="bq">비컨 여파: 잡음 확률 2배 · ${r.beacon}라운드 남음</span>` : ''}${r.dark ? '<span class="dk">비상등</span>' : '<span class="lt">정상 전력</span>'}</span>
     <div class="fmap" aria-hidden="true"><i class="cor"></i>${marks}<span class="ftm" style="left:${team}%">현장팀</span>${entX != null ? `<span class="fen" style="left:${entX}%">개체 ${R.dist}m</span>` : ''}</div>
     <div class="fcards">${F.map(card).join('')}</div></div>`;
 }
@@ -2675,18 +2720,20 @@ function viewOps(rr, parts) {
   const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
   const stage = r.status === 'live' ? `<div class="stage${ctl && r.noise && r.noise.shown ? ' noisy' : ''}">
       <span class="prog"><span class="bb">SCENE ${sc.idx + 1} / ${r.op.scenes}</span><span class="cnt"><small>${esc(r.op.countLabel || '')}</small><span class="cbar">${cnt}</span><b>${r.count}</b></span></span>
+      ${shiftBanHTML(r)}
       ${combat ? combatBarHTML(r) : `<div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>`}
       ${formationHTML(r, me)}
       ${combat ? foreHTML(r) : ''}
       ${roundBarHTML(r, me)}
       ${combat && canAct ? `<div class="cturn"><b>${esc(me.name)}의 행동</b><small>모두 고르거나 시간이 다 되면 고른 순서대로 행동하고, 그 뒤 하수인이 예고대로 움직입니다.</small></div>${combatActsHTML(r, me)}<button class="cmore" data-act="otherOpen" data-v="${r.id}" aria-expanded="${!!otherOpen}">${ico(otherOpen ? 'chevD' : 'chevR', 13, 2)}<b>전투 외 행동</b><small>${otherN}개 · 이동 4개</small></button>` : ''}
-      ${me && me.role === 'field' && !me.dead && !me.broken && (!combat || otherOpen || !canAct) ? movesHTML(r, me) : ''}
+      ${r.fork && !ctl ? forkHTML(r, me) : ''}
+      ${!r.fork && me && me.role === 'field' && !me.dead && !me.broken && (!combat || otherOpen || !canAct) ? movesHTML(r, me) : ''}
       ${canAct && !combat ? opItemsHTML(r, me) : ''}
       ${me && me.role === 'field' ? (canAct ? (combat && !otherOpen ? '' : `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${combat ? '' : (r.attacks || []).map(a => attackHTML(a, me, r)).join('') + guardHTML(r, me)}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>`) + `${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
         : `<div class="note">${ico('alert', 18)}<span>${me.dead ? '생체 신호가 끊겼습니다. 작전이 끝나면 재생 수조로 이송됩니다.' : '정신이 붕괴했습니다. 관제팀의 바이탈 안정을 기다리십시오.'}</span></div>`) : ''}
       ${ctl ? `<div class="ctl">${me.broken ? `<div class="note">${ico('alert', 18)}<span>정신이 붕괴했습니다. 다른 관제 요원이 바이탈을 안정시켜야 다시 움직일 수 있습니다.</span></div>` : ''}${r.noise && r.noise.shown ? `<div class="noisebox" role="alert"><span class="nh"><span class="bb">UNKNOWN SIGNAL</span><small>잡음 ${r.noise.turns + 1}턴째 · 내버려 두면 턴마다 정신력이 깎입니다</small></span><p class="ntx">${esc(r.noise.shown)}</p>
           <div class="nbtn"><button class="choice2 dec" data-act="opCtl" data-v="decode" ${me.acted || me.broken ? 'disabled' : ''}><b>신호를 해독한다</b><small>지능 + 기록 해독 · 보통(2) · 읽는 것만으로 정신력 소모</small><span class="req"><i class="a">성공: ${esc(r.op.countLabel || '귀환 신호')} +1, 잡음 걷힘</i></span></button><button class="choice2" data-act="opCtl" data-v="jam" ${me.acted || me.broken ? 'disabled' : ''}><b>회선을 차단한다</b><small>판정 없음 · 안전하지만 얻는 것이 없다</small></button></div></div>` : ''}
-        ${facilityHTML(r, me)}
+        ${shiftBoxHTML(r)}${r.fork ? forkHTML(r, me) : facilityHTML(r, me)}
         <span class="sub">관제 행동은 라운드마다 <b style="color:var(--ink)">하나</b>입니다. 시설 조작, 지원 주사위, 바이탈 안정 중에서 고르십시오. 거리 알리기와 RAVEN 지원 요청은 따로 할 수 있습니다.${me.acted ? ' <b style="color:var(--ink)">이번 라운드의 관제 행동을 마쳤습니다.</b>' : ''}</span>
         <div class="choices"><button class="choice2 r1" data-act="opCtl" data-v="raven1" ${r.r1 ? 'disabled' : ''}><b>${r.r1 ? `RAVEN-1 지원 완료 (${esc(r.r1.by)} 요청)` : 'RAVEN-1 지원 요청'}</b><small>작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button><button class="choice2" data-act="opCtl" data-v="radio" ${me.radioed || r.noise || me.broken ? 'disabled' : ''}><b>현장에 거리 알리기</b><small>${r.noise ? '잡음 때문에 거리를 읽을 수 없습니다' : '판정 없음 · 라운드마다 한 번 · 관제 행동과 별개'}</small></button><button class="choice2" data-act="opCtl" data-v="support" ${me.acted ? 'disabled' : ''}><b>지원 주사위 보내기</b><small>지능 + 통신 · 쉬움(1) · 현재 ${r.support}개</small></button>
         ${r.members.filter(m => !m.dead && (m.role === 'field' || (m.role === 'ctrl' && m.uid !== me.uid))).map(m => `<button class="choice2" data-act="opCtl" data-v="stabilize" data-t="${m.uid}" ${me.acted || me.broken || m.san >= m.sanMax ? 'disabled' : ''}><b>${esc(m.name)} 바이탈 안정</b><small>의지 + 응급처치 · 보통(2) · 정신력 ${m.san}/${m.sanMax}</small></button>`).join('')}</div></div>` : ''}
