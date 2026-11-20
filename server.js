@@ -125,6 +125,7 @@ for (const [col, type] of [['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops
   if (!db.prepare(`SELECT 1 FROM pragma_table_info('agents') WHERE name = '${col}'`).get()) db.exec(`ALTER TABLE agents ADD COLUMN ${col} ${type}`);
 }
 // 외관 사진 칸이 없던 예전 데이터베이스에 칸을 더한다
+if (!db.prepare("SELECT 1 FROM pragma_table_info('tasks') WHERE name = 'signs'").get()) db.exec("ALTER TABLE tasks ADD COLUMN signs TEXT NOT NULL DEFAULT '[]'");
 if (!db.prepare("SELECT 1 FROM pragma_table_info('sector_entities') WHERE name = 'obs'").get()) db.exec('ALTER TABLE sector_entities ADD COLUMN obs INTEGER NOT NULL DEFAULT 0');
 if (!db.prepare("SELECT 1 FROM pragma_table_info('sector_entities') WHERE name = 'lock_until'").get()) db.exec('ALTER TABLE sector_entities ADD COLUMN lock_until INTEGER NOT NULL DEFAULT 0');
 if (!db.prepare("SELECT 1 FROM pragma_table_info('agents') WHERE name = 'photo'").get()) db.exec('ALTER TABLE agents ADD COLUMN photo TEXT');
@@ -587,15 +588,15 @@ function runOut(r, viewer, gm) {
     heal: live ? r.members.filter(canHeal).map(m => ({ id: 'heal-' + m.uid, uid: m.uid, name: m.name, hp: m.hp, hpMax: m.hpMax })) : [],
     recover: live ? r.members.filter(needsRecovery).map(m => ({ id: 'rec-' + m.uid, uid: m.uid, name: m.name, why: m.dead ? 'dead' : 'broken' })) : [],
     attacks: live ? ['front', 'rear'].filter(sd => r.minions.some(x => x.side === sd)).map(sd => ({ id: 'atk-' + sd, side: sd, label: sd === 'front' ? `앞을 막은 ${jo(o.minion.name, '과', '와')} 싸운다` : `뒤에서 덮치는 ${jo(o.minion.name, '과', '와')} 싸운다` })) : [],
-    count: r.count, support: r.support, log: r.log.slice(-60), result: r.result, started: r.started, ended: r.ended,
+    count: r.count, support: r.support, log: r.log.slice(-60), chat: vm ? (r.chat || []).slice(-60) : [], result: r.result, started: r.started, ended: r.ended,
     sealedUntil: entLocked(ENTITIES.find(x => x.op === r.op)) };
 }
 const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op', runOut(r, s.user && s.user.id, isGM(s.user))); };
 const busyIn = uid => { for (const r of runs.values()) if (r.status !== 'done' && r.members.some(m => m.uid === String(uid))) return r; return null; };
 /* ───────── 요원 경력 ───────── */
 // 출동과 관리 작업으로 경력이 쌓이면 계급이 오르고, 계급마다 능력치 포인트 2를 받는다.
-const CAREER = { opSuccess: 20, opOther: 10, emergency: 1, task: { 15: 3, 25: 5, 50: 10 } }, RANK_PTS = 2;
-const rankNeed = rk => 30 + 15 * (rk - 1); // 계급 rk → rk+1
+const CAREER = { opSuccess: 20, opOther: 10, emergency: 1, task: { 30: 1, 60: 3, 120: 5, 180: 8, 300: 13 } }, RANK_PTS = 2;
+const rankNeed = rk => 60 + 30 * (rk - 1); // 계급 rk → rk+1 (60, 90, 120…)
 function rankOf(career) { let rk = 1, c = career; while (c >= rankNeed(rk)) { c -= rankNeed(rk); rk++; } return { rank: rk, cur: c, need: rankNeed(rk) }; }
 const setCareer = db.prepare('UPDATE agents SET career = ?, stat_pts = ? WHERE user_id = ?');
 function gainCareer(uid, n) {
@@ -606,8 +607,8 @@ function gainCareer(uid, n) {
 }
 /* ───────── 기능 경험치 ───────── */
 // 판정에 쓴 기능에 경험치가 꾸준히 쌓인다. 다 차면 등급이 오른다. 등급 0인 기능도 쓰다 보면 익힌다.
-const SKILL_MAX = 5, XP_NEED = [10, 25, 45, 70, 100]; // 등급 n → n+1에 필요한 양
-const XP = { roll: 3, ctl: 2, emergency: 2, task: { 15: 3, 25: 5, 50: 10 } };
+const SKILL_MAX = 5, XP_NEED = [20, 50, 90, 140, 200]; // 등급 n → n+1에 필요한 양
+const XP = { roll: 2, ctl: 1, emergency: 1, task: { 30: 2, 60: 4, 120: 7, 180: 10, 300: 16 } };
 const setSkillXp = db.prepare('UPDATE agents SET skills = ?, skill_xp = ? WHERE user_id = ?');
 function gainXp(uid, skill, n) {
   const row = Q.agent.get(uid); if (!row || !SKILLS.includes(skill)) return null;
@@ -1180,12 +1181,27 @@ function archiveUnlock(uid, entity, section) {
 const TASK_MIN_MS = Number(process.env.TASK_MINUTE_MS || 60000); // 테스트할 때 줄여 쓴다
 const OBS_PER_LINE = 3;
 const TASKS = {
-  maintain: { name: '유지 보수', len: { 15: { stab: 10, supply: 5 }, 25: { stab: 20, supply: 10 }, 50: { stab: 45, supply: 25 } } },
-  observe: { name: '관찰·연구', len: { 15: { research: 1, obs: 1 }, 25: { research: 2, obs: 2 }, 50: { research: 5, obs: 4 } } }
+  maintain: { name: '유지 보수', len: { 30: { stab: 6, supply: 2 }, 60: { stab: 12, supply: 5 }, 120: { stab: 25, supply: 10 }, 180: { stab: 40, supply: 18 }, 300: { stab: 70, supply: 32 } } },
+  observe: { name: '관찰·연구', len: { 30: { research: 1, obs: 1 }, 60: { research: 2, obs: 2 }, 120: { research: 4, obs: 3 }, 180: { research: 7, obs: 5 }, 300: { research: 12, obs: 9 } } }
 };
+/* 이상 징후: 작업 중에 가끔 뜨는 작은 사건. 자리에 있던 요원이 대응하면 보너스, 놓쳐도 벌점은 없다. */
+const SIGN_WINDOW = 10; // 대응할 수 있는 시간(작업 분 단위)
+const SIGN_COUNT = { 30: [0, 1], 60: [1, 1], 120: [1, 2], 180: [2, 2], 300: [3, 3] };
+const SIGN_TEXT = ['격리실 온도가 갑자기 4도 떨어졌다.', '감시 카메라가 3초 동안 꺼졌다 켜졌다.', '{name}이(가) 관찰창 쪽으로 몸을 돌렸다.', '격리실 안에서 노크 소리가 세 번 들렸다.', '출입 기록 단말에 아무도 들어가지 않은 출입이 찍혔다.', '격리실 벽의 습도계 바늘이 끝까지 돌아갔다.', '환기구에서 누군가 숨 쉬는 소리가 들린다.', '관찰 일지의 마지막 줄이 저절로 지워졌다.', '격리실 조명이 다른 색으로 깜빡였다.', '{name}의 그림자가 한 박자 늦게 움직였다.'];
+const SIGN_BONUS = { maintain: { stab: 5, supply: 2 }, observe: { research: 1, obs: 1 } };
+function makeSigns(mins, started) {
+  const [a, b] = SIGN_COUNT[mins] || [1, 1], n = a + (b > a && Math.random() < 0.5 ? 1 : 0), out = [];
+  for (let i = 0; i < n; i++) {
+    const lo = 0.15 + (0.7 / n) * i, at = started + Math.round((lo + Math.random() * (0.7 / n - 0.05)) * mins * TASK_MIN_MS);
+    out.push({ id: i + 1, at, until: at + SIGN_WINDOW * TASK_MIN_MS, text: SIGN_TEXT[die(SIGN_TEXT.length) - 1], state: 'wait' });
+  }
+  return out;
+}
 const QT = {
   mine: db.prepare("SELECT * FROM tasks WHERE user_id = ? AND (status = 'run' OR (status = 'done' AND acked = 0)) ORDER BY id DESC LIMIT 1"),
-  add: db.prepare("INSERT INTO tasks (user_id, entity, kind, mins, started, ends, status) VALUES (?, ?, ?, ?, ?, ?, 'run')"),
+  add: db.prepare("INSERT INTO tasks (user_id, entity, kind, mins, started, ends, status, signs) VALUES (?, ?, ?, ?, ?, ?, 'run', ?)"),
+  setSigns: db.prepare('UPDATE tasks SET signs = ? WHERE id = ?'),
+  running: db.prepare("SELECT * FROM tasks WHERE status = 'run'"),
   due: db.prepare("SELECT * FROM tasks WHERE status = 'run' AND ends <= ?"),
   set: db.prepare('UPDATE tasks SET status = ?, result = ? WHERE id = ?'),
   ack: db.prepare("UPDATE tasks SET acked = 1 WHERE user_id = ? AND status IN ('done', 'cancel')"),
@@ -1194,7 +1210,14 @@ const QT = {
   overlap: db.prepare("SELECT COUNT(DISTINCT user_id) n FROM tasks WHERE entity = ? AND user_id != ? AND status IN ('run', 'done') AND started < ? AND ends > ?"),
   setObs: db.prepare('UPDATE sector_entities SET obs = obs + ? WHERE id = ?')
 };
-const taskOut = t => t ? { id: t.id, entity: t.entity, kind: t.kind, mins: t.mins, started: t.started, ends: t.ends, status: t.status, result: t.result ? JSON.parse(t.result) : null } : null;
+const signText = (sg, ent) => { const e = ENTITIES.find(x => x.id === ent), nm = e ? e.name : '개체'; return sg.text.replace('{name}이(가)', jo(nm, '이', '가')).replace('{name}', nm); };
+function taskOut(t) {
+  if (!t) return null;
+  const sg = JSON.parse(t.signs || '[]'), live = sg.find(x => x.state === 'wait' && x.at <= now() && x.until > now());
+  return { id: t.id, entity: t.entity, kind: t.kind, mins: t.mins, started: t.started, ends: t.ends, status: t.status, result: t.result ? JSON.parse(t.result) : null,
+    sign: live && t.status === 'run' ? { id: live.id, text: signText(live, t.entity), until: live.until } : null,
+    signs: { total: sg.length, ok: sg.filter(x => x.state === 'ok').length, seen: sg.filter(x => x.at <= now()).length } };
+}
 function taskStart(uid, entity, kind, mins) {
   const row = Q.agent.get(uid); if (!row) return 'agent/none';
   const T = TASKS[kind]; if (!T || !T.len[mins]) return 'task/bad';
@@ -1206,10 +1229,10 @@ function taskStart(uid, entity, kind, mins) {
   for (const r of runs.values()) if (r.status === 'live' && r.members.some(m => m.uid === String(uid))) return 'task/in-op';
   const cur = QT.mine.get(uid); if (cur && cur.status === 'run') return 'task/busy';
   if (cur) QT.ack.run(uid);
-  QT.add.run(uid, e.id, kind, mins, now(), now() + mins * TASK_MIN_MS);
+  const st0 = now(); QT.add.run(uid, e.id, kind, mins, st0, st0 + mins * TASK_MIN_MS, JSON.stringify(makeSigns(mins, st0)));
   return null;
 }
-const FAIL_DROP = { 15: 10, 25: 15, 50: 25 };
+const FAIL_DROP = { 30: 6, 60: 10, 120: 18, 180: 25, 300: 35 };
 const TIER_MUL = { crit: 1.5, ok: 1, cost: 0.5, fail: 0 };
 function taskFinish(t) {
   const T = TASKS[t.kind], base = T.len[t.mins], e = ENTITIES.find(x => x.id === t.entity);
@@ -1222,19 +1245,20 @@ function taskFinish(t) {
     const row = Q.agent.get(t.user_id); if (!row || !e) { QT.set.run('done', JSON.stringify(out), t.id); return; }
     const res = JSON.parse(row.res), er = QS.ent.get(t.entity), live = er && er.captured && !(er.lock_until > now());
     out.roll = containRoll(row, e, t.kind, n);
-    const tier = out.roll.tier;
+    const tier = out.roll.tier, sg = JSON.parse(t.signs || '[]'), sok = sg.filter(x => x.state === 'ok').length, SB = SIGN_BONUS[t.kind];
+    out.signOk = sok; out.signTotal = sg.length;
     if (tier === 'fail') {
       if (live) {
         const st = stabNow(er), after = Math.max(0, st - FAIL_DROP[t.mins]); QS.setEnt.run(after, now(), 1, t.entity); out.stab = -(Math.round((st - after) * 10) / 10);
-        const cm = skLv(row, '통신'), p = escChance(e, after, out.roll.anomalies) * Math.max(0.25, 1 - COMMS_ESC * cm); out.escape = { p, escaped: Math.random() < p, comms: cm }; if (out.escape.escaped) esc = e;
+        const cm = skLv(row, '통신'), p = escChance(e, after, out.roll.anomalies) * Math.max(0.25, 1 - COMMS_ESC * cm) * (sok ? 0.5 : 1); out.escape = { p, escaped: Math.random() < p, comms: cm, signs: sok }; if (out.escape.escaped) esc = e;
       }
     } else {
       if (t.kind === 'maintain') {
-        if (live) { const st = stabNow(er), gain = g(base.stab); QS.setEnt.run(Math.min(100, st + gain), now(), 1, t.entity); out.stab = gain; }
-        out.supply = g(base.supply); res.supply += out.supply;
+        if (live) { const st = stabNow(er), gain = g(base.stab) + SB.stab * sok; QS.setEnt.run(Math.min(100, st + gain), now(), 1, t.entity); out.stab = gain; }
+        out.supply = g(base.supply) + SB.supply * sok; res.supply += out.supply;
       } else {
-        out.research = g(base.research) + skLv(row, '기록 해독'); res.research += out.research; if (skLv(row, '기록 해독')) out.decode = skLv(row, '기록 해독');
-        out.obs = g(base.obs); QT.setObs.run(out.obs, t.entity);
+        out.research = g(base.research) + skLv(row, '기록 해독') + SB.research * sok; res.research += out.research; if (skLv(row, '기록 해독')) out.decode = skLv(row, '기록 해독');
+        out.obs = g(base.obs) + SB.obs * sok; QT.setObs.run(out.obs, t.entity);
         if (e.observe) { const before = Math.floor((er.obs || 0) / OBS_PER_LINE), after = Math.floor(((er.obs || 0) + out.obs) / OBS_PER_LINE); if (after > before && before < e.observe.length) out.newLine = true; }
       }
       if (tier === 'cost') { out.cont = 5; QS.setCont.run((row.contamination || 0) + 5, t.user_id); }
@@ -1246,7 +1270,18 @@ function taskFinish(t) {
   if (esc) escapeIn(esc, t.user_id, T.name + ' 작업');
   return out;
 }
+function signTick() {
+  for (const t of QT.running.all()) {
+    const sg = JSON.parse(t.signs || '[]'); let ch = false;
+    for (const x of sg) {
+      if (x.state === 'wait' && x.at <= now() && !x.told) { x.told = 1; ch = true; io.to('u:' + t.user_id).emit('sign', { entity: t.entity, text: signText(x, t.entity), until: x.until }); }
+      if (x.state === 'wait' && x.until <= now()) { x.state = 'miss'; ch = true; }
+    }
+    if (ch) { QT.setSigns.run(JSON.stringify(sg), t.id); const row = Q.agent.get(t.user_id); if (row) io.emit('agent', publicAgent(row)); }
+  }
+}
 function taskTick() {
+  signTick();
   const due = QT.due.all(now()); if (!due.length) return;
   for (const t of due) { taskFinish(t); const row = Q.agent.get(t.user_id); if (row) io.emit('agent', publicAgent(row)); }
   emitSector();
@@ -1260,6 +1295,19 @@ app.post('/api/task', need, (req, res) => {
 app.post('/api/task/cancel', need, (req, res) => {
   QT.cancel.run(req.user.id);
   const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); emitSector(); res.json({ agent });
+});
+app.post('/api/task/sign', need, (req, res) => {
+  const row = Q.agent.get(req.user.id), t = QT.mine.get(req.user.id);
+  if (!row || !t || t.status !== 'run') return fail(res, 'task/none');
+  const sg = JSON.parse(t.signs || '[]'), x = sg.find(y => y.state === 'wait' && y.at <= now() && y.until > now());
+  if (!x) return fail(res, 'task/no-sign');
+  const e = ENTITIES.find(y => y.id === t.entity), roll = containRoll(row, e, t.kind, 0);
+  roll.diff = 1; roll.tier = containTier(roll.succ, 1); roll.tierName = TIER_NAME[roll.tier];
+  x.state = roll.tier === 'fail' ? 'fail' : 'ok';
+  QT.setSigns.run(JSON.stringify(sg), t.id);
+  const xp = gainXp(req.user.id, roll.skill, 1);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent);
+  res.json({ agent, sign: { text: signText(x, t.entity), ok: x.state === 'ok', roll, bonus: SIGN_BONUS[t.kind], xp } });
 });
 app.post('/api/task/ack', need, (req, res) => {
   QT.ack.run(req.user.id);
@@ -1418,6 +1466,16 @@ io.on('connection', socket => {
   socket.on('op:ctl', opCall((m, id) => opCtl(uid, id, m.kind, m.target)));
   socket.on('op:abort', opCall((m, id) => opAbort(uid, id)));
   socket.on('op:close', opCall((m, id) => opClose(uid, id)));
+  // 작전 채팅: 그 작전 참가자끼리만 (대기실·진행 중·종료 화면에서)
+  let lastOpChat = 0;
+  socket.on('op:chat', opCall((m, id) => {
+    const r = runs.get(id); if (!r) return 'op/none';
+    const mm = r.members.find(x => x.uid === String(uid)); if (!mm) return 'op/not-member';
+    const text = str(m.text, 300); if (!text) return 'chat/empty';
+    if (now() - lastOpChat < 400) return 'chat/too-fast'; lastOpChat = now();
+    (r.chat || (r.chat = [])).push({ uid: mm.uid, name: mm.name, role: mm.role, text, ts: now() }); if (r.chat.length > 120) r.chat.shift();
+    return null;
+  }));
 
   let last = 0;
   socket.on('chat', (m, ack) => {

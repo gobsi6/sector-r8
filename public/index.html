@@ -608,6 +608,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .msg .m{display:flex;flex-direction:column;gap:4px;min-width:0}
 .msg .meta{display:flex;align-items:center;gap:6px;font-size:12px}
 .msg .meta .rl{font-size:11px;font-weight:700;padding:1px 6px;background:var(--navy);color:var(--onNavy)}
+.msg .meta .rl{flex:none;display:inline-flex;align-items:center;margin:0;overflow:visible;min-height:0;line-height:1.4}
 .msg .meta .rl.c{background:transparent;box-shadow:inset 0 0 0 1px var(--navyLine);color:var(--navyLine)}
 .msg .meta time{color:var(--sub)}
 .msg .tx{font-size:13px;line-height:1.5;padding:8px 12px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);word-break:break-word;white-space:pre-wrap}
@@ -797,6 +798,34 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .toast.sign{background:#3a2f12;color:#F2D58A;box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px #C8A040}
 [data-theme=light] .toast.sign{background:#FFF3D1;color:#6B4E0E}
 .task.run{grid-template-columns:1fr;position:relative}.task.run .acts{position:absolute;top:12px;right:12px}.task.run .acts .btn{height:30px;padding:0 10px;font-size:12px}.task.run .tl>b{padding-right:110px}
+.opmodal{display:none}
+.opmodal.on{display:flex;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(6,10,14,.72);backdrop-filter:blur(3px)}
+[data-theme=light] .opmodal.on{background:rgba(30,40,48,.45)}
+.opm-box{width:1280px;height:760px;flex:none;transform:scale(var(--s,1));transform-origin:center;display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-radius:6px;background:var(--tile);box-shadow:0 20px 60px rgba(0,0,0,.45),inset 0 0 0 1px var(--line2);color:var(--ink);overflow:hidden}
+.opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
+.opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
+.opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
+.opm-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px}
+.opm-left{min-height:0;overflow-y:auto}.opm-left .stage{padding:12px 14px;gap:8px}
+.opm-left .choices{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.opm-left .choice2{padding:9px 12px;gap:3px}
+.opm-right{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto 220px auto;gap:6px}
+.opm-sec{display:flex;align-items:baseline;gap:8px}.opm-sec .bb{font-size:14px;letter-spacing:.12em;color:var(--navyLine)}.opm-sec small{font-size:11px;color:var(--sub)}
+.opm-right .oplog{overflow-y:auto;min-height:0;padding-right:4px}
+.opm-right .list{overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:10px;padding:8px;border-radius:4px;background:var(--faint)}.opm-right .list .first{margin-top:auto}.opm-right .list .empty{font-size:12px;color:var(--sub)}
+.opm-right .list.och{gap:2px;padding:6px 8px}
+.ocl{display:flex;align-items:baseline;gap:8px;font-size:13px;line-height:1.5;padding:2px 0}
+.ocl b{flex:none;font-weight:700;color:var(--ink)}.ocl.c b{color:var(--navyLine)}.ocl.me b{opacity:.65}
+.ocl .tx{flex:1;min-width:0;word-break:break-word;color:var(--ink)}
+.ocl time{flex:none;font-size:11px;color:var(--sub)}
+.ocl.rx{margin:3px 0;padding:5px 8px;border-radius:2px;background:color-mix(in srgb,var(--navyLine) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 55%,transparent),inset 3px 0 0 var(--navyLine)}
+.ocl.rx .ch{flex:none;align-self:center;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.14em;line-height:1;padding:3px 5px 2px;color:var(--onNavy);background:var(--navyLine);border-radius:1px}
+.ocl.rx b{color:var(--navyLine)}
+.ocl.rx .tx{font-family:ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;font-size:12.5px;letter-spacing:.02em;color:var(--ink)}
+.ocl.rx time{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.08em;color:var(--navyLine)}
+.opm-form{display:flex;gap:6px}.opm-form input{flex:1;height:38px;border:0;border-radius:3px;padding:0 10px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);color:var(--ink);font:inherit;font-size:13px}
+.opm-form button{width:40px;height:38px;border:0;border-radius:3px;background:var(--navy);color:var(--onNavy);display:grid;place-items:center}
+body.modal-open{overflow:hidden}
+@media (max-width:999px){.opmodal.on{align-items:stretch}.opm-box{width:100%;height:100%;transform:none;border-radius:0;padding:12px;overflow-y:auto;overscroll-behavior:contain}.opm-head{flex:none}.opm-body{flex:none;display:flex;flex-direction:column}.opm-left{overflow:visible;flex:none}.opm-right{flex:none;grid-template-rows:auto 220px auto 220px auto}.opm-head .ophead .k{flex-wrap:wrap;row-gap:6px}.opm-head .ophead .k .bb{font-size:15px}.opm-head .ophead .ttl{order:9;flex-basis:100%;margin-left:0;white-space:normal}}
 .whyblk{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;border-radius:3px;font-size:12px;color:#C8A040;box-shadow:inset 0 0 0 1px color-mix(in srgb,#C8A040 50%,transparent);background:color-mix(in srgb,#C8A040 8%,transparent)}
 .opmore{font-size:12px;color:var(--navyLine);font-weight:700;border:0;background:transparent;text-align:left;padding:2px 4px;cursor:pointer}
 .oplist,.optabs2{display:flex;flex-direction:column;gap:4px;flex:none}
@@ -821,7 +850,10 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .btn.red{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
 .cell .cb{display:flex;flex-wrap:wrap;gap:6px}.cell .cb .btn{align-self:auto}
 .cell .wk{display:flex;flex-wrap:wrap;gap:4px}.cell .wk span{font-size:11px;font-weight:700;padding:2px 6px;box-shadow:inset 0 0 0 1px var(--navyLine);color:var(--navyLine)}
-.tpick{display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick .btn{justify-content:space-between;width:100%}.tpick .btn .cost{font-size:11px}
+.tpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick>.sub{grid-column:1 / -1}
+.tpick .btn.tp{align-self:stretch;height:auto;min-height:44px;padding:6px 4px;flex-direction:column;justify-content:center;gap:2px;white-space:normal;text-align:center;line-height:1.25}
+.tpick .btn.tp b{font-size:13px}.tpick .btn.tp .cost{font-size:10px;color:var(--sub);font-weight:500}
+.tpick .btn.cancel{color:var(--red);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 55%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
 @media (max-width:700px){.task{grid-template-columns:1fr}.task .clock{font-size:32px}}
 .tank{padding:16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--tileLine);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
 .tank .vat{width:64px;height:106px;display:block}.tank .vat svg{display:block;overflow:visible}
@@ -1580,6 +1612,7 @@ function viewShell() {
   <nav class="bnav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 20)}<span>${l}</span></button>`).join('')}</nav>
   <button class="fab" data-act="chat" aria-label="통신 채널 열기">${ico('msg', 24)}${S.unread + dmUnread() ? `<i>${S.unread + dmUnread() > 9 ? '9+' : S.unread + dmUnread()}</i>` : ''}</button>
   <div class="toast" id="toast" aria-live="polite"></div>
+  <div class="opmodal" id="opModal"></div>
 </div>`;
 }
 function resHTML(r) { return `<span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply.toLocaleString()}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research.toLocaleString()}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span>`; }
@@ -1618,6 +1651,8 @@ const costTxt = c => Object.entries(c || {}).map(([k, n]) => COST_NAME[k] + ' ' 
 const canPay = c => { const r = (S.me && S.me.res) || START_RES; return Object.entries(c || {}).every(([k, n]) => (r[k] || 0) >= n); };
 function stabOf(e) { if (!e.captured || !S.sector) return 0; return Math.max(0, e.stability - (e.decay != null ? e.decay : S.sector.decay || 0) * (Date.now() - S.sector.at) / 36e5); }
 /* 관리 작업 (뽀모도로) */
+const taskGainShort = (kind, mins) => { const L = S.sector && S.sector.tasks && S.sector.tasks[kind] && S.sector.tasks[kind].len[mins]; if (!L) return ''; return kind === 'maintain' ? `안정도 +${L.stab}<br>보급품 +${L.supply}` : `연구 +${L.research}<br>관찰 +${L.obs}`; };
+const durTxt = m => m < 60 ? m + '분' : (m / 60) + '시간';
 const TASK_NAME = { maintain: '유지 보수', observe: '관찰·연구' };
 const mmss = ms => { ms = Math.max(0, ms); const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), x = t % 60; return (m >= 60 ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(x).padStart(2, '0'); };
 const myTask = () => S.me && S.me.task;
@@ -1650,7 +1685,7 @@ function taskPanel() {
   if (t.status === 'done') {
     const r = t.result || {}, g = [r.stab ? `안정도 ${r.stab > 0 ? '+' : ''}${r.stab}%` : '', r.cont ? `오염도 +${r.cont}` : '', r.supply ? `보급품 +${r.supply}` : '', r.research ? `연구 자료 +${r.research}${r.decode ? ` (기록 해독 +${r.decode} 포함)` : ''}` : '', r.obs ? `관찰 진척 +${r.obs}` : ''].filter(Boolean).join(', ');
     const bad = r.roll && r.roll.tier === 'fail';
-    return `<div class="task ${bad ? 'bad' : 'done'}"><span class="tl"><span class="bb">${bad ? '작업 실패' : '작업 완료'}</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins / 60}시간</b>
+    return `<div class="task ${bad ? 'bad' : 'done'}"><span class="tl"><span class="bb">${bad ? '작업 실패' : '작업 완료'}</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${durTxt(t.mins)}</b>
       ${rollBox(r.roll)}${escLine(r.escape)}${xpLine(r.xp)}${careerLine(r.career)}
       <span class="sub">${g || '얻은 것이 없습니다.'}${r.together ? `. 함께 작업한 요원 ${r.together}명, 성과 ×${r.mul}` : ''}${r.newLine ? '. 관찰 기록에 새 항목이 추가되었습니다.' : ''}${r.signTotal ? `. 이상 징후 ${r.signTotal}건 중 ${r.signOk || 0}건 대응${r.signOk ? '(성과 추가)' : ''}` : ''}</span></span>
       <span class="acts"><button class="btn s" data-act="taskAck">확인</button></span></div>`;
@@ -1662,7 +1697,7 @@ function taskPanel() {
     : sr ? `<span class="sign done${sr.ok ? '' : ' bad'}">${rollBox(sr.roll)}<span class="sub">${sr.ok ? '이상 징후를 수습했습니다. 작업이 끝날 때 성과가 더해집니다.' : '대응하지 못했습니다. 불이익은 없습니다.'}</span></span>` : '';
   const signCnt = t.signs && t.signs.seen ? `<span class="sub">이상 징후 ${t.signs.seen}건 중 ${t.signs.ok}건 대응</span>` : '';
   const mates = (e.workers || []).filter(w => w.uid !== S.user.uid);
-  return `<div class="task run"><span class="tl"><span class="bb">작업 중</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins / 60}시간</b>
+  return `<div class="task run"><span class="tl"><span class="bb">작업 중</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${durTxt(t.mins)}</b>
       <span class="clock" data-ends="${t.ends}">${mmss(left)}</span>
       <span class="gb"><i data-ends="${t.ends}" data-tot="${tot}" style="width:${pc}%"></i></span>
       <span class="sub">${mates.length ? `같은 격리실에서 ${mates.map(w => esc(w.name)).join(', ')} 요원이 작업 중입니다. 성과가 늘어나고 판정에 지원 주사위가 붙습니다.` : '창을 닫아도 작업은 계속됩니다. 끝나면 판정을 굴려 결과가 반영됩니다.'} 성공 시 성과: ${taskGain(t.kind, t.mins)}.</span>
@@ -1671,7 +1706,7 @@ function taskPanel() {
 }
 function taskPicker(e) {
   const k = S.taskPick && S.taskPick.id === e.id && S.taskPick.kind; if (!k) return '';
-  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[60, 120, 180].map(m => `<button class="btn s g" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${m / 60}시간</b><span class="cost">${taskGain(k, m)}</span></button>`).join('')}<button class="btn s g" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
+  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[30, 60, 120, 180, 300].map(m => `<button class="btn s g tp" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${durTxt(m)}</b><span class="cost">${taskGainShort(k, m)}</span></button>`).join('')}<button class="btn s g tp cancel" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
 }
 setInterval(() => {
   document.querySelectorAll('.clock[data-ends]').forEach(el => { el.textContent = mmss(+el.dataset.ends - Date.now()); });
@@ -2010,8 +2045,8 @@ function opTabs(r) {
   const L = opsSorted(); if (L.length < 2) return '';
   return `<div class="optabs2" role="tablist">${L.map(x => opRowHTML(x, 'opSel', x.op.id === r.op.id)).join('')}</div>`;
 }
-function viewOps() {
-  const r = curOp();
+function viewOps(rr, parts) {
+  const r = rr || curOp();
   if (!r) return `<section class="pnl wip"><span class="bb">OPERATIONS</span><h2>작전</h2><p class="sub" style="font-size:14px;margin:0">${B && B.demo ? '데모 모드에서는 작전을 진행할 수 없습니다. 게임 서버에 접속하십시오.' : '작전 정보를 불러오는 중입니다.'}</p></section>`;
   const me = r.members.find(m => m.uid === S.user.uid), st = stateOf(S.me);
   const team = role => r.members.filter(m => m.role === role);
@@ -2051,6 +2086,7 @@ function viewOps() {
       <b class="st">${({ success: '작전 성공', fail: '작전 실패', abort: '작전 중단' })[r.result]}</b>
       <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
+  if (parts) return { head, stage, ctlTeam, log: logHTML(r, me) };
   return `<section class="pnl ops live">${head}
     <div class="opgrid"><div class="opmain">${stage}<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol></div>
       <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>
@@ -2381,11 +2417,55 @@ function render() {
 }
 function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); }
 // 작전 모드: 작전 화면에서 작전이 진행 중이면 왼쪽 출입증 칸을 접고 작전 화면을 넓힌다. 메뉴의 작전 버튼에는 LIVE 표시.
+/* ─── 작전 팝업: 내가 참가한 작전이 진행 중(또는 막 끝남)이면 고정 크기 팝업으로 띄운다. 다른 탭으로 갈 수 없다. ─── */
+const myModalOp = () => Object.values(S.ops || {}).find(r => (r.status === 'live' || (r.status === 'done' && S.modalHide !== r.id)) && opMine(r));
+function opChatHTML(r) {
+  const L = r.chat || [];
+  const mine = (r.members.find(m => m.uid === S.user.uid) || {}).role;
+  return L.map((m, i) => {
+    const rx = mine && m.role !== mine, cls = `ocl${m.role === 'ctrl' ? ' c' : ''}${m.uid === S.user.uid ? ' me' : ''}${rx ? ' rx' : ''}${i === 0 ? ' first' : ''}`;
+    return `<div class="${cls}">${rx ? `<span class="ch">${m.role === 'ctrl' ? 'CTRL' : 'FIELD'}</span>` : ''}<b>${esc(m.name)}</b><span class="tx">${esc(m.text)}</span><time>${hhmm(m.ts)}</time></div>`;
+  }).join('') || '<span class="empty first">작전 참가자끼리만 보이는 채팅입니다.</span>';
+}
+function fitModal() {
+  const box = document.querySelector('.opm-box'); if (!box) return;
+  if (mobile()) { box.style.removeProperty('--s'); return; }
+  const k = Math.min(1, (innerWidth - 32) / 1280, (innerHeight - 32) / 760);
+  box.style.setProperty('--s', k.toFixed(3));
+}
+addEventListener('resize', fitModal);
+function syncModal() {
+  const host = document.getElementById('opModal'); if (!host) return;
+  const r = myModalOp();
+  if (!r) { if (host.dataset.op) { host.innerHTML = ''; delete host.dataset.op; host.classList.remove('on'); document.body.classList.remove('modal-open'); } return; }
+  const P = viewOps(r, true); if (!P || typeof P !== 'object') return;
+  if (host.dataset.op !== String(r.id)) {
+    host.dataset.op = String(r.id); host.classList.add('on'); document.body.classList.add('modal-open');
+    host.innerHTML = `<div class="opm-box" role="dialog" aria-modal="true" aria-label="작전 진행">
+      <div class="opm-head" id="opmHead"></div>
+      <div class="opm-body"><div class="opm-left" id="opmStage"></div>
+        <div class="opm-right"><div class="opm-sec"><span class="bb">LOG</span><small>작전 기록</small></div><ol class="oplog" id="opmLog" aria-label="작전 기록"></ol>
+          <div class="opm-sec"><span class="bb">COMMS</span><small>작전 채팅, 참가자만</small></div><div class="list och" id="opmChat"></div>
+          <form data-form="opchat" class="opm-form"><label class="sr" for="opChatIn">작전 채팅 입력</label><input id="opChatIn" name="text" autocomplete="off" maxlength="300" placeholder="작전 채팅"><button type="submit" aria-label="보내기">${ico('send', 16, 2)}</button></form></div></div></div>`;
+    fitModal();
+    requestAnimationFrame(() => { const lg = document.getElementById('opmLog'); if (lg) lg.scrollTop = lg.scrollHeight; const c = document.getElementById('opmChat'); if (c) c.scrollTop = c.scrollHeight; });
+  }
+  const done = r.status === 'done';
+  // 행동 버튼은 누르는 순간 잠기므로, 갱신이 올 때마다 머리와 장면은 새로 그려 잠금을 푼다
+  ['opmHead', 'opmStage'].forEach(id => { const el = document.getElementById(id); if (el) el._h = null; });
+  setHTML('opmHead', P.head + `<div class="opm-sub">${P.ctlTeam}${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
+  setHTML('opmStage', P.stage);
+  const lg = document.getElementById('opmLog'), atB = lg && lg.scrollHeight - lg.scrollTop - lg.clientHeight < 60;
+  setHTML('opmLog', P.log); if (lg && atB) lg.scrollTop = lg.scrollHeight;
+  const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
+  setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
+}
 function syncMode() {
+  syncModal();
   const sh = app.querySelector('.shell'); if (!sh) return;
   const r = curOp(), live = !!(r && r.status === 'live');
   const mine = Object.values(S.ops || {}).some(x => x.status === 'live' && x.members.some(m => m.uid === S.user.uid));
-  sh.classList.toggle('opsmode', S.view === 'ops' && live);
+  sh.classList.toggle('opsmode', false);
   app.querySelectorAll('[data-act=view][data-v=ops]').forEach(b => b.classList.toggle('live', mine));
   // 작전 기록은 위에서 아래로 쌓인다: 새 기록이 보이도록 맨 아래로
   const lg = app.querySelector('.ops.live .oplog');
@@ -2524,7 +2604,7 @@ app.addEventListener('click', e => {
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
     case 'opJoin': case 'opLeave': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
-      const r = curOp(); if (!r) return;
+      const r = (t.closest('#opModal') && myModalOp()) || curOp(); if (!r) return;
       if (a === 'opAbort' && !confirmAbort(t)) return;
       if (a === 'opCtl' && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
       const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
@@ -2541,6 +2621,7 @@ app.addEventListener('click', e => {
     case 'signGo': S.baseErr = ''; S.baseBusy = true; renderCenter();
       B.taskSign().then(j => { if (j && j.agent) S.me = j.agent; const t = myTask(); S.signRes = { task: t && t.id, ok: j.sign.ok, roll: j.sign.roll }; })
         .catch(err => { S.baseErr = errMsg(err); }).finally(() => { S.baseBusy = false; refreshLobby(); }); return;
+    case 'modalHide': { const r = myModalOp(); if (r) S.modalHide = r.id; syncModal(); return; }
     case 'baseRollOk': S.baseRoll = null; return renderCenter();
     case 'taskPick': S.taskPick = v ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
     case 'taskGo': case 'taskCancel': case 'taskAck': {
@@ -2696,6 +2777,11 @@ app.addEventListener('submit', async e => {
     S.busy = true; S.err = ''; render();
     try { await (S.loginMode === 'up' ? B.signUp(login, pw) : B.signIn(login, pw)); }
     catch (err) { S.busy = false; S.err = errMsg(err); render(); const el = app.querySelector('[name=login]'); if (el) el.value = login; }
+  }
+  if (kind === 'opchat') {
+    const r = myModalOp(), inp = f.text, text = inp.value.trim(); if (!r || !text) return;
+    inp.value = '';
+    try { await B.opCall('op:chat', { op: r.op.id, text }); } catch (err) { inp.value = text; inp.placeholder = errMsg(err); }
   }
   if (kind === 'dm') {
     const inp = f.text, text = inp.value.trim(); if (!text || !S.dmWith) return;
