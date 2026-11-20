@@ -502,19 +502,19 @@ const CRAWLERS = [
 const ODDITIES = ['자기 넘버가 붙은 사물함', '벽을 가리키는 비상구 표지', 'B3 층 표시', '고인 물에 비친 다른 복도', '꺼진 형광등 구간', '사망자 출입 기록 단말', '안쪽에서 잠긴 격리실', '같은 날짜의 근무 일지', '거꾸로 매달린 소화기', '벽에 긁힌 까마귀 그림', '물이 새는 천장', '멈춘 벽시계'];
 // 구역 틀: 장면 설명과 목표 행동
 const SECTIONS_T = [
-  { title: '반복 복도', door: '문틈으로 방금 지나온 것과 같은 복도가 보인다', text: '같은 복도가 세 번째 반복된다. 벽의 층 표시는 계속 B3다.',
+  { title: '반복 복도', bg: 'P-repeat', door: '문틈으로 방금 지나온 것과 같은 복도가 보인다', text: '같은 복도가 세 번째 반복된다. 벽의 층 표시는 계속 B3다.',
     goal: { label: '반복 구간의 끝 문을 연다', stat: 4, skill: '관찰', diff: 2, crit: '반복의 틈을 찾았다. 문 너머로 새 구역이 이어진다.', ok: '구역 문이 열렸다.', cost: { text: '문은 열렸지만 같은 복도를 한 번 더 걸은 기억이 남았다.', san: -1 }, fail: { text: '문 너머도 같은 복도였다.', count: -1 } },
     side: { label: '반복 패턴을 기록한다', pos: 'mid', stat: 3, skill: '기록 해독', diff: 2, crit: { text: '반복의 주기를 알아냈다. 귀환 신호를 보정했다.', count: 2 }, ok: { text: '반복 패턴을 기록했다. 귀환 신호가 조금 맑아졌다.', count: 1 }, cost: { text: '기록하는 사이 같은 문장을 두 번 적었다.', san: -1 }, fail: { text: '기록이 뒤죽박죽이 됐다.', count: -1 } } },
-  { title: '사물함 구역', door: '안쪽에서 금속을 두드리는 소리가 난다', text: '양쪽 벽을 따라 사물함이 끝없이 늘어서 있다. 몇 개는 안쪽에서 두드리는 소리가 난다.',
+  { title: '사물함 구역', bg: 'P-locker', door: '안쪽에서 금속을 두드리는 소리가 난다', text: '양쪽 벽을 따라 사물함이 끝없이 늘어서 있다. 몇 개는 안쪽에서 두드리는 소리가 난다.',
     goal: { label: '구역 끝 보안문을 해제한다', stat: 3, skill: '장비 운용', diff: 2, crit: '보안문이 소리 없이 열렸다.', ok: '보안문이 열렸다.', cost: { text: '문은 열렸지만 경보음이 울렸다.', count: -1 }, fail: { text: '보안 코드가 맞지 않는다. 사물함 두드리는 소리가 커졌다.', san: -1 } },
     side: { label: '두드리는 사물함을 연다', pos: 'mid', stat: 5, skill: '인내', diff: 2, crit: { text: '안에는 섹터 보급 상자가 있었다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '안에서 쓸 만한 장비를 찾았다.', sup: 1 }, cost: { text: '안에는 자기 넘버가 적힌 제복이 걸려 있었다.', san: -2, sup: 1 }, fail: { text: '사물함 안에서 무언가 손을 뻗었다.', hp: -2 } } },
-  { title: '침수 통로', door: '문 아래로 차가운 물이 스며 나온다', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.',
+  { title: '침수 통로', bg: 'P-flood', door: '문 아래로 차가운 물이 스며 나온다', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.',
     goal: { label: '물에 비친 길이 아니라 실제 길로 건넌다', stat: 2, skill: '운반', diff: 2, crit: '흔들림 없이 통로를 건넜다.', ok: '통로를 건넜다.', cost: { text: '건넜지만 물속의 무언가가 발목을 스쳤다.', hp: -1 }, fail: { text: '물에 비친 길을 따라가 버렸다.', count: -1, san: -1 } },
     side: { label: '배수 밸브를 연다', pos: 'mid', stat: 0, skill: '운반', diff: 2, crit: { text: '물이 빠지며 바닥의 길이 드러났다. 귀환 신호가 맑아졌다.', count: 1, sup: 1 }, ok: { text: '물이 조금 빠졌다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '밸브는 열렸지만 손이 미끄러져 다쳤다.', hp: -1, sup: 1 }, fail: { text: '밸브가 꿈쩍하지 않는다.', count: -1 } } },
-  { title: '정전 구역', door: '문틈이 완전히 어둡다. 빛이 새어 나오지 않는다', text: '조명이 모두 꺼져 있다. 손전등 빛이 닿는 곳만 존재하는 것처럼 보인다.',
+  { title: '정전 구역', bg: 'P-dark', door: '문틈이 완전히 어둡다. 빛이 새어 나오지 않는다', text: '조명이 모두 꺼져 있다. 손전등 빛이 닿는 곳만 존재하는 것처럼 보인다.',
     goal: { label: '예비 전원을 켜고 문을 연다', stat: 3, skill: '장비 운용', diff: 2, crit: '구역 전체에 불이 들어왔다. 문이 열렸다.', ok: '예비 전원이 들어왔다. 문이 열렸다.', cost: { text: '전원은 들어왔지만 감전으로 손이 저렸다.', hp: -1 }, fail: { text: '배전반에서 불꽃이 튀었다.', hp: -1, count: -1 } },
     side: { label: '어둠 속 기척을 살핀다', pos: 'mid', stat: 4, skill: '관찰', diff: 2, crit: { text: '기척의 위치를 정확히 짚었다. 개체가 물러났다.', push: 15 }, ok: { text: '기척 쪽으로 빛을 비췄다. 개체가 물러났다.', push: 10 }, cost: { text: '빛을 비춘 곳에 얼굴이 있었다.', san: -2, push: 10 }, fail: { text: '아무것도 찾지 못했다.', count: -1 } } },
-  { title: '출입 기록실', door: '문 너머에서 단말 작동음이 웅웅거린다', text: '벽 가득한 단말에 출입 기록이 흐른다. 사망한 직원들의 넘버가 지금도 출입하고 있다.',
+  { title: '출입 기록실', bg: 'P-record', door: '문 너머에서 단말 작동음이 웅웅거린다', text: '벽 가득한 단말에 출입 기록이 흐른다. 사망한 직원들의 넘버가 지금도 출입하고 있다.',
     goal: { label: '기록을 위조해 구역 문을 통과한다', stat: 3, skill: '기록 해독', diff: 2, crit: '단말이 대열을 직원으로 인식했다. 문이 열렸다.', ok: '문이 열렸다.', cost: { text: '문은 열렸지만 단말에 자기 사망 일시가 떴다.', san: -1 }, fail: { text: '단말이 경보를 울렸다.', count: -1 } },
     side: { label: '자기 넘버의 기록을 찾아본다', pos: 'mid', stat: 5, skill: '기록 해독', diff: 3, crit: { text: '기록 속에서 잃어버린 기억 한 조각을 찾았다.', san: 2, sup: 1 }, ok: { text: '자기 넘버의 출입 기록을 찾았다. 마지막 출입은 오늘이다.', sup: 1 }, cost: { text: '찾지 말았어야 했다.', san: -2 }, fail: { text: '기록이 빠르게 지워졌다.', count: -1 } } }
 ];
@@ -543,14 +543,14 @@ const RISK_POOL = ['none', 'none', 'loop', 'nest', 'close', 'cache'];
 function genSection(t, i) {
   const from = die(10) <= 6 ? 'rear' : 'front', len = 30 + 5 * (die(5) - 1);
   return { title: `${t.title} (하층 B3-${i + 1})`, text: t.text, from, dist: from === 'rear' ? 15 + 5 * die(3) : len + 5 * die(3), speed: 5,
-    spawn: die(10) <= 5 ? { [die(2) === 1 ? 'front' : 'rear']: 1 } : null, map: genMap(len, '구역 문'), shiftable: true,
+    spawn: die(10) <= 5 ? { [die(2) === 1 ? 'front' : 'rear']: 1 } : null, map: genMap(len, '구역 문'), shiftable: true, bg: t.bg,
     choices: [{ id: 'goal', pos: 'front', reach: true, ...t.goal }, { id: 'side', adv: false, ...t.side }, { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] };
 }
 function genFork(pool, i) {
   const ts = shuffle(pool).slice(0, 2), rk = shuffle(RISK_POOL);
   const r2 = rk[0] === rk[1] ? rk.find(x => x !== rk[0]) : rk[1];
   const doors = ts.map((t, k) => ({ id: k ? 'b' : 'a', name: k ? '문 B' : '문 A', tpl: t.title, hint: t.door, risk: k ? r2 : rk[0], scene: genSection(t, i), peeked: false }));
-  return { title: '갈림길', fork: true, text: '복도가 둘로 갈라졌다. 도면에는 없던 문이다. 어느 쪽이든 아까와 같은 곳으로 이어진다는 보장은 없다.', from: 'rear', dist: 60, speed: 0,
+  return { title: '갈림길', fork: true, bg: 'P-fork', text: '복도가 둘로 갈라졌다. 도면에는 없던 문이다. 어느 쪽이든 아까와 같은 곳으로 이어진다는 보장은 없다.', from: 'rear', dist: 60, speed: 0,
     map: { len: 10, start: 5, marks: [{ at: 0, label: '지나온 구역 문', kind: 'door' }, { at: 10, label: '문 A와 문 B', kind: 'door' }] }, choices: [], doors };
 }
 function genPatrol(base) {
@@ -563,7 +563,7 @@ function genPatrol(base) {
     used = used.concat(f.doors.map(d => SECTIONS_T.find(t => t.title === d.tpl)));
     scenes.push(f, f.doors[0].scene); // 고르기 전까지 다음 칸은 문 A로 채워 둔다(GM 장면 넘기기용)
   }
-  scenes.push({ title: '상층 승강기', text: '승강기 표시등이 깜빡인다. 층 표시는 B3과 B4 사이를 오간다. 뒤에서 무언가 따라온다.', from: 'rear', dist: 20, speed: 10,
+  scenes.push({ title: '상층 승강기', bg: 'P-lift', text: '승강기 표시등이 깜빡인다. 층 표시는 B3과 B4 사이를 오간다. 뒤에서 무언가 따라온다.', from: 'rear', dist: 20, speed: 10,
     spawn: { rear: 1 }, map: genMap(40, '상층 승강기'),
     choices: [{ id: 'goal', label: '승강기를 호출해 탑승한다', pos: 'front', reach: true, stat: 2, skill: '운반', diff: 2, crit: '모두가 승강기에 올랐다. 문이 닫혔다.', ok: '승강기 문이 닫혔다. 위로 올라간다.', cost: { text: '문이 닫히기 직전 무언가 손을 들이밀었다.', hp: -2 }, fail: { text: '승강기가 오지 않는다. 표시등이 B4를 가리킨다.', count: -1 } },
       { id: 'side', label: '수동으로 승강기를 끌어올린다', pos: 'mid', stat: 0, skill: '장비 운용', diff: 2, adv: false, crit: { text: '승강기가 빠르게 내려온다.', count: 1, sup: 1 }, ok: { text: '승강기가 내려오고 있다.', sup: 1 }, cost: { text: '손잡이가 손을 할퀴었다.', hp: -1, sup: 1 }, fail: { text: '줄이 끊어질 듯 삐걱댄다.', count: -1 } },
@@ -677,7 +677,7 @@ function runOut(r, viewer, gm) {
     : { exact: false, from: sc.from, detected: r.dist <= RADAR_RANGE, near: r.dist <= 10 }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
       patrol: !!o.patrol, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
-    status: r.status, scene: live ? { idx: r.scene, title: sc.title, text: sc.text, from: sc.from,
+    status: r.status, scene: live ? { idx: r.scene, bg: sc.bg || null, title: sc.title, text: sc.text, from: sc.from,
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,

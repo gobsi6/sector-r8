@@ -2436,7 +2436,7 @@ function whereLine(r) {
   return `<span class="see"><b>위치</b>${esc(parts.join(' '))}</span>`;
 }
 function cctvHTML(r) {
-  const sc = r.scene, src = `img/${r.op.id}-${sc.idx + 1}.jpg`, S2 = r.sight;
+  const sc = r.scene, src = sc.bg ? `img/${sc.bg}.jpg` : `img/${r.op.id}-${sc.idx + 1}.jpg`, S2 = r.sight;
   if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
   const t = new Date(), hh = n => String(n).padStart(2, '0');
   const cam = `CAM B3-${hh(sc.idx + 1)}${S2 && S2.from === 'rear' ? ' REAR' : ''}`;
