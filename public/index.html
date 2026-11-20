@@ -3185,43 +3185,43 @@ const TUT = {
   ],
   ctrl: [
     { title: '관제실', text: '모니터 열두 대가 B2를 비춘다. 옆자리의 벌처는 화면만 보고 있다.', from: 'rear',
-      setup: r => { tutChat(r, '벌처', '앉아. 설명은 한 번만 한다.', 'ctrl'); tutSay(r, '현장팀 맥파이, 슈라이크, 핀치가 B2로 내려갔다.'); },
+      setup: r => { tutChat(r, '벌처', '앉아. 설명은 한 번만 할 테니까 잘 들어.', 'ctrl'); tutSay(r, '현장팀 맥파이, 슈라이크, 핀치가 B2로 내려갔다.'); },
       steps: [
-        { who: 'vulture', at: '.radar', anchor: '.camrow', say: '현장 감지기는 방향만 안다. 숫자는 여기만 있다. 그러니 네가 필요한 거다.', head: '관제팀만 보는 것', text: '현장팀 감지기는 「뒤쪽에 신호」 정도만 알려 줘요. 정확한 거리는 관제실 레이더에만 보여요.' },
-        { who: 'vulture', at: '.form', anchor: '.form', say: '셋 다 5팀이다. 바이탈은 여기서 본다. 숫자가 빨개지면 말해.', head: '현장 바이탈', text: '현장 요원의 HP와 정신력이 실시간으로 보여요. 관제 요원은 작전 중에 다치지 않지만, 정신력은 깎일 수 있어요.', done: 'next' }
+        { who: 'vulture', at: '.radar', anchor: '.camrow', say: '현장 감지기는 방향밖에 몰라. 숫자는 여기서만 보이고. 그래서 네가 이 자리에 있는 거야.', head: '관제팀만 보는 것', text: '현장팀 감지기는 「뒤쪽에 신호」 정도만 알려 줘요. 정확한 거리는 관제실 레이더에만 보여요.' },
+        { who: 'vulture', at: '.form', anchor: '.form', say: '셋 다 5팀이야. 바이탈은 여기서 확인하면 되고, 숫자가 빨개지면 바로 말해.', head: '현장 바이탈', text: '현장 요원의 HP와 정신력이 실시간으로 보여요. 관제 요원은 작전 중에 다치지 않지만, 정신력은 깎일 수 있어요.', done: 'next' }
       ] },
     { title: '침수 복도 (B2)', text: '현장팀이 물이 찬 복도를 지난다. 레이더 뒤쪽에 점이 하나 떴다.', from: 'rear',
-      setup: r => { r._dist = 20; tutChat(r, '맥파이', '관제, 뒤에서 뭐가 끌리는 소리 난다. 얼마나 남았어?'); tutChat(r, '벌처', '대답은 신입이 한다.', 'ctrl'); },
+      setup: r => { r._dist = 20; tutChat(r, '맥파이', '관제, 뒤에서 뭐가 끌리는 소리 난다. 얼마나 남았어?'); tutChat(r, '벌처', '대답은 네가 해. 그게 네 자리니까.', 'ctrl'); },
       steps: [
-        { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m. 알리지 않으면 다음 턴에 하나는 물린다. 눌러.', head: '거리 알리기', text: '판정 없이 턴마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
+        { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m야. 지금 알려 주지 않으면 다음 턴에 누군가는 물리게 될 거야.', head: '거리 알리기', text: '판정 없이 턴마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
           run: r => { r.log.push({ kind: 'radio', text: '관제 보고: 개체는 대열 뒤 20m. 접근 중입니다.' }); tutChat(r, '맥파이', '들었다. 서두르자.'); return 'step'; } },
-        { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 산다. 격벽.', head: '원격 조작', text: '조명과 격벽은 장면마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이에요. 격벽에 성공하면 개체가 물러나요.',
+        { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 좀 벌어 두자. 격벽 내려.', head: '원격 조작', text: '조명과 격벽은 장면마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이에요. 격벽에 성공하면 개체가 물러나요.',
           run: r => { tutRoll(r, ME(r), '격벽 제어', 3, '장비 운용', 2, 'ok', '원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 12m 멀어졌다.'); r._dist = 32; r.ctlUsed.door = true; return 'next'; } }
       ] },
     { title: '사물함 구역', text: '조명이 나간 사물함 사이. 현장 카메라에는 거의 아무것도 보이지 않는다.', from: 'rear',
       setup: r => { r._dist = 30; r.ctlUsed = {}; tutSpawn(r, 'front', 'bite'); tutSay(r, '사물함 틈에서 세어진 것이 기어 나와 앞을 막았다.', { kind: 'spawn' }); tutChat(r, '슈라이크', '앞에 뭐가 있어! 안 보여!'); },
       steps: [
-        { who: 'vulture', at: '[data-v="light"]', anchor: '.ctl .choices', expect: ['opCtl', 'light'], say: '어두워서 못 맞힌다. 불을 켜.', head: '조명 제어', text: '하수인이 있을 때 쓸 수 있어요. 성공하면 하수인 전원이 다음 행동에서 비틀거려요. 실패하면 화면에 잡음이 낄 수 있어요.',
+        { who: 'vulture', at: '[data-v="light"]', anchor: '.ctl .choices', expect: ['opCtl', 'light'], say: '저렇게 어두우면 아무도 못 맞혀. 불부터 켜.', head: '조명 제어', text: '하수인이 있을 때 쓸 수 있어요. 성공하면 하수인 전원이 다음 행동에서 비틀거려요. 실패하면 화면에 잡음이 낄 수 있어요.',
           run: r => { tutRoll(r, ME(r), '조명 제어', 3, '장비 운용', 2, 'ok', '구역 조명을 최대로 올렸다. 세어진 것이 빛에 눈이 멀어 비틀거린다.'); r.ctlUsed.light = true; r.minions.forEach(x => { x.intent = 'stun'; x.intentName = '비틀거림'; });
             setTimeout(() => { if (!S.tut || S.tut.r !== r) return; const old = JSON.parse(JSON.stringify(r)); tutRoll(r, tutM(r, 'npc-magpie'), '근접 공격 (앞)', 0, '격투', 2, 'crit', '정확히 급소를 노렸다.', { foe: 4 }, [14, 12, 10, 8, 8, 10]); r.minions = []; tutSay(r, '맥파이 요원이 세어진 것을 쓰러뜨렸다.', { kind: 'kill' }); tutChat(r, '맥파이', '보인다! 처리했다.'); tutDerive(r); tutFx(old, r); syncModal(); }, 900);
             return 'step'; } },
-        { who: 'vulture', at: '[data-v="support"]', anchor: '.ctl .choices', expect: ['opCtl', 'support'], say: '다음은 문이다. 슈라이크가 연다. 판정 전에 주사위를 얹어 둬.', head: '지원 주사위', text: '지능 + 통신, 쉬움(1). 성공하면 다음 현장 판정에 주사위가 붙어요. 최대 4개까지 쌓여요.',
+        { who: 'vulture', at: '[data-v="support"]', anchor: '.ctl .choices', expect: ['opCtl', 'support'], say: '다음은 문이야. 슈라이크가 열 거니까, 판정 전에 주사위를 얹어 둬.', head: '지원 주사위', text: '지능 + 통신, 쉬움(1). 성공하면 다음 현장 판정에 주사위가 붙어요. 최대 4개까지 쌓여요.',
           run: r => { tutRoll(r, ME(r), '지원', 3, '통신', 1, 'ok', '관제 지원 연결. 다음 현장 판정에 지원 주사위 1개를 보탠다.'); tutRoll(r, tutM(r, 'npc-shrike'), '출입문 개방', 3, '장비 운용', 2, 'ok', '지원 주사위 덕에 잠긴 문을 열었다. 현장팀이 다음 구역으로 들어간다.', null, [10, 10, 10, 12, 10, 10]); return 'next'; } }
       ] },
     { title: '출입 기록실', text: '벽 가득한 단말에 출입 기록이 흐른다. 관제실 화면이 지직거린다.', from: 'rear',
       setup: r => { r._dist = 25; r.ctlUsed = {}; r.noise = { shown: tutGarble(TUT_NOISE), turns: 0 }; r.log.push({ kind: 'noise', text: '관제 화면에 잡음이 끼었다. 알 수 없는 신호가 흘러든다.' }); },
       steps: [
-        { who: 'vulture', at: '[data-v="decode"]', anchor: '.noisebox', expect: ['opCtl', 'decode'], say: '잡음이다. 읽으면 깎인다. 그래도 읽어. 차단하면 아무것도 못 건진다.', head: '알 수 없는 신호', text: '잡음이 있는 동안에는 거리를 읽을 수 없고 턴마다 정신력이 깎여요. 해독하면 정신력을 대가로 귀환 신호를 되찾아요.',
+        { who: 'vulture', at: '[data-v="decode"]', anchor: '.noisebox', expect: ['opCtl', 'decode'], say: '잡음이네. 읽으면 정신이 깎이긴 하는데, 그래도 읽어. 차단하면 아무것도 못 건지거든.', head: '알 수 없는 신호', text: '잡음이 있는 동안에는 거리를 읽을 수 없고 턴마다 정신력이 깎여요. 해독하면 정신력을 대가로 귀환 신호를 되찾아요.',
           run: r => { const m = ME(r), d = Math.min(m.san - 1, 9); m.san -= d; tutRoll(r, m, '신호 해독', 3, '기록 해독', 2, 'ok', `신호를 해독했다: 「${TUT_NOISE}」 잡음이 걷히며 귀환 신호가 돌아온다. 귀환 신호 +1.`, { san: -d }); r.noise = null; r.count = Math.min(6, r.count + 1); return 'step'; } },
-        { who: 'vulture', at: '.ctlline .cm.me', anchor: '.stage .prog', say: '정신력이 줄었지. 관제도 무너진다. 무너지면 아무도 못 지킨다.', head: '관제 정신력', text: '관제 요원도 정신력이 0이 되면 붕괴해서 행동할 수 없어요. 다른 관제 요원의 바이탈 안정으로만 되돌릴 수 있어요.', done: 'next' }
+        { who: 'vulture', at: '.ctlline .cm.me', anchor: '.stage .prog', say: '정신력이 줄었지? 관제도 무너질 수 있어. 네가 무너지면 저쪽은 아무도 못 지켜.', head: '관제 정신력', text: '관제 요원도 정신력이 0이 되면 붕괴해서 행동할 수 없어요. 다른 관제 요원의 바이탈 안정으로만 되돌릴 수 있어요.', done: 'next' }
       ] },
     { title: '상층 승강기', text: '승강기 표시등이 깜빡인다. 핀치의 바이탈이 흔들린다.', from: 'rear',
       setup: r => { r._dist = 15; r.count = 3; const f = tutM(r, 'npc-finch'); r.log.push({ kind: 'contact', text: '벽 너머의 비명이 핀치 요원의 귀를 파고든다.', fx: { san: -78 } }); f.san = 22; tutChat(r, '핀치', '…괜찮아요, 괜찮…'); },
       steps: [
-        { who: 'vulture', at: '[data-v="stabilize"][data-t="npc-finch"]', anchor: '.ctl .choices', expect: ['opCtl', 'stabilize', 'npc-finch'], say: '핀치 정신력 22. 붕괴하면 회수에 두 턴을 쓴다. 그 전에 잡는다.', head: '바이탈 안정', text: '의지 + 응급처치, 보통(2). 성공하면 정신력을 되찾고, 붕괴한 요원도 다시 일으켜요.',
+        { who: 'vulture', at: '[data-v="stabilize"][data-t="npc-finch"]', anchor: '.ctl .choices', expect: ['opCtl', 'stabilize', 'npc-finch'], say: '핀치 정신력이 22야. 붕괴하면 회수하는 데만 두 턴이 들어. 그 전에 잡아.', head: '바이탈 안정', text: '의지 + 응급처치, 보통(2). 성공하면 정신력을 되찾고, 붕괴한 요원도 다시 일으켜요.',
           run: r => { tutRoll(r, ME(r), '바이탈 안정', 5, '응급처치', 2, 'ok', '핀치 요원의 바이탈이 안정됐다. (정신력 +25)'); tutM(r, 'npc-finch').san = 47; return 'step'; } },
-        { who: 'vulture', at: '[data-v="raven1"]', anchor: '.ctl .choices', say: 'RAVEN-1. 부르면 다 치워 준다. 대가는 보급품 20씩, 보상 절반. 리퍼한테 빚지는 건 덤이고. 이번엔 안 부른다.', head: 'RAVEN-1 지원', text: '작전당 한 번. 하수인을 모두 없애고, 개체를 밀어내고, 귀환 신호를 2 채워요. 정말 위험할 때만 쓰세요.',
-          done: r => { tutSay(r, '현장팀이 승강기에 올랐다. 문이 닫혔다.'); tutChat(r, '벌처', '결과는 합격. 다음엔 설명 안 한다.', 'ctrl'); return 'finish'; } }
+        { who: 'vulture', at: '[data-v="raven1"]', anchor: '.ctl .choices', say: 'RAVEN-1을 부르면 다 치워 주긴 해. 대신 보급품 20씩에 보상은 절반이고, 리퍼한테 빚지는 건 덤이지. 이번엔 안 불러.', head: 'RAVEN-1 지원', text: '작전당 한 번. 하수인을 모두 없애고, 개체를 밀어내고, 귀환 신호를 2 채워요. 정말 위험할 때만 쓰세요.',
+          done: r => { tutSay(r, '현장팀이 승강기에 올랐다. 문이 닫혔다.'); tutChat(r, '벌처', '결과는 합격이야. 다음부터는 설명 안 해 줄 거고.', 'ctrl'); return 'finish'; } }
       ] }
   ]
 };
@@ -3274,7 +3274,7 @@ function tutEnd() { S.tut = null; syncTut(); syncModal(); render(); }
 function tutDoneHTML() {
   const T = S.tut, first = T.first;
   return `<div class="stage done"><span class="bb res success">TRAINING COMPLETE</span><b class="st">첫 출동 완료</b>
-    <p>${T.role === 'ctrl' ? '벌처: 「결과는 합격. 다음엔 설명 안 한다.」' : '리퍼: 「5팀은 역시 재밌어. 다음에 또 보자, 신입.」'}</p>
+    <p>${T.role === 'ctrl' ? '벌처: 「결과는 합격이야. 다음부터는 설명 안 해 줄 거고.」' : '리퍼: 「5팀은 역시 재밌어. 다음에 또 보자, 신입.」'}</p>
     <p>${first === false ? '이미 보상을 받은 훈련입니다.' : '보급품 20과 칭호 「첫 출동」을 받았습니다.'} 이제 작전 탭에서 정식 작전에 참가할 수 있습니다.</p>
     <div class="acts"><button class="btn" data-act="opClose">기지로 돌아가기</button></div></div>`;
 }
@@ -3286,7 +3286,7 @@ function tutCoach(host) {
   const at = host.querySelector(step.at), an = (step.anchor && host.querySelector(step.anchor)) || at;
   if (at) at.classList.add('tut-hl');
   const W = TUT_WHO[step.who], nagged = T.nag && Date.now() - T.nag < 4000;
-  const nag = step.who === 'vulture' ? '그거 아니다. 표시한 거.' : '그거 말고, 반짝이는 거. 재미없게 굴지 말고.';
+  const nag = step.who === 'vulture' ? '그거 말고. 표시해 둔 거 눌러.' : '그거 말고, 반짝이는 거. 재미없게 굴지 말고.';
   const html = `<div class="tut-bub${nagged ? ' nag' : ''}" role="dialog" aria-label="안내"><span class="tbh"><span class="ch">${W[2]}</span><i></i><b>${W[0]}</b><small>${W[1]}</small><em>${T.sc + 1}/5 ${TUT_PROG[T.role][T.sc]} · 안내 ${T.st + 1}/${TUT[T.role][T.sc].steps.length}</em></span>
     <p class="tsay">— ${esc(nagged ? nag : step.say)}</p><p class="trule"><b>${esc(step.head)}</b> · ${esc(step.text)}</p>
     <span class="tbb">${step.expect ? '<small>빛나는 버튼을 누르세요</small>' : '<button class="btn s" data-act="tutNext">다음</button>'}</span></div>`;
@@ -3308,7 +3308,7 @@ function syncTut() {
     host.innerHTML = `<div class="twake">${skip}<span class="tvat" aria-hidden="true"></span><span class="tosd">REGEN VAT 03<br><small>CYCLE COMPLETE · VITALS ${['--', 'LOW', 'STABLE', 'STABLE'][k]}</small></span>
       <div class="tlines">${L.slice(0, k + 1).map((t, i) => `<p class="${i === k ? 'now' : ''}">${esc(t)}</p>`).join('')}<button class="btn" data-act="tutWake">${cta}</button></div></div>`;
   } else {
-    const lines = ctrl ? ['3번 수조 신입. 정신 들었으면 관제실로.', 'B2 격리 장치가 꺼졌다. 관제 자리가 하나 빈다.', '설명은 한 번만 한다. 30초 안에 와.'] : [`수조 3번, RAVEN-5 신입 ${name} 요원. 정신 들었으면 대답해.`, 'B2에서 격리 장치가 꺼졌다. 5팀에서 남은 건 맥파이와 핀치뿐이야.', '사물함에서 장비 챙기고 B2 승강기 앞으로.'];
+    const lines = ctrl ? ['3번 수조 신입, 정신 들었으면 관제실로 올라와.', 'B2 격리 장치가 꺼졌는데 관제 자리가 하나 비어 있거든.', '설명은 한 번만 할 테니까 서두르는 게 좋을 거야.'] : [`수조 3번, RAVEN-5 신입 ${name} 요원. 정신 들었으면 대답해.`, 'B2에서 격리 장치가 꺼졌다. 5팀에서 남은 건 맥파이와 핀치뿐이야.', '사물함에서 장비 챙기고 B2 승강기 앞으로.'];
     host.innerHTML = `<div class="talarm">${skip}<div class="tband">${ico('alert', 18, 2.4)}경보 · 하층 B2 격리 이상 · 가용 요원은 즉시 집결하십시오</div>
       <div class="tucard"><span class="th"><span class="bb">RADIO · CTRL</span><small>${ctrl ? '벌처 · RAVEN-3 팀장' : '운영관 케스트럴'}</small></span>
         <div class="tmsg">${lines.map(l => `<span>— ${esc(l)}</span>`).join('')}</div>
