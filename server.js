@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS drafts (
 `);
 
 // 예전 데이터베이스에 없던 칸을 더한다
-for (const [col, type] of [['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops_done', 'INTEGER NOT NULL DEFAULT 0'], ['quar_until', 'INTEGER'], ['skill_xp', "TEXT NOT NULL DEFAULT '{}'"], ['career', 'INTEGER NOT NULL DEFAULT 0'], ['stat_pts', 'INTEGER NOT NULL DEFAULT 0']]) {
+for (const [col, type] of [['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops_done', 'INTEGER NOT NULL DEFAULT 0'], ['quar_until', 'INTEGER'], ['skill_xp', "TEXT NOT NULL DEFAULT '{}'"], ['career', 'INTEGER NOT NULL DEFAULT 0'], ['stat_pts', 'INTEGER NOT NULL DEFAULT 0'], ['inv', "TEXT NOT NULL DEFAULT '{}'"]]) {
   if (!db.prepare(`SELECT 1 FROM pragma_table_info('agents') WHERE name = '${col}'`).get()) db.exec(`ALTER TABLE agents ADD COLUMN ${col} ${type}`);
 }
 // 외관 사진 칸이 없던 예전 데이터베이스에 칸을 더한다
@@ -187,6 +187,32 @@ const photoOf = v => v == null || v === '' ? null : (typeof v === 'string' && v.
 const str = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
 const online = new Map(); // user_id → 연결 수
 
+/* ───────── 보급 상점 ───────── */
+// kind: use(작전 소모품, 최대 3개) · gear(장비, slot마다 하나 장착) · frame(출입증 테두리) · title(칭호)
+const SHOP = [
+  { id: 'kit', kind: 'use', name: '구급 키트', price: 25, desc: '작전 중 가장 많이 다친 현장 요원의 HP를 30 회복한다.' },
+  { id: 'calm', kind: 'use', name: '진정제', price: 25, desc: '작전 중 정신력이 가장 낮은 현장 요원의 정신력을 30 회복한다. 붕괴한 요원도 일으킨다.' },
+  { id: 'flare', kind: 'use', name: '섬광탄', price: 40, desc: '작전 중 주변의 하수인을 모두 쫓아낸다.' },
+  { id: 'vest', kind: 'gear', slot: 'armor', name: '경량 방호복', price: 120, desc: 'HP 최대치 +15.', fx: { hp: 15 } },
+  { id: 'suit', kind: 'gear', slot: 'armor', name: '강화 방호복', price: 260, desc: 'HP 최대치 +30.', fx: { hp: 30 } },
+  { id: 'shield', kind: 'gear', slot: 'armor', name: '차폐 외투', price: 200, desc: '오염 한계 +20. 검은 주사위가 늦게 섞인다.', fx: { lim: 20 } },
+  { id: 'patch', kind: 'gear', slot: 'tool', name: '안정 패치', price: 150, desc: '정신력 최대치 +15.', fx: { san: 15 } },
+  { id: 'radio', kind: 'gear', slot: 'tool', name: '고급 무전기', price: 180, desc: '통신 기능 +1.', fx: { skill: ['통신', 1] } },
+  { id: 'lamp', kind: 'gear', slot: 'tool', name: '전술 손전등', price: 150, desc: '관찰 기능 +1.', fx: { skill: ['관찰', 1] } },
+  { id: 'toolkit', kind: 'gear', slot: 'tool', name: '정비 공구 세트', price: 160, desc: '장비 운용 기능 +1.', fx: { skill: ['장비 운용', 1] } },
+  { id: 'gold', kind: 'frame', name: '금빛 테두리', price: 120, desc: '출입증 테두리를 금빛으로 바꾼다.' },
+  { id: 'redline', kind: 'frame', name: '붉은 경계선', price: 100, desc: '출입증 테두리를 붉은 경계선으로 바꾼다.' },
+  { id: 'holo', kind: 'frame', name: '청록 홀로그램', price: 150, desc: '출입증 테두리를 청록 홀로그램으로 바꾼다.' },
+  { id: 'night', kind: 'title', name: '야간 근무자', price: 50, desc: '출입증과 요원 목록에 칭호를 단다.' },
+  { id: 'voice', kind: 'title', name: '무전 너머의 목소리', price: 80, desc: '출입증과 요원 목록에 칭호를 단다.' },
+  { id: 'tankreg', kind: 'title', name: '수조 단골', price: 60, desc: '출입증과 요원 목록에 칭호를 단다.' },
+  { id: 'steady', kind: 'title', name: '침착한 손', price: 80, desc: '출입증과 요원 목록에 칭호를 단다.' }
+];
+const SHOP_BY = Object.fromEntries(SHOP.map(x => [x.id, x])), USE_MAX = 3, SLOTS = ['armor', 'tool'];
+const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catch {} return { items: v.items || {}, own: v.own || [], eq: v.eq || {}, frame: v.frame || null, title: v.title || null }; };
+const gearFx = row => { const v = invOf(row), fx = { hp: 0, san: 0, lim: 0, skill: {} };
+  SLOTS.forEach(sl => { const g = SHOP_BY[v.eq[sl]]; if (!g || !g.fx) return; fx.hp += g.fx.hp || 0; fx.san += g.fx.san || 0; fx.lim += g.fx.lim || 0; if (g.fx.skill) fx.skill[g.fx.skill[0]] = (fx.skill[g.fx.skill[0]] || 0) + g.fx.skill[1]; });
+  return fx; };
 function publicAgent(row) {
   if (!row) return null;
   return {
@@ -195,7 +221,7 @@ function publicAgent(row) {
     task: typeof QT !== 'undefined' ? taskOut(QT.mine.get(row.user_id)) : null,
     skillXp: JSON.parse(row.skill_xp || '{}'), career: { ...rankOf(row.career || 0), total: row.career || 0 }, statPts: row.stat_pts || 0, statCap: STAT_CAP,
     regenUntil: row.regen_until || null, quarUntil: row.quar_until || null, contLimit: contLimit(row), opsDone: row.ops_done || 0,
-    res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
+    inv: invOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
 }
 function chatOut(r) { return { id: r.id, uid: String(r.user_id), num: r.num, name: r.name, role: r.role, channel: r.channel, text: r.text, ts: r.ts }; }
@@ -515,10 +541,11 @@ function maxes(row) {
   const o = s.map(v => (v - 2) / 2); // 1~20 → 예전 척도. 평균 10 → 4
   const hp = Math.round((o[0] + o[1] + 4) * HP_MUL / 5) * 5 + tr.reduce((a, t) => a + (TRAIT_HP[t.id] || 0), 0);
   const san = Math.round((o[5] + 3) * SAN_MUL / 5) * 5 + tr.reduce((a, t) => a + (TRAIT_SAN[t.id] || 0), 0);
-  return { hp, san };
+  const g = gearFx(row);
+  return { hp: hp + g.hp, san: san + g.san };
 }
 // 오염 한계치: 체력과 의지가 버티는 만큼. 평균(각 4)이면 100, 5 단위.
-const contLimit = row => { const s = modStats(row).map(v => (v - 2) / 2); return Math.max(30, Math.round((s[1] + s[5] + 4) * 100 / 12 / 5) * 5); };
+const contLimit = row => { const s = modStats(row).map(v => (v - 2) / 2); return Math.max(30, Math.round((s[1] + s[5] + 4) * 100 / 12 / 5) * 5) + gearFx(row).lim; };
 const QUAR_MS = Number(process.env.QUARANTINE_HOURS || 4) * 3600000;
 const VULTURE_OVER = ['"폭주 직전에 잡았다. 운이 좋은 줄 알아."', '"한 번만 더 넘기면 그땐 격리실 쪽에 눕힌다."', '"변이는 기록해 뒀다. 다음엔 표본으로 보게 될지도 모르지."'];
 // 피해·회복을 배율에 맞춰 키우고, 매번 ±30% 흔들어 긴박하게
@@ -526,7 +553,7 @@ const spread = (base, mul) => base ? Math.sign(base) * Math.max(1, Math.round(Ma
 const hpD = b => spread(b, HP_MUL), sanD = b => spread(b, SAN_MUL);
 const scaleFx = fx => fx ? { ...fx, hp: hpD(fx.hp || 0) || undefined, san: sanD(fx.san || 0) || undefined } : fx;
 // 주사위 풀 굴리기
-const skLv = (row, k) => Math.max(0, (JSON.parse(row.skills)[k] || 0) + traitsOf(row).reduce((a, t) => a + (TRAIT_SKILL[t.id] && TRAIT_SKILL[t.id][0] === k ? TRAIT_SKILL[t.id][1] : 0), 0));
+const skLv = (row, k) => Math.max(0, (JSON.parse(row.skills)[k] || 0) + (gearFx(row).skill[k] || 0) + traitsOf(row).reduce((a, t) => a + (TRAIT_SKILL[t.id] && TRAIT_SKILL[t.id][0] === k ? TRAIT_SKILL[t.id][1] : 0), 0));
 const skAll = row => Object.fromEntries(SKILLS.map(k => [k, skLv(row, k)]));
 function rollPool(row, statIdx, skill, support) {
   const s = modStats(row), sk = skLv(row, skill);
@@ -595,7 +622,7 @@ const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op',
 const busyIn = uid => { for (const r of runs.values()) if (r.status !== 'done' && r.members.some(m => m.uid === String(uid))) return r; return null; };
 /* ───────── 요원 경력 ───────── */
 // 출동과 관리 작업으로 경력이 쌓이면 계급이 오르고, 계급마다 능력치 포인트 2를 받는다.
-const CAREER = { opSuccess: 20, opOther: 10, emergency: 1, task: { 30: 1, 60: 3, 120: 5, 180: 8, 300: 13 } }, RANK_PTS = 2;
+const CAREER = { opSuccess: 20, opOther: 10, emergency: 1, task: { 30: 1, 60: 3, 120: 5, 180: 8 } }, RANK_PTS = 2;
 const rankNeed = rk => 60 + 30 * (rk - 1); // 계급 rk → rk+1 (60, 90, 120…)
 function rankOf(career) { let rk = 1, c = career; while (c >= rankNeed(rk)) { c -= rankNeed(rk); rk++; } return { rank: rk, cur: c, need: rankNeed(rk) }; }
 const setCareer = db.prepare('UPDATE agents SET career = ?, stat_pts = ? WHERE user_id = ?');
@@ -608,7 +635,7 @@ function gainCareer(uid, n) {
 /* ───────── 기능 경험치 ───────── */
 // 판정에 쓴 기능에 경험치가 꾸준히 쌓인다. 다 차면 등급이 오른다. 등급 0인 기능도 쓰다 보면 익힌다.
 const SKILL_MAX = 5, XP_NEED = [20, 50, 90, 140, 200]; // 등급 n → n+1에 필요한 양
-const XP = { roll: 2, ctl: 1, emergency: 1, task: { 30: 2, 60: 4, 120: 7, 180: 10, 300: 16 } };
+const XP = { roll: 2, ctl: 1, emergency: 1, task: { 30: 2, 60: 4, 120: 7, 180: 10 } };
 const setSkillXp = db.prepare('UPDATE agents SET skills = ?, skill_xp = ? WHERE user_id = ?');
 function gainXp(uid, skill, n) {
   const row = Q.agent.get(uid); if (!row || !SKILLS.includes(skill)) return null;
@@ -878,6 +905,24 @@ function opMove(uid, opId, kind) {
     say(r, `${m.name} 요원이 ${a.name} 요원과 자리를 바꿨다. 대열: ${lineOf(r).map(x => x.name).join(' → ')}`, { kind: 'move', uid: m.uid });
   } else return 'op/bad-choice';
   return endTurn(r);
+}
+// 작전 중 소모품: 현장 요원만, 차례마다 한 번. 차례를 쓰지 않는다.
+function opItem(uid, opId, id) {
+  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
+  const m = r.members.find(x => x.uid === String(uid) && x.role === 'field'); if (!m) return 'op/not-field';
+  if (m.dead) return 'op/dead'; if (m.broken) return 'op/broken';
+  if (m.itemTurn === r.turn) return 'op/item-wait';
+  const row = Q.agent.get(uid), v = invOf(row), it = SHOP_BY[id];
+  if (!it || it.kind !== 'use' || !(v.items[id] > 0)) return 'shop/none';
+  const team = r.members.filter(x => x.role === 'field' && !x.dead);
+  if (id === 'kit') { const t = team.filter(x => x.hp < x.hpMax).sort((a, b) => a.hp / a.hpMax - b.hp / b.hpMax)[0]; if (!t) return 'op/no-need';
+    const h = Math.min(30, t.hpMax - t.hp); t.hp += h; say(r, `${m.name} 요원이 구급 키트를 썼다. ${t.name} 요원 HP +${h}.`, { kind: 'sys' }); }
+  else if (id === 'calm') { const t = team.filter(x => x.san < x.sanMax).sort((a, b) => a.san / a.sanMax - b.san / b.sanMax)[0]; if (!t) return 'op/no-need';
+    const h = Math.min(30, t.sanMax - t.san); t.san += h; if (t.broken && t.san > 0) t.broken = false; say(r, `${m.name} 요원이 진정제를 썼다. ${t.name} 요원 정신력 +${h}.`, { kind: 'sys' }); }
+  else if (id === 'flare') { if (!r.minions.length) return 'op/no-need'; const n = r.minions.length; r.minions = []; say(r, `${m.name} 요원이 섬광탄을 던졌다. 하수인 ${n}마리가 빛을 피해 흩어졌다.`, { kind: 'sys' }); }
+  v.items[id]--; saveInv(uid, v); m.itemTurn = r.turn; m.items = v.items;
+  pushAgent(uid);
+  return null;
 }
 function opCtl(uid, opId, kind, target) {
   const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
@@ -1188,12 +1233,12 @@ function archiveUnlock(uid, entity, section) {
 const TASK_MIN_MS = Number(process.env.TASK_MINUTE_MS || 60000); // 테스트할 때 줄여 쓴다
 const OBS_PER_LINE = 3;
 const TASKS = {
-  maintain: { name: '유지 보수', len: { 30: { stab: 6, supply: 2 }, 60: { stab: 12, supply: 5 }, 120: { stab: 25, supply: 10 }, 180: { stab: 40, supply: 18 }, 300: { stab: 70, supply: 32 } } },
-  observe: { name: '관찰·연구', len: { 30: { research: 1, obs: 1 }, 60: { research: 2, obs: 2 }, 120: { research: 4, obs: 3 }, 180: { research: 7, obs: 5 }, 300: { research: 12, obs: 9 } } }
+  maintain: { name: '유지 보수', len: { 30: { stab: 6, supply: 2 }, 60: { stab: 12, supply: 5 }, 120: { stab: 25, supply: 10 }, 180: { stab: 40, supply: 18 } } },
+  observe: { name: '관찰·연구', len: { 30: { research: 1, obs: 1 }, 60: { research: 2, obs: 2 }, 120: { research: 4, obs: 3 }, 180: { research: 7, obs: 5 } } }
 };
 /* 이상 징후: 작업 중에 가끔 뜨는 작은 사건. 자리에 있던 요원이 대응하면 보너스, 놓쳐도 벌점은 없다. */
 const SIGN_WINDOW = 10; // 대응할 수 있는 시간(작업 분 단위)
-const SIGN_COUNT = { 30: [0, 1], 60: [1, 1], 120: [1, 2], 180: [2, 2], 300: [3, 3] };
+const SIGN_COUNT = { 30: [0, 1], 60: [1, 1], 120: [1, 2], 180: [2, 2] };
 const SIGN_TEXT = ['격리실 온도가 갑자기 4도 떨어졌다.', '감시 카메라가 3초 동안 꺼졌다 켜졌다.', '{name}이(가) 관찰창 쪽으로 몸을 돌렸다.', '격리실 안에서 노크 소리가 세 번 들렸다.', '출입 기록 단말에 아무도 들어가지 않은 출입이 찍혔다.', '격리실 벽의 습도계 바늘이 끝까지 돌아갔다.', '환기구에서 누군가 숨 쉬는 소리가 들린다.', '관찰 일지의 마지막 줄이 저절로 지워졌다.', '격리실 조명이 다른 색으로 깜빡였다.', '{name}의 그림자가 한 박자 늦게 움직였다.'];
 const SIGN_BONUS = { maintain: { stab: 5, supply: 2 }, observe: { research: 1, obs: 1 } };
 function makeSigns(mins, started) {
@@ -1239,10 +1284,10 @@ function taskStart(uid, entity, kind, mins) {
   const st0 = now(); QT.add.run(uid, e.id, kind, mins, st0, st0 + mins * TASK_MIN_MS, JSON.stringify(makeSigns(mins, st0)));
   return null;
 }
-const FAIL_DROP = { 30: 6, 60: 10, 120: 18, 180: 25, 300: 35 };
+const FAIL_DROP = { 30: 6, 60: 10, 120: 18, 180: 25 };
 const TIER_MUL = { crit: 1.5, ok: 1, cost: 0.5, fail: 0 };
 function taskFinish(t) {
-  const T = TASKS[t.kind], base = T.len[t.mins], e = ENTITIES.find(x => x.id === t.entity);
+  const T = TASKS[t.kind], mm = t.mins, base = T.len[mm], e = ENTITIES.find(x => x.id === t.entity);
   const n = Math.min(2, QT.overlap.get(t.entity, t.user_id, t.ends, t.started).n), mul = 1 + 0.25 * n;
   const out = { name: T.name, entity: t.entity, entityName: e ? e.name : '', together: n, mul };
   // 같은 격리실 동료 한 명당 지원 주사위 1개
@@ -1256,7 +1301,7 @@ function taskFinish(t) {
     out.signOk = sok; out.signTotal = sg.length;
     if (tier === 'fail') {
       if (live) {
-        const st = stabNow(er), after = Math.max(0, st - FAIL_DROP[t.mins]); QS.setEnt.run(after, now(), 1, t.entity); out.stab = -(Math.round((st - after) * 10) / 10);
+        const st = stabNow(er), after = Math.max(0, st - FAIL_DROP[mm]); QS.setEnt.run(after, now(), 1, t.entity); out.stab = -(Math.round((st - after) * 10) / 10);
         const cm = skLv(row, '통신'), p = escChance(e, after, out.roll.anomalies) * Math.max(0.25, 1 - COMMS_ESC * cm) * (sok ? 0.5 : 1); out.escape = { p, escaped: Math.random() < p, comms: cm, signs: sok }; if (out.escape.escaped) esc = e;
       }
     } else {
@@ -1273,7 +1318,7 @@ function taskFinish(t) {
     }
     QT.set.run('done', JSON.stringify(out), t.id);
   });
-  if (out.roll) { out.xp = gainXp(t.user_id, out.roll.skill, XP.task[t.mins]); out.career = gainCareer(t.user_id, CAREER.task[t.mins]); QT.set.run('done', JSON.stringify(out), t.id); }
+  if (out.roll) { out.xp = gainXp(t.user_id, out.roll.skill, XP.task[mm]); out.career = gainCareer(t.user_id, CAREER.task[mm]); QT.set.run('done', JSON.stringify(out), t.id); }
   if (esc) escapeIn(esc, t.user_id, T.name + ' 작업');
   return out;
 }
@@ -1329,6 +1374,57 @@ app.post('/api/stat', need, (req, res) => {
   st[k]++;
   db.prepare('UPDATE agents SET stats = ?, stat_pts = stat_pts - 1 WHERE user_id = ?').run(JSON.stringify(st), req.user.id);
   const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
+});
+/* ───────── 보급 상점 API ───────── */
+const saveInv = (uid, v) => db.prepare('UPDATE agents SET inv = ? WHERE user_id = ?').run(JSON.stringify(v), uid);
+const pushAgent = uid => { const agent = publicAgent(Q.agent.get(uid)); io.emit('agent', agent); return agent; };
+app.get('/api/shop', need, (req, res) => res.json({ items: SHOP, useMax: USE_MAX }));
+app.post('/api/shop/buy', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const it = SHOP_BY[req.body && req.body.id]; if (!it) return fail(res, 'shop/none');
+  const v = invOf(row), r = JSON.parse(row.res);
+  if (it.kind === 'use') { if ((v.items[it.id] || 0) >= USE_MAX) return fail(res, 'shop/full'); }
+  else if (v.own.includes(it.id)) return fail(res, 'shop/owned');
+  if ((r.supply || 0) < it.price) return fail(res, 'res/short');
+  if (it.kind === 'use' && busyIn(req.user.id) && busyIn(req.user.id).status === 'live') return fail(res, 'shop/in-op');
+  r.supply -= it.price;
+  if (it.kind === 'use') v.items[it.id] = (v.items[it.id] || 0) + 1;
+  else { v.own.push(it.id); if (it.kind === 'gear' && !v.eq[it.slot]) v.eq[it.slot] = it.id; if (it.kind === 'frame' && !v.frame) v.frame = it.id; if (it.kind === 'title' && !v.title) v.title = it.id; }
+  db.prepare('UPDATE agents SET res = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(r), JSON.stringify(v), req.user.id);
+  res.json({ agent: pushAgent(req.user.id) });
+});
+// 보급 요청서: 여러 물품을 한 번에 산다. 하나라도 안 되면 아무것도 사지 않는다.
+app.post('/api/shop/order', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const want = (req.body && req.body.items) || {}, v = invOf(row), r = JSON.parse(row.res);
+  const L = Object.entries(want).map(([id, q]) => [SHOP_BY[id], Number(q)]).filter(([, q]) => q > 0);
+  if (!L.length) return fail(res, 'shop/empty');
+  let total = 0;
+  for (const [it, q] of L) {
+    if (!it || !Number.isInteger(q)) return fail(res, 'shop/none');
+    if (it.kind === 'use') { if ((v.items[it.id] || 0) + q > USE_MAX) return fail(res, 'shop/full'); }
+    else if (q !== 1 || v.own.includes(it.id)) return fail(res, 'shop/owned');
+    total += it.price * q;
+  }
+  const live = busyIn(req.user.id); if (live && live.status === 'live' && L.some(([it]) => it.kind === 'use')) return fail(res, 'shop/in-op');
+  if ((r.supply || 0) < total) return fail(res, 'res/short');
+  r.supply -= total;
+  for (const [it, q] of L) {
+    if (it.kind === 'use') v.items[it.id] = (v.items[it.id] || 0) + q;
+    else { v.own.push(it.id); if (it.kind === 'gear' && !v.eq[it.slot] && !live) v.eq[it.slot] = it.id; if (it.kind === 'frame' && !v.frame) v.frame = it.id; if (it.kind === 'title' && !v.title) v.title = it.id; }
+  }
+  db.prepare('UPDATE agents SET res = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(r), JSON.stringify(v), req.user.id);
+  res.json({ agent: pushAgent(req.user.id), total });
+});
+// 장착·해제: kind는 gear(slot과 함께)·frame·title, id가 없으면 해제
+app.post('/api/shop/equip', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const b = req.body || {}, v = invOf(row), id = b.id || null;
+  if (busyIn(req.user.id) && b.kind === 'gear') return fail(res, 'shop/in-op');
+  if (id) { const it = SHOP_BY[id]; if (!it || !v.own.includes(id) || it.kind !== b.kind) return fail(res, 'shop/none'); }
+  if (b.kind === 'gear') { if (!SLOTS.includes(b.slot) || (id && SHOP_BY[id].slot !== b.slot)) return fail(res, 'shop/none'); v.eq[b.slot] = id; }
+  else if (b.kind === 'frame') v.frame = id; else if (b.kind === 'title') v.title = id; else return fail(res, 'shop/none');
+  saveInv(req.user.id, v); res.json({ agent: pushAgent(req.user.id) });
 });
 /* ───────── GM 도구 ───────── */
 const gmAgentOut = row => ({ ...publicAgent(row) });
@@ -1472,6 +1568,7 @@ io.on('connection', socket => {
   socket.on('op:act', opCall((m, id) => opAct(uid, id, m.choice)));
   socket.on('op:move', opCall((m, id) => opMove(uid, id, m.kind)));
   socket.on('op:ctl', opCall((m, id) => opCtl(uid, id, m.kind, m.target)));
+  socket.on('op:item', opCall((m, id) => opItem(uid, id, m.item)));
   socket.on('op:abort', opCall((m, id) => opAbort(uid, id)));
   socket.on('op:close', opCall((m, id) => opClose(uid, id)));
   // 작전 채팅: 그 작전 참가자끼리만 (대기실·진행 중·종료 화면에서)
