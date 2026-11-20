@@ -790,6 +790,13 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .opblk>.op{flex:none;min-height:200px}
 /* 작전 목록이 있든 없든(로딩 중 포함) 같은 크기로 */
 .home{grid-template-rows:auto minmax(130px,.8fr) minmax(150px,1fr);overflow-y:auto;padding-right:4px}
+.task .sign{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:10px 12px;border-radius:4px;background:color-mix(in srgb,#C8A040 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,#C8A040 55%,transparent)}
+.task .sign .sh2{display:flex;align-items:center;gap:6px;color:#C8A040}.task .sign .sh2 b{font-size:13px}.task .sign .clock.sm{margin-left:auto;font-size:16px;color:#C8A040}
+.task .sign .tx{font-size:14px;font-weight:700}.task .sign .btn{align-self:flex-start}
+.task .sign.done{background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}.task .sign.bad .tier{color:var(--red)}
+.toast.sign{background:#3a2f12;color:#F2D58A;box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px #C8A040}
+[data-theme=light] .toast.sign{background:#FFF3D1;color:#6B4E0E}
+.task.run{grid-template-columns:1fr;position:relative}.task.run .acts{position:absolute;top:12px;right:12px}.task.run .acts .btn{height:30px;padding:0 10px;font-size:12px}.task.run .tl>b{padding-right:110px}
 .whyblk{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;border-radius:3px;font-size:12px;color:#C8A040;box-shadow:inset 0 0 0 1px color-mix(in srgb,#C8A040 50%,transparent);background:color-mix(in srgb,#C8A040 8%,transparent)}
 .opmore{font-size:12px;color:var(--navyLine);font-weight:700;border:0;background:transparent;text-align:left;padding:2px 4px;cursor:pointer}
 .oplist,.optabs2{display:flex;flex-direction:column;gap:4px;flex:none}
@@ -1079,7 +1086,7 @@ const SKILL_USE = {
   '운반': '전력 이탈과 동료 회수, 무거운 문과 밸브'
 };
 const ROLES = [['현장팀', '탐사와 전투를 담당합니다'], ['관제팀', '바이탈 확인과 지시를 담당합니다']];
-const SKILL_MAX = 5, XP_NEED = [10, 25, 45, 70, 100];
+const SKILL_MAX = 5, XP_NEED = [20, 50, 90, 140, 200];
 const STAT_SUM = 60, STAT_MIN0 = 3, STAT_MAX0 = 15, STAT_CAP = 20;
 const STEPS = ['신원', '외관', '과거', '스탯', '변질', '기능', '발급'];
 const START_RES = { supply: 100, research: 0, pass: 1 };
@@ -1204,6 +1211,7 @@ function serverBackend() {
     });
     socket.on('dm:read', x => { if (dmState.conv[x.with]) dmState.conv[x.with].unread = 0; emitD(null); });
     socket.on('notice', n => subs.notice.forEach(f => f(n)));
+    socket.on('sign', n => subs.notice.forEach(f => f({ text: `${n.entity}: ${n.text}`, level: 'sign' })));
     return socket;
   }
   const done = async j => { saveToken(j.token); const u = await loadMe(); authCb(u); };
@@ -1243,6 +1251,7 @@ function serverBackend() {
     taskStart: (entity, kind, mins) => api('/api/task', { entity, kind, mins }),
     taskCancel: () => api('/api/task/cancel', {}),
     taskAck: () => api('/api/task/ack', {}),
+    taskSign: () => api('/api/task/sign', {}),
     getRecordLog: id => api('/api/records/' + id).then(j => j.log),
     touch() {}
   };
@@ -1302,7 +1311,7 @@ function demoBackend() {
     async baseAct() { throw { code: 'demo' }; },
     async unlockDoc() { throw { code: 'demo' }; },
     async statUp() { throw { code: 'demo' }; }, watchDm(cb) { cb({ conv: {}, msgs: {}, gms: [] }, null); return () => {}; }, watchNotice() { return () => {}; }, async dmHistory() { return []; }, async dmSend() { throw { code: 'demo' }; }, async dmRead() {},
-    async gmAgent() { throw { code: 'demo' }; }, async gmOp() { throw { code: 'demo' }; }, async gmEntity() { throw { code: 'demo' }; }, async gmEvent() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; },
+    async gmAgent() { throw { code: 'demo' }; }, async gmOp() { throw { code: 'demo' }; }, async gmEntity() { throw { code: 'demo' }; }, async gmEvent() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; }, async taskSign() { throw { code: 'demo' }; },
     async getRecordLog() { return []; },
     async touch(uid) { const all = get('agents') || {}; if (all[uid]) { all[uid].lastSeen = Date.now(); put('agents', all); } }
   };
@@ -1359,6 +1368,7 @@ const AUTH_MSG = {
   'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
   'gm/forbidden': 'GM 계정만 쓸 수 있습니다.', 'gm/bad': '입력값을 확인하십시오.', 'dm/bad-target': '메시지를 보낼 수 없는 상대입니다.', 'op/none': '작전을 찾을 수 없습니다.',
   'stat/no-points': '배분할 능력치 포인트가 없습니다.', 'stat/cap': '훈련으로 올릴 수 있는 상한입니다.',
+  'task/no-sign': '대응할 이상 징후가 없습니다. 이미 지나갔을 수 있습니다.', 'task/none': '진행 중인 작업이 없습니다.',
   'task/busy': '이미 진행 중인 작업이 있습니다. 끝나거나 중단한 뒤 시작하십시오.', 'task/in-op': '작전에 참가 중이라 작업을 시작할 수 없습니다.', 'task/bad': '작업 설정을 확인하십시오.',
   'base/not-captured': '아직 확보하지 못한 개체입니다.', 'base/full': '격리 안정도가 이미 최대입니다.',
   'base/clean': '정화할 오염이 없습니다.', 'base/not-regen': '재생 수조에 있는 상태가 아닙니다.', 'base/bad': '요청을 처리할 수 없습니다.',
@@ -1640,23 +1650,28 @@ function taskPanel() {
   if (t.status === 'done') {
     const r = t.result || {}, g = [r.stab ? `안정도 ${r.stab > 0 ? '+' : ''}${r.stab}%` : '', r.cont ? `오염도 +${r.cont}` : '', r.supply ? `보급품 +${r.supply}` : '', r.research ? `연구 자료 +${r.research}${r.decode ? ` (기록 해독 +${r.decode} 포함)` : ''}` : '', r.obs ? `관찰 진척 +${r.obs}` : ''].filter(Boolean).join(', ');
     const bad = r.roll && r.roll.tier === 'fail';
-    return `<div class="task ${bad ? 'bad' : 'done'}"><span class="tl"><span class="bb">${bad ? '작업 실패' : '작업 완료'}</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins}분</b>
+    return `<div class="task ${bad ? 'bad' : 'done'}"><span class="tl"><span class="bb">${bad ? '작업 실패' : '작업 완료'}</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins / 60}시간</b>
       ${rollBox(r.roll)}${escLine(r.escape)}${xpLine(r.xp)}${careerLine(r.career)}
-      <span class="sub">${g || '얻은 것이 없습니다.'}${r.together ? `. 함께 작업한 요원 ${r.together}명, 성과 ×${r.mul}` : ''}${r.newLine ? '. 관찰 기록에 새 항목이 추가되었습니다.' : ''}</span></span>
+      <span class="sub">${g || '얻은 것이 없습니다.'}${r.together ? `. 함께 작업한 요원 ${r.together}명, 성과 ×${r.mul}` : ''}${r.newLine ? '. 관찰 기록에 새 항목이 추가되었습니다.' : ''}${r.signTotal ? `. 이상 징후 ${r.signTotal}건 중 ${r.signOk || 0}건 대응${r.signOk ? '(성과 추가)' : ''}` : ''}</span></span>
       <span class="acts"><button class="btn s" data-act="taskAck">확인</button></span></div>`;
   }
   const tot = t.ends - t.started, left = t.ends - Date.now(), pc = Math.min(100, Math.max(0, (1 - left / tot) * 100));
+  const sr = S.signRes && S.signRes.task === t.id ? S.signRes : null;
+  const signBlk = t.sign ? `<span class="sign"><span class="sh2">${ico('alert', 14, 2)}<b>이상 징후</b><span class="clock sm" data-ends="${t.sign.until}">${mmss(t.sign.until - Date.now())}</span></span><span class="tx">${esc(t.sign.text)}</span>
+      <span class="sub">지금 대응하면 성과가 늘고 실패 시 탈출 위험이 줄어듭니다. 놓쳐도 불이익은 없습니다.</span><button class="btn s" data-act="signGo" ${S.baseBusy ? 'disabled' : ''}>대응하기</button></span>`
+    : sr ? `<span class="sign done${sr.ok ? '' : ' bad'}">${rollBox(sr.roll)}<span class="sub">${sr.ok ? '이상 징후를 수습했습니다. 작업이 끝날 때 성과가 더해집니다.' : '대응하지 못했습니다. 불이익은 없습니다.'}</span></span>` : '';
+  const signCnt = t.signs && t.signs.seen ? `<span class="sub">이상 징후 ${t.signs.seen}건 중 ${t.signs.ok}건 대응</span>` : '';
   const mates = (e.workers || []).filter(w => w.uid !== S.user.uid);
-  return `<div class="task run"><span class="tl"><span class="bb">작업 중</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins}분</b>
+  return `<div class="task run"><span class="tl"><span class="bb">작업 중</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins / 60}시간</b>
       <span class="clock" data-ends="${t.ends}">${mmss(left)}</span>
       <span class="gb"><i data-ends="${t.ends}" data-tot="${tot}" style="width:${pc}%"></i></span>
       <span class="sub">${mates.length ? `같은 격리실에서 ${mates.map(w => esc(w.name)).join(', ')} 요원이 작업 중입니다. 성과가 늘어나고 판정에 지원 주사위가 붙습니다.` : '창을 닫아도 작업은 계속됩니다. 끝나면 판정을 굴려 결과가 반영됩니다.'} 성공 시 성과: ${taskGain(t.kind, t.mins)}.</span>
-      <span class="sub">${checkLine(e, t.kind)}</span></span>
+      <span class="sub">${checkLine(e, t.kind)}</span>${signCnt}${signBlk}</span>
     <span class="acts"><button class="btn s g${S.taskCancelAsk ? ' red' : ''}" data-act="taskCancel" ${S.baseBusy ? 'disabled' : ''}>${S.taskCancelAsk ? '중단 확인 (성과 없음)' : '작업 중단'}</button></span></div>`;
 }
 function taskPicker(e) {
   const k = S.taskPick && S.taskPick.id === e.id && S.taskPick.kind; if (!k) return '';
-  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[15, 25, 50].map(m => `<button class="btn s g" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${m}분</b><span class="cost">${taskGain(k, m)}</span></button>`).join('')}<button class="btn s g" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
+  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[60, 120, 180].map(m => `<button class="btn s g" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${m / 60}시간</b><span class="cost">${taskGain(k, m)}</span></button>`).join('')}<button class="btn s g" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
 }
 setInterval(() => {
   document.querySelectorAll('.clock[data-ends]').forEach(el => { el.textContent = mmss(+el.dataset.ends - Date.now()); });
@@ -1799,6 +1814,7 @@ function todoItems() {
       .forEach(e => L.push({ lv: 'danger', t: `${e.id} ${e.name} 안정도 ${Math.floor(stabOf(e))}%`, s: '0%가 되면 RAVEN-3이 투입되고 전원 보급품이 깎입니다.', act: 'view', v: 'base', b: '점검하기' }));
   }
   const t = me.task;
+  if (t && t.status === 'run' && t.sign) L.unshift({ lv: 'warn', t: `이상 징후: ${t.entity}`, s: `${t.sign.text} 지금 대응하면 성과가 늘어납니다.`, act: 'view', v: 'base', b: '대응하기' });
   if (t && t.status === 'done') { const bad = t.result && t.result.roll && t.result.roll.tier === 'fail'; L.push({ lv: bad ? 'danger' : 'info', t: `${TASK_NAME[t.kind]} 작업 ${bad ? '실패' : '완료'}`, s: `${t.entity} ${t.result ? esc(t.result.entityName || '') : ''}. 결과를 확인하십시오.`, act: 'view', v: 'base', b: '결과 보기' }); }
   const lim = me.contLimit || 100, c = me.contamination || 0;
   if (c >= lim * 0.7) L.push({ lv: 'warn', t: `오염도 ${c} / ${lim}`, s: '한계를 넘으면 RAVEN-3이 회수해 격리 관찰합니다.', act: 'view', v: 'base', b: '정화하기' });
@@ -2264,8 +2280,9 @@ function gmNoticeHTML() {
 let toastT = null;
 function showToast() {
   const el = document.getElementById('toast'); if (!el || !S.toast) return;
-  el.className = 'toast on' + (S.toast.level === 'alert' ? ' alert' : '');
-  el.innerHTML = `<b>${S.toast.level === 'alert' ? '경보' : '공지'}</b><span>${esc(S.toast.text)}</span>`;
+  el.className = 'toast on' + (S.toast.level === 'alert' ? ' alert' : S.toast.level === 'sign' ? ' sign' : '');
+  el.innerHTML = `<b>${S.toast.level === 'alert' ? '경보' : S.toast.level === 'sign' ? '이상 징후' : '공지'}</b><span>${esc(S.toast.text)}</span>`;
+  if (S.toast.level === 'sign') refreshLobby();
   clearTimeout(toastT); toastT = setTimeout(() => { el.className = 'toast'; }, 9000);
   refreshTicker();
 }
@@ -2521,6 +2538,9 @@ app.addEventListener('click', e => {
     case 'opGo': S.opSel = v; S.opErr = ''; S.view = 'ops'; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0); requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return;
     case 'fileSel': S.fileSel = v; S.fileErr = ''; return renderCenter();
     case 'statUp': S.statBusy = true; renderCenter(); B.statUp(+v).then(j => { if (j && j.agent) S.me = j.agent; }).catch(() => {}).finally(() => { S.statBusy = false; refreshLobby(); }); return;
+    case 'signGo': S.baseErr = ''; S.baseBusy = true; renderCenter();
+      B.taskSign().then(j => { if (j && j.agent) S.me = j.agent; const t = myTask(); S.signRes = { task: t && t.id, ok: j.sign.ok, roll: j.sign.roll }; })
+        .catch(err => { S.baseErr = errMsg(err); }).finally(() => { S.baseBusy = false; refreshLobby(); }); return;
     case 'baseRollOk': S.baseRoll = null; return renderCenter();
     case 'taskPick': S.taskPick = v ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
     case 'taskGo': case 'taskCancel': case 'taskAck': {
