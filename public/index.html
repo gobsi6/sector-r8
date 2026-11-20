@@ -80,7 +80,7 @@ select.inp{appearance:none}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--sub);flex:none}
 .dot.on{background:#3CC48A}
 .logo{display:flex;align-items:center;gap:10px}
-.logobtn{border:0;background:transparent;padding:0;color:inherit;font:inherit;cursor:pointer}.logobtn:focus-visible{outline:2px solid var(--navyLine);outline-offset:4px}
+.logobtn[aria-current=page] .bb{color:var(--ink)}.logobtn{border:0;background:transparent;padding:0;color:inherit;font:inherit;cursor:pointer}.logobtn:focus-visible{outline:2px solid var(--navyLine);outline-offset:4px}
 .logo .w{font-size:26px;white-space:nowrap}
 .logo .w span{color:var(--navyLine)}
 
@@ -669,7 +669,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
   .detail .grid2{grid-template-columns:1fr;padding:16px;gap:20px}
   .detail .lower{padding:0 16px 16px}
   .sealbox .hd .sub{display:none}
-  .bnav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:8px 8px calc(16px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid var(--rule);backdrop-filter:blur(8px)}
+  .bnav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:8px 8px calc(16px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid var(--rule);backdrop-filter:blur(8px)}
   .bnav button{height:50px;border:0;border-radius:2px;background:var(--faint);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:600;white-space:nowrap}
   .bnav button[aria-current=page]{background:var(--navy);color:var(--onNavy)}
   .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:31;width:56px;height:56px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);box-shadow:0 10px 24px rgba(0,0,0,.3)}
@@ -750,7 +750,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 /* 할 일: LOG 자리, 한 줄 형식 */
 .todo{grid-column:span 2;padding:16px 18px;gap:8px;min-height:0}
 .todo .hh{display:flex;align-items:baseline;gap:8px}.todo .hh .cnt{margin-left:auto;font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1}
-.todo .tlist{display:flex;flex-direction:column;gap:2px;overflow-y:auto;min-height:0}
+.todo .tlist{display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:0;padding-right:2px}
 .ti{display:grid;grid-template-columns:8px auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:7px 8px;border:0;border-radius:3px;background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
 .ti:hover{background:var(--faint)}
 .ti i{width:8px;height:8px;border-radius:50%;background:var(--navyLine)}
@@ -948,60 +948,93 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .gmbody2 .gmmain,.gm-box .gmmain{min-height:0;overflow-y:auto}.gm-box .gmmain>.gmsplit{height:100%;min-height:0;grid-template-rows:minmax(0,1fr)}.gm-box .gmsplit .gmcol{min-height:0;overflow-y:auto;padding-right:4px}.gmbody2 .gmside{min-height:0;display:flex;flex-direction:column}.gmbody2 .gmside .chat{height:100%;min-height:0}
 @media (max-width:999px){.gmbody2{display:flex;flex-direction:column}.gmbody2 .gmside .chat{height:70vh}.gmm-head{flex-wrap:wrap}.gmtabs2{order:3;flex-basis:100%;margin-bottom:0}}
 
-.shopc .hd>.bb{font-size:18px;letter-spacing:.12em}
+.shop.shopc{overflow-y:auto}.shopc .hd>.bb{font-size:18px;letter-spacing:.12em}
 .shopc .shb{grid-template-columns:minmax(0,1fr) 320px}
 .shopc .shl{gap:14px;padding:14px 16px 20px}
 .sjump{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:-14px;z-index:2;padding:6px 0 8px;margin-top:-6px;background:var(--tile)}
-.sjump a{height:32px;padding:0 12px;border-radius:4px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}.sjump a .bb{font-size:15px;color:var(--sc)}
-.s-use,.sjump a:nth-child(1){--sc:#5EC4C8}.s-gear,.sjump a:nth-child(2){--sc:var(--navyLine)}.s-frame,.sjump a:nth-child(3){--sc:#C8A040}.s-title,.sjump a:nth-child(4){--sc:#A58BD0}
+.sjump button{border:0;font:inherit;cursor:pointer;height:32px;padding:0 12px;border-radius:4px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}.sjump button .bb{font-size:15px;color:var(--sc)}
+.s-use,.sjump button:nth-child(1){--sc:#5EC4C8}.s-gear,.sjump button:nth-child(2){--sc:var(--navyLine)}.s-frame,.sjump button:nth-child(3){--sc:#C8A040}.s-title,.sjump button:nth-child(4){--sc:#A58BD0}
 .ssec{border-radius:6px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--tileLine);scroll-margin-top:44px}
 .ssh{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(100deg,color-mix(in srgb,var(--sc) 18%,transparent) 0%,transparent 70%);border-bottom:1px solid var(--tileLine);border-left:4px solid var(--sc)}
 .ssh .sl{width:30px;height:30px;flex:none;border-radius:4px;display:grid;place-items:center;font-size:20px;background:var(--sc);color:#141414}
 .ssh .st2{display:flex;flex-direction:column;gap:2px}.ssh .st2 .bb{font-size:12px;letter-spacing:.14em;color:var(--sc);line-height:1}.ssh .st2 b{font-size:16px}
 .ssh small{flex:1;min-width:0;font-size:12px;color:var(--sub);line-height:1.45}.ssh .cnt{flex:none;font-size:11px;color:var(--sub)}
-.scol,.srow{display:grid;grid-template-columns:52px minmax(0,1fr) 78px 56px 104px;align-items:center;gap:12px;padding:0 14px}
+.scol,.sirow{display:grid;grid-template-columns:52px minmax(0,1fr) 78px 56px 104px;align-items:center;gap:12px;padding:0 14px}
 .scol{height:30px;font-size:10px;color:var(--sub);background:var(--faint);border-bottom:1px solid var(--tileLine)}.scol span:nth-child(4){text-align:right}
-.srow{min-height:54px;border-bottom:1px solid color-mix(in srgb,var(--ink) 6%,transparent)}.srow:nth-of-type(even){background:color-mix(in srgb,var(--ink) 2.5%,transparent)}.srow:last-child{border-bottom:0}
-.srow.picked{background:color-mix(in srgb,var(--sc) 10%,transparent);box-shadow:inset 3px 0 0 var(--sc)}.srow.using{box-shadow:inset 3px 0 0 var(--navyLine)}
-.srow .sc{font-size:13px;letter-spacing:.06em;color:var(--sub)}
-.srow .si{display:flex;align-items:center;gap:10px;min-width:0}.srow .sn2{display:flex;flex-direction:column;gap:2px;min-width:0}.srow .sn2 b{font-size:14px}.srow .sn2 small{font-size:11px;color:var(--sub);line-height:1.4}
-.srow .fsw{width:28px;height:20px;flex:none;border-radius:3px;background:var(--tile)}
-.srow .rs{font-size:11px;color:var(--sub)}.srow .rs.has{color:var(--ink);font-weight:700}.srow .rs.on{color:var(--navyLine);font-weight:800}
-.srow .sp{text-align:right;font-size:20px;line-height:1}.srow .sp.short{color:var(--red)}
-.srow .sctl{display:flex;justify-content:flex-end}
+.sirow{min-height:54px;border-bottom:1px solid color-mix(in srgb,var(--ink) 6%,transparent)}.sirow:nth-of-type(even){background:color-mix(in srgb,var(--ink) 2.5%,transparent)}.sirow:last-child{border-bottom:0}
+.sirow.picked{background:color-mix(in srgb,var(--sc) 10%,transparent);box-shadow:inset 3px 0 0 var(--sc)}.sirow.using{box-shadow:inset 3px 0 0 var(--navyLine)}
+.sirow .sc{font-size:13px;letter-spacing:.06em;color:var(--sub)}
+.sirow .si{display:flex;align-items:center;gap:10px;min-width:0}.sirow .sn2{display:flex;flex-direction:column;gap:2px;min-width:0}.sirow .sn2 b{font-size:14px}.sirow .sn2 small{font-size:11px;color:var(--sub);line-height:1.4}
+.sirow .fsw{width:28px;height:20px;flex:none;border-radius:3px;background:var(--tile)}
+.sirow .rs{font-size:11px;color:var(--sub)}.sirow .rs.has{color:var(--ink);font-weight:700}.sirow .rs.on{color:var(--navyLine);font-weight:800}
+.sirow .sp{text-align:right;font-size:20px;line-height:1}.sirow .sp.short{color:var(--red)}
+.sirow .sctl{display:flex;justify-content:flex-end}
 .qty{display:flex;align-items:center;gap:4px}.qty .qb{width:30px;height:30px;border:0;border-radius:4px;font:inherit;font-size:16px;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.qty .qb:disabled{opacity:.35;cursor:default}.qty .bb{width:22px;text-align:center;font-size:20px;line-height:1}
 .rq{width:96px;height:30px;border:0;border-radius:4px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.rq.on{background:var(--sc);color:#141414;box-shadow:none}.rq.eq{background:var(--navy);color:var(--onNavy);box-shadow:none}.rq.eq.on{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
 .pvb{flex:none;height:26px;padding:0 9px;border:0;border-radius:3px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:var(--sc);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 60%,transparent)}.pvb.on{background:var(--sc);color:#141414}
 .ssub{display:flex;align-items:baseline;gap:8px;padding:8px 14px 6px;background:color-mix(in srgb,var(--ink) 3%,transparent);border-bottom:1px solid var(--tileLine)}.ssub b{font-size:12px;color:var(--sc)}.ssub small{font-size:11px;color:var(--sub)}
-.req{min-height:0;display:flex;flex-direction:column;margin:14px;border-radius:5px;overflow:hidden;background:#E9E6DD;color:#1C1C1A;box-shadow:0 10px 24px rgba(0,0,0,.25)}
-.req .rh{padding:16px 18px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1.5px dashed rgba(0,0,0,.25)}.req .rh .bb{font-size:20px;letter-spacing:.14em;line-height:1}.req .rh small{font-size:11px;color:#5A5A56}
-.req .rl2{flex:1;min-height:0;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:8px}
-.req .ri{display:flex;align-items:center;gap:8px;font-size:13px}.req .ri>span{flex:1;min-width:0}.req .ri small{color:#5A5A56;font-size:12px}.req .ri .bb{width:44px;text-align:right;font-size:18px;line-height:1}
-.req .rx{width:22px;height:22px;border:0;border-radius:3px;display:grid;place-items:center;cursor:pointer;background:transparent;color:#5A5A56}.req .rx:hover{background:rgba(0,0,0,.08)}
-.req .re{font-size:12px;line-height:1.5;color:#5A5A56}
-.req .rf{position:relative;padding:12px 18px 16px;display:flex;flex-direction:column;gap:8px;border-top:1.5px dashed rgba(0,0,0,.25)}
-.req .rt{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}.req .rt .bb{font-size:28px;line-height:1}
-.req .rt2{display:flex;justify-content:space-between;font-size:12px;color:#5A5A56}.req .rt2 b{color:#1C1C1A}.req .rt2 b.neg{color:#B4281E}
-.req .btn{width:100%;margin-top:4px}.req .rcl{border:0;background:transparent;font:inherit;font-size:12px;color:#5A5A56;cursor:pointer;text-decoration:underline}
-.req .err{color:#B4281E}
-.req .stamp{position:absolute;right:16px;top:-14px;padding:4px 10px;border:2px solid rgba(180,40,30,.75);border-radius:3px;transform:rotate(-6deg);font-size:12px;font-weight:900;letter-spacing:.1em;color:rgba(180,40,30,.85);background:rgba(233,230,221,.9);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
+.toast.ach{box-shadow:inset 0 0 0 1.5px #C8A040}.toast.ach b{color:#C8A040}
+.reqf{min-height:0;display:flex;flex-direction:column;margin:14px;border-radius:5px;overflow:hidden;background:#E9E6DD;color:#1C1C1A;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.reqf .rh{padding:16px 18px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1.5px dashed rgba(0,0,0,.25)}.reqf .rh .bb{font-size:20px;letter-spacing:.14em;line-height:1}.reqf .rh small{font-size:11px;color:#5A5A56}
+.reqf .rl2{flex:1;min-height:0;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:8px}
+.reqf .ri{display:flex;align-items:center;gap:8px;font-size:13px}.reqf .ri>span{flex:1;min-width:0}.reqf .ri small{color:#5A5A56;font-size:12px}.reqf .ri .bb{width:44px;text-align:right;font-size:18px;line-height:1}
+.reqf .rx{width:22px;height:22px;border:0;border-radius:3px;display:grid;place-items:center;cursor:pointer;background:transparent;color:#5A5A56}.reqf .rx:hover{background:rgba(0,0,0,.08)}
+.reqf .re{font-size:12px;line-height:1.5;color:#5A5A56}
+.reqf .rf{position:relative;padding:12px 18px 16px;display:flex;flex-direction:column;gap:8px;border-top:1.5px dashed rgba(0,0,0,.25)}
+.reqf .rt{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}.reqf .rt .bb{font-size:28px;line-height:1}
+.reqf .rt2{display:flex;justify-content:space-between;font-size:12px;color:#5A5A56}.reqf .rt2 b{color:#1C1C1A}.reqf .rt2 b.neg{color:#B4281E}
+.reqf .btn{width:100%;margin-top:4px}.reqf .rcl{border:0;background:transparent;font:inherit;font-size:12px;color:#5A5A56;cursor:pointer;text-decoration:underline}
+.reqf .err{color:#B4281E}
+.reqf .stamp{position:absolute;right:16px;top:-14px;padding:4px 10px;border:2px solid rgba(180,40,30,.75);border-radius:3px;transform:rotate(-6deg);font-size:12px;font-weight:900;letter-spacing:.1em;color:rgba(180,40,30,.85);background:rgba(233,230,221,.9);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
 @keyframes stampIn{from{transform:rotate(-6deg) scale(1.8);opacity:0}}
-@media (prefers-reduced-motion:reduce){.req .stamp{animation:none}}
-@container (max-width:900px){.shopc .shb{display:flex;flex-direction:column}.shopc .shl{overflow:visible}.req{margin:0 16px 16px}.scol,.srow{grid-template-columns:44px minmax(0,1fr) 64px 48px 100px;gap:8px}}
+@media (prefers-reduced-motion:reduce){.reqf .stamp{animation:none}}
+@container (max-width:900px){.shopc .shb{display:flex;flex-direction:column;flex:none}.shopc .shl{overflow:visible;flex:none}.reqf{margin:0 16px 16px}.scol,.sirow{grid-template-columns:44px minmax(0,1fr) 64px 48px 100px;gap:8px}}
 @media (max-width:999px){.shopc .hd small{display:none}}
-@container (max-width:560px){.scol{display:none}.srow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'i i' 's p' 'c c';row-gap:6px;padding:10px 12px}.srow .sc{display:none}.srow .si{grid-area:i}.srow .rs{grid-area:s}.srow .sp{grid-area:p}.srow .sctl{grid-area:c;justify-content:stretch}.srow .sctl>*{flex:1}.qty{justify-content:flex-end}.ssh small{display:none}}
+@container (max-width:560px){.scol{display:none}.sirow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'i i' 's p' 'c c';row-gap:6px;padding:10px 12px}.sirow .sc{display:none}.sirow .si{grid-area:i}.sirow .rs{grid-area:s}.sirow .sp{grid-area:p}.sirow .sctl{grid-area:c;justify-content:stretch}.sirow .sctl>*{flex:1}.qty{justify-content:flex-end}.ssh small{display:none}}
 
-.fm .fh{display:flex;align-items:baseline;gap:6px;min-width:0}.fm .fh b{min-width:0}
-.fm .vb{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:6px}
+.fm .fh{display:flex;align-items:baseline;gap:6px;min-width:0}.form .line .fm .fh b{min-width:0;font-size:13px;white-space:normal;overflow:hidden;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:keep-all}.fm .fh .ps{flex:none}
+.form .line .fm.foe{flex:0 0 172px;width:172px}
+.fm .vb{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:'l v' 'b b';align-items:baseline;gap:3px 6px}.fm .vb small{grid-area:l}.fm .vb b{grid-area:v}.fm .vb i{grid-area:b}
 .fm .vb small{font-size:10px;font-weight:700;color:var(--sub)}
-.fm .vb i{display:block;height:7px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
+.fm .vb i{display:block;height:6px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
 .fm .vb i span{display:block;height:100%;border-radius:2px;background:#5FAF7E;transition:width .4s ease}
 .fm .vb.mid i span{background:#D9A441}.fm .vb.low i span{background:var(--red)}
 .fm .vb.sn i span{background:#8F7BC8}.fm .vb.sn.low i span{background:#C86BB0}
 .fm .vb.foe i span{background:var(--red)}
-.fm .vb b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:15px;line-height:1;white-space:nowrap}.fm .vb b em{font-style:normal;font-size:11px;color:var(--sub)}
+.fm .vb b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:15px;line-height:1;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.fm .vb b em{font-style:normal;font-size:11px;color:var(--sub)}
 .fm .vb.low b{color:var(--red)}
-@media (max-width:999px){.form .line{flex-wrap:nowrap;justify-content:flex-start;padding-bottom:2px}.form .line .fm{flex:0 0 116px;width:116px;padding:7px 8px}.form .line .fm.foe b{font-size:13px}.fm .vb{grid-template-columns:22px minmax(0,1fr) auto;gap:5px}.fm .vb b em{display:none}}
+@media (max-width:999px){.form .line{flex-wrap:nowrap;justify-content:flex-start;padding-bottom:2px}.form .line .fm,.form .line .fm.foe{flex:0 0 116px;width:116px;padding:7px 8px}.fm .vb{gap:2px 4px}.fm .vb b em{display:none}}
+
+.logfold{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 14px;border:0;border-radius:4px;font:inherit;color:var(--ink);cursor:pointer;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);text-align:left}
+.logfold b{font-size:13px}.logfold small{font-size:12px;color:var(--sub)}.logfold .cv{margin-left:auto;color:var(--sub)}.logfold svg{color:var(--navyLine)}
+.logfold:hover{box-shadow:inset 0 0 0 1.5px var(--navyLine)}.logfold[aria-expanded=true]+.oplog{margin-top:8px}
+.ti{display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 12px 8px 14px;border-radius:4px;position:relative;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);--tc:var(--navyLine)}
+.ti::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;background:var(--tc)}
+.ti:hover{background:color-mix(in srgb,var(--tc) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc) 55%,transparent)}
+.ti.danger{--tc:var(--red)}.ti.warn{--tc:#C8A040}.ti.reward{--tc:#5BAA7A}
+.ti .tk{flex:none;font-size:10px;font-weight:800;padding:2px 7px;border-radius:3px;color:var(--tc);box-shadow:inset 0 0 0 1px var(--tc)}
+.ti .tt{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}.ti .tt b{flex:none}
+.ti .go2{flex:none;display:flex;align-items:center;gap:3px;color:var(--tc)}.ti.danger b{color:var(--ink)}
+@media (max-width:999px){.ti .tt{flex-direction:column;gap:2px}.ti .tt small{white-space:normal}}
+.inv{display:flex;flex-direction:column;gap:12px;padding-top:4px}.detail>.inv{margin:0 24px}@media (max-width:999px){.detail>.inv{margin:0 16px}}
+.inv .sh .lnk{margin-left:auto;border:0;background:transparent;font:inherit;font-size:12px;font-weight:700;color:var(--navyLine);cursor:pointer;display:flex;align-items:center;gap:2px}
+.ivg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ivc{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:5px;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.ivh{font-size:12px;font-weight:800;color:var(--navyLine)}.ivh small{font-weight:500;color:var(--sub);margin-left:4px}
+.ivs{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 10px;align-items:baseline;padding:8px 10px;border-radius:4px;background:var(--faint)}
+.ivs .k{font-size:11px;color:var(--sub)}.ivs .nm2{display:flex;flex-direction:column;gap:2px;min-width:0}.ivs .nm2 b{font-size:13px}.ivs .nm2 small{font-size:11px;color:var(--navyLine)}
+.ivs .ch2{grid-column:2;display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip2{height:28px;padding:0 10px;border:0;border-radius:3px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.chip2.on{background:var(--navy);color:var(--onNavy);box-shadow:none}.chip2 .fsw{width:16px;height:11px;border-radius:2px}
+.ivus{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ivu{padding:8px;border-radius:4px;background:var(--faint);display:flex;flex-direction:column;gap:3px}.ivu b{font-size:12px}.ivu .bb{font-size:24px;line-height:1}.ivu small{font-size:10px;color:var(--sub);line-height:1.35}.ivu.none .bb{color:var(--sub)}
+.achs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ach{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;background:var(--faint);opacity:.7}
+.ach.got{opacity:1;box-shadow:inset 0 0 0 1px color-mix(in srgb,#C8A040 50%,transparent)}.ach.on{box-shadow:inset 0 0 0 1.5px #C8A040;background:color-mix(in srgb,#C8A040 8%,transparent)}
+.ach .at{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ach .at b{font-size:12px}.ach.got .at b{color:#C8A040}.ach .at small{font-size:11px;color:var(--sub)}
+.ach .pg{flex:none;display:flex;align-items:center;gap:6px}.ach .pg i{display:block;width:54px;height:5px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}.ach .pg i span{display:block;height:100%;background:#C8A040}.ach .pg .bb{font-size:14px;line-height:1;color:var(--sub)}
+.ach .ok2{font-size:11px;font-weight:800;color:#C8A040}
+@media (max-width:999px){.ivg,.achs{grid-template-columns:1fr}}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -1339,6 +1372,7 @@ const derived = (stats, t) => { const s = statMods(stats, t), o = s.map(v => (v 
 const IC = {
   radio: 'M16.247 7.761a6 6 0 0 1 0 8.478M19.075 4.933a10 10 0 0 1 0 14.134M4.925 19.067a10 10 0 0 1 0-14.134M7.753 16.239a6 6 0 0 1 0-8.478M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0',
   chevR: 'm9 18 6-6-6-6',
+  chevD: 'm6 9 6 6 6-6',
   chevL: 'm15 18-6-6 6-6',
   pause: 'M15 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1ZM6 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1Z',
   swap: 'M8 3 4 7l4 4M4 7h16m16 21 4-4-4-4M20 17H4',
@@ -1794,13 +1828,13 @@ function viewIssued() {
 }
 
 /* ═════════════ 8. 화면: 로비 ═════════════ */
-const MENU = [['home', '홈', 'home'], ['ops', '작전', 'ops'], ['base', '기지', 'base'], ['shop', '보급', 'box'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
+const MENU = [['ops', '작전', 'ops'], ['base', '기지', 'base'], ['shop', '보급', 'box'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
 function viewShell() {
   const me = S.me, r = me.res || START_RES;
   return `<div class="shell${S.chatOpen ? ' chatopen' : ''}">
   <i class="bandbg" aria-hidden="true"></i><span class="giant" aria-hidden="true">R-8</span>
   <header class="top">
-    <button class="logo logobtn" data-act="view" data-v="home" aria-label="홈으로">${LOGO(30)}<span class="bb w" style="font-size:26px">SECTOR<span>R-8</span></span></button>
+    <button class="logo logobtn" data-act="view" data-v="home" aria-label="홈으로" ${S.view === 'home' ? 'aria-current="page"' : ''}>${LOGO(30)}<span class="bb w" style="font-size:26px">SECTOR<span>R-8</span></span></button>
     <span class="sep"></span>
     <nav class="nav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 22)}<span>${l}</span></button>`).join('')}</nav>
     <span class="res" id="resBar">${resHTML(r)}</span>
@@ -2032,8 +2066,8 @@ function viewBase() {
 
 /* ─── 보급 상점 ─── */
 // 물품 이름표: 서버 목록이 오기 전에도 칭호를 그릴 수 있게 둔다
-const SHOPN = { night: '야간 근무자', voice: '무전 너머의 목소리', tankreg: '수조 단골', steady: '침착한 손' };
-const SHOP_SEC = [['use', 'A', 'FIELD KIT', '작전 소모품', '작전 중 현장 요원이 차례마다 하나씩 씁니다. 종류마다 3개까지 들고 다닙니다.'], ['gear', 'B', 'EQUIPMENT', '장비', '방호구와 도구 칸에 하나씩 장착합니다. 받으면 빈 칸에 바로 장착됩니다.'], ['frame', 'C', 'PASS FRAME', '출입증 테두리', '다른 요원에게도 보입니다. 미리보기로 왼쪽 출입증에 입혀 볼 수 있습니다.'], ['title', 'D', 'TITLE', '칭호', '출입증과 요원 명단에 표시됩니다.']];
+const SHOPN = { rookie: '신입 요원', veteran: '현장 베테랑', voice: '무전 너머의 목소리', night: '야간 근무자', steady: '침착한 손', tankreg: '수조 단골', survivor: '끝까지 버틴 자', officer: '고참' };
+const SHOP_SEC = [['use', 'A', 'FIELD KIT', '작전 소모품', '작전 중 현장 요원이 차례마다 하나씩 씁니다. 종류마다 3개까지 들고 다닙니다.'], ['gear', 'B', 'EQUIPMENT', '장비', '방호구와 도구 칸에 하나씩 장착합니다. 받으면 빈 칸에 바로 장착됩니다.'], ['frame', 'C', 'PASS FRAME', '출입증 테두리', '다른 요원에게도 보입니다. 미리보기로 왼쪽 출입증에 입혀 볼 수 있습니다.']];
 const SLOT_NAME = { armor: '방호구', tool: '도구' };
 function viewShop() {
   if (!S.shop) { if (!S.shopLoading) { S.shopLoading = true; B.shopList().then(j => { S.shop = j; (j.items || []).forEach(x => { if (x.kind === 'title') SHOPN[x.id] = x.name; }); }).catch(() => { S.shop = { items: [] }; }).finally(() => { S.shopLoading = false; renderCenter(); }); }
@@ -2050,7 +2084,7 @@ function viewShop() {
     else if (own) ctl = `<button class="rq eq${on ? ' on' : ''}" data-act="shopEquip" data-v="${on ? '' : x.id}" data-k="${x.kind}" data-t="${x.slot || ''}" ${dis}>${on ? (x.kind === 'gear' ? '해제' : '빼기') : (x.kind === 'gear' ? '장착' : '달기')}</button>`;
     else ctl = `<button class="rq${q ? ' on' : ''}" data-act="cartT" data-v="${x.id}" aria-pressed="${!!q}">${q ? '요청함' : '요청'}</button>`;
     const pv = x.kind === 'frame' ? `<button class="pvb${S.framePrev === x.id ? ' on' : ''}" data-act="framePrev" data-v="${x.id}" aria-pressed="${S.framePrev === x.id}">${S.framePrev === x.id ? '미리보기 끄기' : '미리보기'}</button>` : '';
-    return `<div class="srow${q ? ' picked' : ''}${on ? ' using' : ''}"><span class="bb sc">S-${String(code).padStart(3, '0')}</span>
+    return `<div class="sirow${q ? ' picked' : ''}${on ? ' using' : ''}"><span class="bb sc">S-${String(code).padStart(3, '0')}</span>
       <span class="si">${x.kind === 'frame' ? `<i class="fsw fr-${x.id}" aria-hidden="true"></i>` : ''}<span class="sn2"><b>${x.kind === 'title' ? '「' + esc(x.name) + '」' : esc(x.name)}</b><small>${esc(x.desc)}</small></span>${pv}</span>
       ${st}<span class="bb sp${sup < x.price && !own ? ' short' : ''}">${own && x.kind !== 'use' ? '—' : x.price}</span><span class="sctl">${ctl}</span></div>`;
   };
@@ -2064,9 +2098,9 @@ function viewShop() {
   const done = S.orderDone && Date.now() - S.orderDone < 5000;
   return `<section class="pnl shop shopc"><div class="hd"><span class="bb">SUPPLY CATALOG</span><small>제9 격리 전진기지 보급 목록</small><span class="n">${ico('box', 14, 2)}보유 보급품 <b class="bb">${sup}</b></span></div>
     <div class="shb"><div class="shl">
-      <nav class="sjump" aria-label="분류로 이동">${SHOP_SEC.map(([k, l, , n]) => `<a href="#sec-${k}" data-act="shopJump" data-v="${k}"><span class="bb">${l}</span>${n}</a>`).join('')}</nav>
+      <nav class="sjump" aria-label="분류로 이동">${SHOP_SEC.map(([k, l, , n]) => `<button type="button" data-act="shopJump" data-v="${k}"><span class="bb">${l}</span>${n}</button>`).join('')}</nav>
       ${SHOP_SEC.map(t => `<div id="sec-${t[0]}">${sec(t)}</div>`).join('')}
-    </div><aside class="req" aria-label="보급 요청서">
+    </div><aside class="reqf" aria-label="보급 요청서">
       <div class="rh"><span class="bb">REQUISITION FORM</span><small>보급 요청서 · ${esc(me.num)} ${esc(me.name)} · ${me.role === 1 ? '관제팀' : '현장팀'}</small></div>
       <div class="rl2">${picked.map(x => `<span class="ri"><span>${esc(x.name)}</span><small>× ${cart[x.id]}</small><b class="bb">${x.price * cart[x.id]}</b><button class="rx" data-act="cartDel" data-v="${x.id}" aria-label="${esc(x.name)} 지우기">${ico('x', 12, 2.5)}</button></span>`).join('') || '<span class="re">왼쪽 목록에서 물품을 고르면 이곳에 적힙니다.</span>'}</div>
       <div class="rf"><span class="rt"><span>합계</span><b class="bb">${total}</b></span><span class="rt2"><span>요청 후 남는 보급품</span><b class="${left < 0 ? 'neg' : ''}">${left}</b></span>
@@ -2135,7 +2169,7 @@ function todoItems() {
 function todoHTML() {
   const L = todoItems();
   return `<section class="pnl todo" aria-label="지금 할 일"><span class="hh"><span class="bb">TO DO</span><small>지금 할 일</small><span class="cnt">${L.length}<span class="sub" style="font-size:20px">건</span></span></span>
-    <div class="tlist">${L.map(x => `<button class="ti ${x.lv}" data-act="${x.act}" ${x.v ? `data-v="${x.v}"` : ''}><i></i><b>${esc(x.t)}</b><small>${x.s}</small><span class="go2">${x.b}</span></button>`).join('') || '<span class="empty">지금 처리할 일이 없습니다.</span>'}</div></section>`;
+    <div class="tlist">${L.map(x => `<button class="ti ${x.lv}" data-act="${x.act}" ${x.v ? `data-v="${x.v}"` : ''}><span class="tk">${({ danger: '긴급', warn: '주의', reward: '보상', info: '알림' })[x.lv] || '알림'}</span><span class="tt"><b>${esc(x.t)}</b><small>${x.s}</small></span><span class="go2">${x.b}${ico('chevR', 12, 2.5)}</span></button>`).join('') || '<span class="empty">지금 처리할 일이 없습니다.</span>'}</div></section>`;
 }
 // 위협 등급 색: Ⅰ 청회색, Ⅱ 초록, Ⅲ 노랑, Ⅳ 주황, Ⅴ 빨강
 const TH_N = { 'Ⅰ': 1, 'Ⅱ': 2, 'Ⅲ': 3, 'Ⅳ': 4, 'Ⅴ': 5 };
@@ -2382,8 +2416,9 @@ function viewOps(rr, parts) {
       <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
   if (parts) return { head, stage, ctlTeam, log: logHTML(r, me) };
+  const fold = !(S.logOpen && S.logOpen[r.id]);
   return opSplit(r, ' live', `${head}
-    <div class="opgrid"><div class="opmain">${stage}<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol></div>
+    <div class="opgrid"><div class="opmain">${stage}<button class="logfold" data-act="logFold" data-v="${r.id}" aria-expanded="${!fold}">${ico('log', 16, 2)}<b>${fold ? '작전 기록 다시보기' : '작전 기록 접기'}</b><small>${r.log.length}건</small><span class="cv">${ico(fold ? 'chevR' : 'chevD', 14, 2)}</span></button>${fold ? '' : `<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol>`}</div>
       <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>`);
 }
 function viewRecords() {
@@ -2420,6 +2455,31 @@ function skillRows(a) {
       <span class="xpb"><i style="width:${Math.round(cur / need * 100)}%"></i></span><small class="xpn">${max ? '' : `${cur}/${need}`}</small></span>`;
   }).join('');
 }
+
+// 소지품: 요원 상세 아래. 내 요원이면 바꾸고, 다른 요원이면 구경만 한다.
+function ensureShop() {
+  if (!S.shop && !S.shopLoading) { S.shopLoading = true; B.shopList().then(j => { S.shop = j; (j.titles || []).forEach(t => { SHOPN[t.id] = t.name; }); }).catch(() => { S.shop = { items: [], titles: [] }; }).finally(() => { S.shopLoading = false; renderCenter(); }); }
+  return S.shop;
+}
+function invHTML(a, mine) {
+  const sh = ensureShop(); if (!sh) return `<div class="inv"><span class="sh"><span class="bb">INVENTORY</span><small>소지품</small></span><span class="sub" style="font-size:12px">소지품을 불러오는 중입니다.</span></div>`;
+  const v = a.inv || { items: {}, own: [], eq: {}, titles: [] }, by = Object.fromEntries((sh.items || []).map(x => [x.id, x])), T = sh.titles || [], c = a.ach || {}, dis = S.shopBusy ? 'disabled' : '';
+  const slot = sl => { const g = by[v.eq && v.eq[sl]], opts = (v.own || []).filter(id => by[id] && by[id].slot === sl);
+    return `<div class="ivs"><span class="k">${SLOT_NAME[sl]}</span><span class="nm2"><b>${g ? esc(g.name) : '비어 있음'}</b>${g ? `<small>${esc(g.desc)}</small>` : ''}</span>
+      ${mine && opts.length ? `<span class="ch2">${opts.map(id => `<button class="chip2${v.eq[sl] === id ? ' on' : ''}" data-act="shopEquip" data-k="gear" data-t="${sl}" data-v="${v.eq[sl] === id ? '' : id}" ${dis}>${esc(by[id].name)}</button>`).join('')}</span>` : ''}</div>`; };
+  const items = (sh.items || []).filter(x => x.kind === 'use').map(x => `<span class="ivu${(v.items[x.id] || 0) ? '' : ' none'}"><b>${esc(x.name)}</b><span class="bb">${v.items[x.id] || 0}</span><small>${esc(x.desc)}</small></span>`).join('');
+  const frames = (v.own || []).filter(id => by[id] && by[id].kind === 'frame');
+  const frameRow = `<div class="ivs"><span class="k">테두리</span><span class="nm2"><b>${v.frame && by[v.frame] ? esc(by[v.frame].name) : '기본'}</b></span>
+    ${mine && frames.length ? `<span class="ch2"><button class="chip2${!v.frame ? ' on' : ''}" data-act="shopEquip" data-k="frame" data-v="" ${dis}>기본</button>${frames.map(id => `<button class="chip2${v.frame === id ? ' on' : ''}" data-act="shopEquip" data-k="frame" data-v="${id}" ${dis}><i class="fsw fr-${id}"></i>${esc(by[id].name)}</button>`).join('')}</span>` : ''}</div>`;
+  const ach = T.map(t => { const got = (v.titles || []).includes(t.id), n = Math.min(t.need, c[t.key] || 0), on = v.title === t.id;
+    return `<div class="ach${got ? ' got' : ''}${on ? ' on' : ''}"><span class="at"><b>「${esc(t.name)}」</b><small>${esc(t.desc)}</small></span>
+      ${got ? (mine ? `<button class="chip2${on ? ' on' : ''}" data-act="shopEquip" data-k="title" data-v="${on ? '' : t.id}" ${dis}>${on ? '다는 중' : '달기'}</button>` : `<span class="ok2">획득</span>`) : `<span class="pg"><i><span style="width:${n / t.need * 100}%"></span></i><b class="bb">${n}/${t.need}</b></span>`}</div>`; }).join('');
+  const gotN = (v.titles || []).length;
+  return `<div class="inv"><span class="sh"><span class="bb">INVENTORY</span><small>소지품${mine ? '' : `, ${esc(a.name)} 요원`}</small>${mine ? `<button class="lnk" data-act="view" data-v="shop">보급 창으로 ${ico('chevR', 12, 2.5)}</button>` : ''}</span>
+    <div class="ivg"><div class="ivc"><span class="ivh">장비</span>${slot('armor')}${slot('tool')}${frameRow}</div>
+      ${mine ? `<div class="ivc"><span class="ivh">들고 다니는 소모품 <small>종류마다 3개까지</small></span><div class="ivus">${items}</div></div>` : ''}</div>
+    <div class="ivc"><span class="ivh">칭호와 업적 <small>${gotN}/${T.length} 획득</small></span><div class="achs">${ach}</div></div></div>`;
+}
 function viewAgentDetail() {
   const sel = S.agents.find(a => a.uid === (S.sel || S.user.uid)) || S.me;
   if (!sel) return '';
@@ -2449,6 +2509,7 @@ function viewAgentDetail() {
       <span class="cards">${tl.map(t => { const T = TRAITS[t.id]; return `<span>${esc(traitName(t))}<small style="color:var(--sub)">${esc(T[1])}</small><small>장점: ${esc(T[2])}</small><small style="color:var(--red)">대가: ${esc(T[3])}</small></span>`; }).join('')}</span>` : ''}
     </div>
   </div>
+  ${invHTML(sel, mine)}
   <div class="lower">${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}</div>
 </section>`;
 }
@@ -2610,8 +2671,8 @@ function gmNoticeHTML() {
 let toastT = null;
 function showToast() {
   const el = document.getElementById('toast'); if (!el || !S.toast) return;
-  el.className = 'toast on' + (S.toast.level === 'alert' ? ' alert' : S.toast.level === 'sign' ? ' sign' : '');
-  el.innerHTML = `<b>${S.toast.level === 'alert' ? '경보' : S.toast.level === 'sign' ? '이상 징후' : '공지'}</b><span>${esc(S.toast.text)}</span>`;
+  el.className = 'toast on' + (S.toast.level === 'alert' ? ' alert' : S.toast.level === 'sign' ? ' sign' : S.toast.level === 'ach' ? ' ach' : '');
+  el.innerHTML = `<b>${S.toast.level === 'alert' ? '경보' : S.toast.level === 'sign' ? '이상 징후' : S.toast.level === 'ach' ? '업적' : '공지'}</b><span>${esc(S.toast.text)}</span>`;
   if (S.toast.level === 'sign') refreshLobby();
   clearTimeout(toastT); toastT = setTimeout(() => { el.className = 'toast'; }, 9000);
   refreshTicker();
@@ -2929,6 +2990,7 @@ app.addEventListener('click', e => {
       return;
     }
     case 'recReload': S.records = null; return renderCenter();
+    case 'logFold': S.logOpen = S.logOpen || {}; S.logOpen[v] = !S.logOpen[v]; return renderCenter();
     case 'opFilter': S.opFilter = v; return renderCenter();
     case 'opSel': S.opSel = v; S.opErr = ''; return renderCenter();
     case 'opGo': S.opSel = v; S.opErr = ''; S.view = 'ops'; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0); requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return;
@@ -2940,7 +3002,12 @@ app.addEventListener('click', e => {
     case 'modalHide': { const r = myModalOp(); if (r) S.modalHide = r.id; syncModal(); return; }
     case 'baseRollOk': S.baseRoll = null; return renderCenter();
     case 'framePrev': S.framePrev = S.framePrev === v ? null : v; return refreshLobby();
-    case 'shopJump': { const el = document.getElementById('sec-' + v); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    case 'shopJump': { // 목록 칸만 스크롤한다 (scrollIntoView는 페이지 전체를 밀어 올린다)
+      const el = document.getElementById('sec-' + v); if (!el) return;
+      const box = [el.closest('.shl'), el.closest('.shop')].find(x => x && getComputedStyle(x).overflowY !== 'visible' && x.scrollHeight > x.clientHeight + 1);
+      if (box) box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 44, behavior: 'smooth' });
+      else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 70, behavior: 'smooth' });
+      return; }
     case 'cartQ': { const c = S.cart = S.cart || {}; c[v] = Math.max(0, (c[v] || 0) + Number(t.dataset.k)); if (!c[v]) delete c[v]; S.shopErr = ''; return renderCenter(); }
     case 'cartT': { const c = S.cart = S.cart || {}; if (c[v]) delete c[v]; else c[v] = 1; S.shopErr = ''; return renderCenter(); }
     case 'cartDel': if (S.cart) delete S.cart[v]; return renderCenter();

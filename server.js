@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS drafts (
 `);
 
 // 예전 데이터베이스에 없던 칸을 더한다
-for (const [col, type] of [['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops_done', 'INTEGER NOT NULL DEFAULT 0'], ['quar_until', 'INTEGER'], ['skill_xp', "TEXT NOT NULL DEFAULT '{}'"], ['career', 'INTEGER NOT NULL DEFAULT 0'], ['stat_pts', 'INTEGER NOT NULL DEFAULT 0'], ['inv', "TEXT NOT NULL DEFAULT '{}'"]]) {
+for (const [col, type] of [['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops_done', 'INTEGER NOT NULL DEFAULT 0'], ['quar_until', 'INTEGER'], ['skill_xp', "TEXT NOT NULL DEFAULT '{}'"], ['career', 'INTEGER NOT NULL DEFAULT 0'], ['stat_pts', 'INTEGER NOT NULL DEFAULT 0'], ['inv', "TEXT NOT NULL DEFAULT '{}'"], ['ach', "TEXT NOT NULL DEFAULT '{}'"]]) {
   if (!db.prepare(`SELECT 1 FROM pragma_table_info('agents') WHERE name = '${col}'`).get()) db.exec(`ALTER TABLE agents ADD COLUMN ${col} ${type}`);
 }
 // 외관 사진 칸이 없던 예전 데이터베이스에 칸을 더한다
@@ -188,7 +188,7 @@ const str = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
 const online = new Map(); // user_id → 연결 수
 
 /* ───────── 보급 상점 ───────── */
-// kind: use(작전 소모품, 최대 3개) · gear(장비, slot마다 하나 장착) · frame(출입증 테두리) · title(칭호)
+// kind: use(작전 소모품, 최대 3개) · gear(장비, slot마다 하나 장착) · frame(출입증 테두리). 칭호는 팔지 않고 업적으로 얻는다.
 const SHOP = [
   { id: 'kit', kind: 'use', name: '구급 키트', price: 25, desc: '작전 중 가장 많이 다친 현장 요원의 HP를 30 회복한다.' },
   { id: 'calm', kind: 'use', name: '진정제', price: 25, desc: '작전 중 정신력이 가장 낮은 현장 요원의 정신력을 30 회복한다. 붕괴한 요원도 일으킨다.' },
@@ -202,14 +202,35 @@ const SHOP = [
   { id: 'toolkit', kind: 'gear', slot: 'tool', name: '정비 공구 세트', price: 160, desc: '장비 운용 기능 +1.', fx: { skill: ['장비 운용', 1] } },
   { id: 'gold', kind: 'frame', name: '금빛 테두리', price: 120, desc: '출입증 테두리를 금빛으로 바꾼다.' },
   { id: 'redline', kind: 'frame', name: '붉은 경계선', price: 100, desc: '출입증 테두리를 붉은 경계선으로 바꾼다.' },
-  { id: 'holo', kind: 'frame', name: '청록 홀로그램', price: 150, desc: '출입증 테두리를 청록 홀로그램으로 바꾼다.' },
-  { id: 'night', kind: 'title', name: '야간 근무자', price: 50, desc: '출입증과 요원 목록에 칭호를 단다.' },
-  { id: 'voice', kind: 'title', name: '무전 너머의 목소리', price: 80, desc: '출입증과 요원 목록에 칭호를 단다.' },
-  { id: 'tankreg', kind: 'title', name: '수조 단골', price: 60, desc: '출입증과 요원 목록에 칭호를 단다.' },
-  { id: 'steady', kind: 'title', name: '침착한 손', price: 80, desc: '출입증과 요원 목록에 칭호를 단다.' }
+  { id: 'holo', kind: 'frame', name: '청록 홀로그램', price: 150, desc: '출입증 테두리를 청록 홀로그램으로 바꾼다.' }
 ];
 const SHOP_BY = Object.fromEntries(SHOP.map(x => [x.id, x])), USE_MAX = 3, SLOTS = ['armor', 'tool'];
-const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catch {} return { items: v.items || {}, own: v.own || [], eq: v.eq || {}, frame: v.frame || null, title: v.title || null }; };
+const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catch {} return { items: v.items || {}, own: v.own || [], eq: v.eq || {}, frame: v.frame || null, title: v.title || null, titles: v.titles || [] }; };
+/* ───────── 업적과 칭호 ───────── */
+// 칭호는 업적을 이루면 얻는다. c는 요원별 기록(작전 수, 재생 횟수 등)이다.
+const TITLES = [
+  { id: 'rookie', name: '신입 요원', desc: '작전을 처음으로 마친다.', key: 'ops', need: 1 },
+  { id: 'veteran', name: '현장 베테랑', desc: '작전을 10번 성공한다.', key: 'success', need: 10 },
+  { id: 'voice', name: '무전 너머의 목소리', desc: '관제팀으로 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
+  { id: 'night', name: '야간 근무자', desc: '기지 관리 작업을 10번 마친다.', key: 'tasks', need: 10 },
+  { id: 'steady', name: '침착한 손', desc: '관리 작업 중 이상 징후에 10번 대응한다.', key: 'signs', need: 10 },
+  { id: 'tankreg', name: '수조 단골', desc: '재생 수조에서 3번 재생된다.', key: 'deaths', need: 3 },
+  { id: 'survivor', name: '끝까지 버틴 자', desc: 'HP 20% 이하로 버티며 작전을 성공한다.', key: 'clutch', need: 1 },
+  { id: 'officer', name: '고참', desc: '계급 5에 오른다.', key: 'rank', need: 5 }
+];
+const TITLE_BY = Object.fromEntries(TITLES.map(x => [x.id, x]));
+const achOf = row => { try { return JSON.parse(row.ach || '{}'); } catch { return {}; } };
+// 기록을 더하고 새로 이룬 업적의 칭호를 준다
+function bumpAch(uid, add) {
+  const row = Q.agent.get(Number(uid)); if (!row) return [];
+  const c = achOf(row); for (const [k, n] of Object.entries(add || {})) c[k] = (c[k] || 0) + n;
+  c.rank = rankOf(row.career || 0).rank;
+  const v = invOf(row), got = TITLES.filter(t => !v.titles.includes(t.id) && (c[t.key] || 0) >= t.need);
+  got.forEach(t => { v.titles.push(t.id); if (!v.title) v.title = t.id; });
+  db.prepare('UPDATE agents SET ach = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(c), JSON.stringify(v), Number(uid));
+  got.forEach(t => io.to('u:' + uid).emit('notice', { text: `칭호 「${t.name}」을(를) 얻었습니다. (${t.desc.replace(/\.$/, '')})`, level: 'ach', at: now() }));
+  return got;
+}
 const gearFx = row => { const v = invOf(row), fx = { hp: 0, san: 0, lim: 0, skill: {} };
   SLOTS.forEach(sl => { const g = SHOP_BY[v.eq[sl]]; if (!g || !g.fx) return; fx.hp += g.fx.hp || 0; fx.san += g.fx.san || 0; fx.lim += g.fx.lim || 0; if (g.fx.skill) fx.skill[g.fx.skill[0]] = (fx.skill[g.fx.skill[0]] || 0) + g.fx.skill[1]; });
   return fx; };
@@ -221,7 +242,7 @@ function publicAgent(row) {
     task: typeof QT !== 'undefined' ? taskOut(QT.mine.get(row.user_id)) : null,
     skillXp: JSON.parse(row.skill_xp || '{}'), career: { ...rankOf(row.career || 0), total: row.career || 0 }, statPts: row.stat_pts || 0, statCap: STAT_CAP,
     regenUntil: row.regen_until || null, quarUntil: row.quar_until || null, contLimit: contLimit(row), opsDone: row.ops_done || 0,
-    inv: invOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
+    inv: invOf(row), ach: achOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
 }
 function chatOut(r) { return { id: r.id, uid: String(r.user_id), num: r.num, name: r.name, role: r.role, channel: r.channel, text: r.text, ts: r.ts }; }
@@ -1025,6 +1046,7 @@ function opFinish(r, result) {
   say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: 보급품 ${reward.supply}, 연구 자료 ${reward.research}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
   sectorOnOp(r.op, result, r.members.map(m => m.name).join(', '));
   for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
+  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.role === 'ctrl' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
   r.members.forEach(m => { const row = Q.agent.get(Number(m.uid)); if (row) io.emit('agent', publicAgent(row)); });
   emitSector();
   return null;
@@ -1319,6 +1341,7 @@ function taskFinish(t) {
     QT.set.run('done', JSON.stringify(out), t.id);
   });
   if (out.roll) { out.xp = gainXp(t.user_id, out.roll.skill, XP.task[mm]); out.career = gainCareer(t.user_id, CAREER.task[mm]); QT.set.run('done', JSON.stringify(out), t.id); }
+  if (out.roll) bumpAch(t.user_id, { tasks: 1 });
   if (esc) escapeIn(esc, t.user_id, T.name + ' 작업');
   return out;
 }
@@ -1358,6 +1381,7 @@ app.post('/api/task/sign', need, (req, res) => {
   x.state = roll.tier === 'fail' ? 'fail' : 'ok';
   QT.setSigns.run(JSON.stringify(sg), t.id);
   const xp = gainXp(req.user.id, roll.skill, 1);
+  bumpAch(req.user.id, { signs: 1 });
   const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent);
   res.json({ agent, sign: { text: signText(x, t.entity), ok: x.state === 'ok', roll, bonus: SIGN_BONUS[t.kind], xp } });
 });
@@ -1378,7 +1402,7 @@ app.post('/api/stat', need, (req, res) => {
 /* ───────── 보급 상점 API ───────── */
 const saveInv = (uid, v) => db.prepare('UPDATE agents SET inv = ? WHERE user_id = ?').run(JSON.stringify(v), uid);
 const pushAgent = uid => { const agent = publicAgent(Q.agent.get(uid)); io.emit('agent', agent); return agent; };
-app.get('/api/shop', need, (req, res) => res.json({ items: SHOP, useMax: USE_MAX }));
+app.get('/api/shop', need, (req, res) => res.json({ items: SHOP, useMax: USE_MAX, titles: TITLES.map(({ id, name, desc, key, need }) => ({ id, name, desc, key, need })) }));
 app.post('/api/shop/buy', need, (req, res) => {
   const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
   const it = SHOP_BY[req.body && req.body.id]; if (!it) return fail(res, 'shop/none');
@@ -1421,7 +1445,8 @@ app.post('/api/shop/equip', need, (req, res) => {
   const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
   const b = req.body || {}, v = invOf(row), id = b.id || null;
   if (busyIn(req.user.id) && b.kind === 'gear') return fail(res, 'shop/in-op');
-  if (id) { const it = SHOP_BY[id]; if (!it || !v.own.includes(id) || it.kind !== b.kind) return fail(res, 'shop/none'); }
+  if (id && b.kind === 'title') { if (!TITLE_BY[id] || !v.titles.includes(id)) return fail(res, 'shop/none'); }
+  else if (id) { const it = SHOP_BY[id]; if (!it || !v.own.includes(id) || it.kind !== b.kind) return fail(res, 'shop/none'); }
   if (b.kind === 'gear') { if (!SLOTS.includes(b.slot) || (id && SHOP_BY[id].slot !== b.slot)) return fail(res, 'shop/none'); v.eq[b.slot] = id; }
   else if (b.kind === 'frame') v.frame = id; else if (b.kind === 'title') v.title = id; else return fail(res, 'shop/none');
   saveInv(req.user.id, v); res.json({ agent: pushAgent(req.user.id) });
