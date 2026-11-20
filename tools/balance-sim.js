@@ -1,7 +1,7 @@
 // 섹터 R-8 작전 자동 시뮬레이터: 실제 server.js의 규칙 코드를 그대로 불러와 봇 요원들로 작전을 반복 실행한다.
 // 사용: node tools/balance-sim.js server.js 300   (조합마다 300판, 결과는 JSON 한 줄)
 // 한 판의 기록 보기: PEEK=R8-14,3,1 node tools/balance-sim.js server.js   (작전, 현장 인원, 관제 0/1)
-// 관제 행동 빼고 보기: CTRL=none|nosupport|noremote|nolight|nodoor|nostab
+// 관제 행동 빼고 보기: CTRL=none|nosupport|nofac|nostab
 // 봇은 개체까지의 정확한 거리를 알고 판단하므로 실제 플레이보다 성공률이 높게 나오는 편이다.
 const fs = require('fs'), path = require('path'), Module = require('module'), os = require('os');
 const file = path.resolve(process.argv[2]), N = +(process.argv[3] || 200);
@@ -67,12 +67,16 @@ function fieldPick(r, mem, taken) {
 function ctrlAct(r, mem) {
   if (mem.broken || mem.acted) return;
   const CM = process.env.CTRL || 'all'; if (CM === 'none') return;
-  const opid = r.op, used = r.ctlUsed || {};
+  const opid = r.op, facsOf = G('facsOf');
   if (r.noise) return opCtl(mem.uid, opid, mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam');
-  const low = r.members.filter(x => x.role === 'field' && !x.dead && x.san < x.sanMax * 0.45).sort((a, c) => a.san - c.san)[0];
-  if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
-  if (CM !== 'noremote' && CM !== 'nolight' && r.minions.length && opCtl.toString().includes("'light'") && !used.light) return opCtl(mem.uid, opid, 'light');
-  if (CM !== 'noremote' && CM !== 'nodoor' && r.dist <= 15 && opCtl.toString().includes("'door'") && !used.door) return opCtl(mem.uid, opid, 'door');
+  const low = r.members.filter(x => x.role === 'field' && !x.dead && x.san < x.sanMax * 0.35).sort((a, c) => a.san - c.san)[0];
+  if (facsOf && CM !== 'nofac') {
+    const F = facsOf(r), pwr = F.find(x => x.id === 'pwr'), sp = F.find(x => x.id === 'sp'), wall = F.find(x => x.id === 'wall');
+    if (!pwr.on) return opCtl(mem.uid, opid, 'fac', 'pwr');
+    if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
+    if (!sp.on) return opCtl(mem.uid, opid, 'fac', 'sp');
+    if (!wall.on && wall.need && r.dist <= 15) return opCtl(mem.uid, opid, 'fac', 'wall');
+  } else if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
   if (CM === 'nosupport') return; return opCtl(mem.uid, opid, 'support');
 }
 function runOne(opId, nField, withCtrl) {
