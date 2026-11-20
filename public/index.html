@@ -669,7 +669,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
   .detail .grid2{grid-template-columns:1fr;padding:16px;gap:20px}
   .detail .lower{padding:0 16px 16px}
   .sealbox .hd .sub{display:none}
-  .bnav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:8px 8px calc(16px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid var(--rule);backdrop-filter:blur(8px)}
+  .bnav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:8px 8px calc(16px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid var(--rule);backdrop-filter:blur(8px)}
   .bnav button{height:50px;border:0;border-radius:2px;background:var(--faint);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:600;white-space:nowrap}
   .bnav button[aria-current=page]{background:var(--navy);color:var(--onNavy)}
   .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:31;width:56px;height:56px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);box-shadow:0 10px 24px rgba(0,0,0,.3)}
@@ -901,6 +901,107 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 @container (max-width:640px){.bmb{display:flex;flex-direction:column;flex:none}.bm-wings{grid-template-columns:1fr}.bml,.bmr{overflow:visible}.bmr{border-left:0;border-top:1px solid var(--tileLine)}}
 @media (max-width:999px){.bm-wings{grid-template-columns:1fr}.bm-lg .lgd{margin-left:0}.base2.bmap .hd .n{display:none}}
 @media (prefers-reduced-motion:reduce){.bm-tank .vat.on .bb2,.bm-tank .vat.on .surf{animation:none}}
+
+.shop{height:100%;min-height:0;container-type:inline-size}
+.shop .hd{flex:none;height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--tileLine)}.shop .hd>.bb{font-size:18px;letter-spacing:.12em}.shop .hd small{font-size:12px;color:var(--sub)}
+.shop .hd .n{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub)}.shop .hd .n .bb{font-size:22px;color:var(--ink);line-height:1}
+.shb{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px}
+.shl{min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.shr{min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--tileLine)}
+.stabs{display:flex;gap:4px;flex-wrap:wrap}.stabs button{height:34px;padding:0 14px;border:0;border-radius:4px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.stabs button[aria-selected=true]{background:var(--navy);color:var(--onNavy);box-shadow:none}
+.shint{margin:0;font-size:12px}
+.sgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sitem{min-height:150px;padding:12px 14px;border-radius:5px;display:flex;flex-direction:column;gap:6px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.sitem.on{background:color-mix(in srgb,var(--navyLine) 10%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.sitem .s1{display:flex;align-items:center;gap:6px}.sitem .stag{font-size:11px;font-weight:800;padding:2px 7px;border-radius:3px;background:var(--navy);color:var(--onNavy)}.sitem .cnt{margin-left:auto;font-size:11px;color:var(--sub)}.sitem .cnt.on{color:var(--navyLine);font-weight:800}
+.sitem .sn{font-size:15px}.sitem .sd{font-size:12px;line-height:1.5;color:var(--sub)}
+.sitem .s4{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px}.sitem .pr{display:flex;align-items:center;gap:5px;color:var(--navyLine)}.sitem .pr .bb{font-size:22px;line-height:1;color:var(--ink)}.sitem .pr.short .bb{color:var(--red)}.sitem .pr.own{font-size:12px;color:var(--sub)}
+.fprev{height:28px;border-radius:4px;background:var(--tile)}
+.shbox{padding:14px;border-radius:5px;box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:8px}.shbox .bh{display:flex;align-items:baseline;gap:8px}.shbox .bh .bb{font-size:15px;letter-spacing:.12em;color:var(--navyLine)}.shbox .bh small{font-size:12px;color:var(--sub)}.shbox>small{font-size:12px;line-height:1.5}
+.eqs{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:4px;background:var(--faint)}.eqs small{font-size:11px;color:var(--sub)}.eqs b{font-size:13px}.eqs em{font-style:normal;font-size:11px;color:var(--navyLine)}
+.bag{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.bagi{padding:8px;border-radius:4px;background:var(--faint);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px}.bagi .bb{font-size:22px;line-height:1}
+.badge.fr-gold,.fprev.fr-gold,.fsw.fr-gold{box-shadow:inset 0 0 0 2px #C8A040,0 0 0 1px rgba(200,160,64,.35)}
+.badge.fr-redline,.fprev.fr-redline,.fsw.fr-redline{box-shadow:inset 0 0 0 2px var(--red),inset 0 0 0 4px color-mix(in srgb,var(--red) 25%,transparent)}
+.badge.fr-holo,.fprev.fr-holo,.fsw.fr-holo{box-shadow:inset 0 0 0 2px #5EC4C8,0 0 14px rgba(94,196,200,.35)}
+.sitem .s4.two{flex-wrap:wrap}.sitem .s4.two .pr{flex-basis:100%}.sitem .s4.two .btn{flex:1}
+.badge .pvtag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:3px;background:var(--onNavy);color:var(--navy)}
+.badge.fpv{animation:fpv 1.6s ease-in-out infinite alternate}@keyframes fpv{from{filter:drop-shadow(0 18px 30px rgba(0,0,0,.25))}to{filter:drop-shadow(0 0 16px color-mix(in srgb,var(--navyLine) 45%,transparent))}}@media (prefers-reduced-motion:reduce){.badge.fpv{animation:none}}
+.badge .ttl2{font-size:12px;font-weight:700;color:var(--navyLine)}
+.opitems{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.opitems>small{font-size:12px;color:var(--sub);margin-right:4px}
+.opitems .btn{height:34px;padding:0 12px;font-size:12px}.opitems .btn .bb{font-size:16px;line-height:1;margin-left:2px}
+@container (max-width:720px){.shb{display:flex;flex-direction:column}.shl,.shr{overflow:visible}.shr{border-left:0;border-top:1px solid var(--tileLine)}}
+@media (max-width:999px){.shop{height:auto}}
+
+.gmmodal.on{z-index:90}
+.gm-box{gap:12px}
+.gmm-head{flex:none;display:flex;align-items:center;gap:16px;padding-bottom:10px;border-bottom:1px solid var(--tileLine)}
+.gmm-head .gmt{font-size:24px;letter-spacing:.06em;line-height:1}.gmm-head .gmt span{color:var(--navyLine);margin-left:6px}
+.gmtabs2{display:flex;gap:2px;flex:1;align-self:stretch;align-items:flex-end;margin-bottom:-11px}
+.gmtabs2 button{height:40px;padding:0 18px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.gmtabs2 button:hover{color:var(--ink)}.gmtabs2 button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--navyLine)}
+.gm-box .gmmain{flex:1;min-height:0;overflow-y:auto}
+
+.gmstage{min-height:100vh}
+.gmstage .gmmodal{background:transparent;backdrop-filter:none}
+.gmm-head .logo{display:flex;align-items:center;gap:10px}.gmm-head .tools{display:flex;align-items:center;gap:6px}
+.gmbody2{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
+.gmbody2 .gmmain,.gm-box .gmmain{min-height:0;overflow-y:auto}.gm-box .gmmain>.gmsplit{height:100%;min-height:0;grid-template-rows:minmax(0,1fr)}.gm-box .gmsplit .gmcol{min-height:0;overflow-y:auto;padding-right:4px}.gmbody2 .gmside{min-height:0;display:flex;flex-direction:column}.gmbody2 .gmside .chat{height:100%;min-height:0}
+@media (max-width:999px){.gmbody2{display:flex;flex-direction:column}.gmbody2 .gmside .chat{height:70vh}.gmm-head{flex-wrap:wrap}.gmtabs2{order:3;flex-basis:100%;margin-bottom:0}}
+
+.shopc .hd>.bb{font-size:18px;letter-spacing:.12em}
+.shopc .shb{grid-template-columns:minmax(0,1fr) 320px}
+.shopc .shl{gap:14px;padding:14px 16px 20px}
+.sjump{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:-14px;z-index:2;padding:6px 0 8px;margin-top:-6px;background:var(--tile)}
+.sjump a{height:32px;padding:0 12px;border-radius:4px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}.sjump a .bb{font-size:15px;color:var(--sc)}
+.s-use,.sjump a:nth-child(1){--sc:#5EC4C8}.s-gear,.sjump a:nth-child(2){--sc:var(--navyLine)}.s-frame,.sjump a:nth-child(3){--sc:#C8A040}.s-title,.sjump a:nth-child(4){--sc:#A58BD0}
+.ssec{border-radius:6px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--tileLine);scroll-margin-top:44px}
+.ssh{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(100deg,color-mix(in srgb,var(--sc) 18%,transparent) 0%,transparent 70%);border-bottom:1px solid var(--tileLine);border-left:4px solid var(--sc)}
+.ssh .sl{width:30px;height:30px;flex:none;border-radius:4px;display:grid;place-items:center;font-size:20px;background:var(--sc);color:#141414}
+.ssh .st2{display:flex;flex-direction:column;gap:2px}.ssh .st2 .bb{font-size:12px;letter-spacing:.14em;color:var(--sc);line-height:1}.ssh .st2 b{font-size:16px}
+.ssh small{flex:1;min-width:0;font-size:12px;color:var(--sub);line-height:1.45}.ssh .cnt{flex:none;font-size:11px;color:var(--sub)}
+.scol,.srow{display:grid;grid-template-columns:52px minmax(0,1fr) 78px 56px 104px;align-items:center;gap:12px;padding:0 14px}
+.scol{height:30px;font-size:10px;color:var(--sub);background:var(--faint);border-bottom:1px solid var(--tileLine)}.scol span:nth-child(4){text-align:right}
+.srow{min-height:54px;border-bottom:1px solid color-mix(in srgb,var(--ink) 6%,transparent)}.srow:nth-of-type(even){background:color-mix(in srgb,var(--ink) 2.5%,transparent)}.srow:last-child{border-bottom:0}
+.srow.picked{background:color-mix(in srgb,var(--sc) 10%,transparent);box-shadow:inset 3px 0 0 var(--sc)}.srow.using{box-shadow:inset 3px 0 0 var(--navyLine)}
+.srow .sc{font-size:13px;letter-spacing:.06em;color:var(--sub)}
+.srow .si{display:flex;align-items:center;gap:10px;min-width:0}.srow .sn2{display:flex;flex-direction:column;gap:2px;min-width:0}.srow .sn2 b{font-size:14px}.srow .sn2 small{font-size:11px;color:var(--sub);line-height:1.4}
+.srow .fsw{width:28px;height:20px;flex:none;border-radius:3px;background:var(--tile)}
+.srow .rs{font-size:11px;color:var(--sub)}.srow .rs.has{color:var(--ink);font-weight:700}.srow .rs.on{color:var(--navyLine);font-weight:800}
+.srow .sp{text-align:right;font-size:20px;line-height:1}.srow .sp.short{color:var(--red)}
+.srow .sctl{display:flex;justify-content:flex-end}
+.qty{display:flex;align-items:center;gap:4px}.qty .qb{width:30px;height:30px;border:0;border-radius:4px;font:inherit;font-size:16px;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.qty .qb:disabled{opacity:.35;cursor:default}.qty .bb{width:22px;text-align:center;font-size:20px;line-height:1}
+.rq{width:96px;height:30px;border:0;border-radius:4px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.rq.on{background:var(--sc);color:#141414;box-shadow:none}.rq.eq{background:var(--navy);color:var(--onNavy);box-shadow:none}.rq.eq.on{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.pvb{flex:none;height:26px;padding:0 9px;border:0;border-radius:3px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:var(--sc);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 60%,transparent)}.pvb.on{background:var(--sc);color:#141414}
+.ssub{display:flex;align-items:baseline;gap:8px;padding:8px 14px 6px;background:color-mix(in srgb,var(--ink) 3%,transparent);border-bottom:1px solid var(--tileLine)}.ssub b{font-size:12px;color:var(--sc)}.ssub small{font-size:11px;color:var(--sub)}
+.req{min-height:0;display:flex;flex-direction:column;margin:14px;border-radius:5px;overflow:hidden;background:#E9E6DD;color:#1C1C1A;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.req .rh{padding:16px 18px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1.5px dashed rgba(0,0,0,.25)}.req .rh .bb{font-size:20px;letter-spacing:.14em;line-height:1}.req .rh small{font-size:11px;color:#5A5A56}
+.req .rl2{flex:1;min-height:0;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:8px}
+.req .ri{display:flex;align-items:center;gap:8px;font-size:13px}.req .ri>span{flex:1;min-width:0}.req .ri small{color:#5A5A56;font-size:12px}.req .ri .bb{width:44px;text-align:right;font-size:18px;line-height:1}
+.req .rx{width:22px;height:22px;border:0;border-radius:3px;display:grid;place-items:center;cursor:pointer;background:transparent;color:#5A5A56}.req .rx:hover{background:rgba(0,0,0,.08)}
+.req .re{font-size:12px;line-height:1.5;color:#5A5A56}
+.req .rf{position:relative;padding:12px 18px 16px;display:flex;flex-direction:column;gap:8px;border-top:1.5px dashed rgba(0,0,0,.25)}
+.req .rt{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}.req .rt .bb{font-size:28px;line-height:1}
+.req .rt2{display:flex;justify-content:space-between;font-size:12px;color:#5A5A56}.req .rt2 b{color:#1C1C1A}.req .rt2 b.neg{color:#B4281E}
+.req .btn{width:100%;margin-top:4px}.req .rcl{border:0;background:transparent;font:inherit;font-size:12px;color:#5A5A56;cursor:pointer;text-decoration:underline}
+.req .err{color:#B4281E}
+.req .stamp{position:absolute;right:16px;top:-14px;padding:4px 10px;border:2px solid rgba(180,40,30,.75);border-radius:3px;transform:rotate(-6deg);font-size:12px;font-weight:900;letter-spacing:.1em;color:rgba(180,40,30,.85);background:rgba(233,230,221,.9);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stampIn{from{transform:rotate(-6deg) scale(1.8);opacity:0}}
+@media (prefers-reduced-motion:reduce){.req .stamp{animation:none}}
+@container (max-width:900px){.shopc .shb{display:flex;flex-direction:column}.shopc .shl{overflow:visible}.req{margin:0 16px 16px}.scol,.srow{grid-template-columns:44px minmax(0,1fr) 64px 48px 100px;gap:8px}}
+@media (max-width:999px){.shopc .hd small{display:none}}
+@container (max-width:560px){.scol{display:none}.srow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'i i' 's p' 'c c';row-gap:6px;padding:10px 12px}.srow .sc{display:none}.srow .si{grid-area:i}.srow .rs{grid-area:s}.srow .sp{grid-area:p}.srow .sctl{grid-area:c;justify-content:stretch}.srow .sctl>*{flex:1}.qty{justify-content:flex-end}.ssh small{display:none}}
+
+.fm .fh{display:flex;align-items:baseline;gap:6px;min-width:0}.fm .fh b{min-width:0}
+.fm .vb{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:6px}
+.fm .vb small{font-size:10px;font-weight:700;color:var(--sub)}
+.fm .vb i{display:block;height:7px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
+.fm .vb i span{display:block;height:100%;border-radius:2px;background:#5FAF7E;transition:width .4s ease}
+.fm .vb.mid i span{background:#D9A441}.fm .vb.low i span{background:var(--red)}
+.fm .vb.sn i span{background:#8F7BC8}.fm .vb.sn.low i span{background:#C86BB0}
+.fm .vb.foe i span{background:var(--red)}
+.fm .vb b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:15px;line-height:1;white-space:nowrap}.fm .vb b em{font-style:normal;font-size:11px;color:var(--sub)}
+.fm .vb.low b{color:var(--red)}
+@media (max-width:999px){.form .line{flex-wrap:nowrap;justify-content:flex-start;padding-bottom:2px}.form .line .fm{flex:0 0 116px;width:116px;padding:7px 8px}.form .line .fm.foe b{font-size:13px}.fm .vb{grid-template-columns:22px minmax(0,1fr) auto;gap:5px}.fm .vb b em{display:none}}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -949,7 +1050,7 @@ body.modal-open{overflow:hidden}
 .btn.red{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
 .cell .cb{display:flex;flex-wrap:wrap;gap:6px}.cell .cb .btn{align-self:auto}
 .cell .wk{display:flex;flex-wrap:wrap;gap:4px}.cell .wk span{font-size:11px;font-weight:700;padding:2px 6px;box-shadow:inset 0 0 0 1px var(--navyLine);color:var(--navyLine)}
-.tpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick>.sub{grid-column:1 / -1}
+.tpick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick>.sub{grid-column:1 / -1}
 .tpick .btn.tp{align-self:stretch;height:auto;min-height:44px;padding:6px 4px;flex-direction:column;justify-content:center;gap:2px;white-space:normal;text-align:center;line-height:1.25}
 .tpick .btn.tp b{font-size:13px}.tpick .btn.tp .cost{font-size:10px;color:var(--sub);font-weight:500}
 .tpick .btn.cancel{color:var(--red);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 55%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
@@ -1006,11 +1107,11 @@ body.modal-open{overflow:hidden}
 .radar .rd.near b{color:var(--red)}
 .form{padding:12px 14px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:10px;min-width:0}
 .form .hh{display:flex;align-items:baseline;gap:6px}.form .hh .bb{font-size:14px;letter-spacing:.14em;color:var(--navyLine)}.form .hh small{font-size:11px;color:var(--sub)}
-.line{display:flex;align-items:stretch;gap:6px}
+.line{display:flex;align-items:stretch;justify-content:center;gap:6px;overflow-x:auto}
 .line .ent{flex:none;width:44px;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--red);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 60%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
 .line .ent.hide{color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine);background:transparent}
 .line .ar{flex:none;align-self:center;color:var(--sub)}
-.fm{flex:1;min-width:0;padding:8px 9px;border-radius:3px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:4px}
+.fm{flex:0 0 172px;width:172px;min-width:0;padding:8px 10px 9px;border-radius:3px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:4px}
 .fm.me{box-shadow:inset 0 0 0 1.5px var(--navyLine)}
 .fm .ps{font-size:10px;font-weight:800;color:var(--navyLine);letter-spacing:.04em}
 .fm b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1379,6 +1480,7 @@ function serverBackend() {
     baseAct: (kind, entity) => api('/api/base', { kind, entity }),
     unlockDoc: (entity, section) => api('/api/archive/unlock', { entity, section }),
     statUp: k => api('/api/stat', { k }),
+    shopList: () => api('/api/shop'), shopBuy: id => api('/api/shop/buy', { id }), shopOrder: items => api('/api/shop/order', { items }), shopEquip: (kind, slot, id) => api('/api/shop/equip', { kind, slot, id }),
     taskStart: (entity, kind, mins) => api('/api/task', { entity, kind, mins }),
     taskCancel: () => api('/api/task/cancel', {}),
     taskAck: () => api('/api/task/ack', {}),
@@ -1441,7 +1543,7 @@ function demoBackend() {
       { id: 'AO-047', name: '젖은 손님', icon: 'door-open', threat: 'Ⅱ', cell: '격리동 A-2', op: null, captured: false, stability: 0, sections: ['info'], doc: { info: { summary: '비 오는 밤에만 섹터 정문 앞에 나타나는 인간형 개체.' } } }] }); return () => {}; },
     async baseAct() { throw { code: 'demo' }; },
     async unlockDoc() { throw { code: 'demo' }; },
-    async statUp() { throw { code: 'demo' }; }, watchDm(cb) { cb({ conv: {}, msgs: {}, gms: [] }, null); return () => {}; }, watchNotice() { return () => {}; }, async dmHistory() { return []; }, async dmSend() { throw { code: 'demo' }; }, async dmRead() {},
+    async statUp() { throw { code: 'demo' }; }, async shopList() { return { items: [], useMax: 3 }; }, async shopBuy() { throw { code: 'demo' }; }, async shopOrder() { throw { code: 'demo' }; }, async shopEquip() { throw { code: 'demo' }; }, watchDm(cb) { cb({ conv: {}, msgs: {}, gms: [] }, null); return () => {}; }, watchNotice() { return () => {}; }, async dmHistory() { return []; }, async dmSend() { throw { code: 'demo' }; }, async dmRead() {},
     async gmAgent() { throw { code: 'demo' }; }, async gmOp() { throw { code: 'demo' }; }, async gmEntity() { throw { code: 'demo' }; }, async gmEvent() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; }, async taskSign() { throw { code: 'demo' }; },
     async getRecordLog() { return []; },
     async touch(uid) { const all = get('agents') || {}; if (all[uid]) { all[uid].lastSeen = Date.now(); put('agents', all); } }
@@ -1500,7 +1602,7 @@ const AUTH_MSG = {
   'gm/forbidden': 'GM 계정만 쓸 수 있습니다.', 'gm/bad': '입력값을 확인하십시오.', 'dm/bad-target': '메시지를 보낼 수 없는 상대입니다.', 'op/none': '작전을 찾을 수 없습니다.',
   'stat/no-points': '배분할 능력치 포인트가 없습니다.', 'stat/cap': '훈련으로 올릴 수 있는 상한입니다.',
   'task/no-sign': '대응할 이상 징후가 없습니다. 이미 지나갔을 수 있습니다.', 'task/none': '진행 중인 작업이 없습니다.',
-  'task/busy': '이미 진행 중인 작업이 있습니다. 끝나거나 중단한 뒤 시작하십시오.', 'task/in-op': '작전에 참가 중이라 작업을 시작할 수 없습니다.', 'task/bad': '작업 설정을 확인하십시오.',
+  'task/busy': '이미 진행 중인 작업이 있습니다. 끝나거나 중단한 뒤 시작하십시오.', 'task/in-op': '작전에 참가 중이라 작업을 시작할 수 없습니다.', 'task/bad': '작업 설정을 확인하십시오.', 'shop/none': '살 수 없는 물품입니다.', 'shop/empty': '요청서에 적힌 물품이 없습니다.', 'shop/full': '이 물품은 3개까지만 들고 다닐 수 있습니다.', 'shop/owned': '이미 가진 물품입니다.', 'shop/in-op': '작전에 참가 중일 때는 할 수 없습니다.', 'res/short': '보급품이 부족합니다.', 'op/item-wait': '소모품은 차례마다 한 번만 쓸 수 있습니다.', 'op/not-field': '현장 요원만 쓸 수 있습니다.', 'op/no-need': '지금은 쓸 필요가 없습니다.',
   'base/not-captured': '아직 확보하지 못한 개체입니다.', 'base/full': '격리 안정도가 이미 최대입니다.',
   'base/clean': '정화할 오염이 없습니다.', 'base/not-regen': '재생 수조에 있는 상태가 아닙니다.', 'base/bad': '요청을 처리할 수 없습니다.',
   'archive/open': '이미 열람된 항목입니다.', 'archive/bad': '열람할 수 없는 항목입니다.', 'agent/none': '요원 정보가 없습니다.',
@@ -1581,20 +1683,22 @@ function badgeHTML(a, { preview = false } = {}) {
 </article>`;
   }
   const cont = a.contamination || 0;
-  return `<article class="badge pc-only" aria-label="요원 출입증">
-  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>RAVEN-5, 섹터 R-8 출입증</small></span><span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span></div>
+  const pv = S.framePrev && S.view === 'shop' && S.user && a.uid === S.user.uid ? S.framePrev : null;
+  const fr = pv ? ' fr-' + pv + ' fpv' : a.inv && a.inv.frame ? ' fr-' + a.inv.frame : '', ttl = a.inv && a.inv.title && SHOPN[a.inv.title] ? `<span class="ttl2">「${esc(SHOPN[a.inv.title])}」</span>` : '';
+  return `<article class="badge pc-only${fr}" aria-label="요원 출입증">
+  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>RAVEN-5, 섹터 R-8 출입증</small></span>${pv ? '<span class="pvtag">미리보기</span>' : `<span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span>`}</div>
   <div class="id"><div class="ph">${photoBox(a, true)}</div>
-    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b><span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
+    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
       <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</dd><dt>상태</dt><dd class="ok" style="${stateOf(a).k === 'regen' ? 'color:var(--red)' : ''}">${stateOf(a).t}</dd></dl></div></div>
   <div class="stats">${stats}</div>
   <dl class="info"><dt>소속</dt><dd>${ROLES[a.role][0]}</dd><dt>변질</dt><dd>${tl.length ? esc(tl.map(traitName).join(', ')) + ` <span class="sub">(${tl.length}/5)</span>` : '없음'}</dd><dt>기능</dt><dd>${esc(Object.entries(a.skills || {}).sort((p, q) => q[1] - p[1]).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</dd><dt>출동 기록</dt><dd>출동 ${a.opsDone || 0}회${a.career ? `, 계급 ${a.career.rank}` : ''}</dd></dl>
   <span style="flex:1"></span>
   <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>만료 ${ymd(addYear(a.createdAt))}</span></div>
 </article>
-<article class="badge mb mb-only" aria-label="요원 출입증">
+<article class="badge mb mb-only${fr}" aria-label="요원 출입증">
   <div class="bt"><span class="bb">ACCESS PASS</span><small>RAVEN-5 ${ROLES[a.role][0]}</small></div>
   <div class="id"><div class="ph">${photoBox(a, false)}</div>
-    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b><span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b>${stateOf(a).k === 'regen' ? `, <b style="color:var(--red)">${stateOf(a).t}</b>` : ''}</span>
+    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b>${stateOf(a).k === 'regen' ? `, <b style="color:var(--red)">${stateOf(a).t}</b>` : ''}</span>
       <div class="mstats">${SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('')}</div></div></div>
 </article>`;
 }
@@ -1658,7 +1762,7 @@ function viewCreate() {
   <i class="bandbg" aria-hidden="true"></i>
   <header><span class="logo">${LOGO(28)}<span style="display:flex;flex-direction:column;gap:3px"><span class="bb" style="font-size:22px">REGENERATION</span><span class="sub" style="font-size:11px">재생 절차, 요원 등록</span></span></span>
     <nav class="steps" aria-label="단계">${STEPS.map((n, i) => `<button data-act="goStep" data-v="${i}" ${i === step ? 'aria-current="step"' : ''} class="${i < step ? 'done' : ''}" ${i > step ? 'disabled' : ''}><span class="n">${i + 1}</span>${n}</button>`).join('')}</nav>
-    <button class="btn g s" data-act="signOut" style="margin-left:auto">나가기</button></header>
+    ${S.gm ? `<button class="btn g s" data-act="toGM" style="margin-left:auto">GM 도구로</button>` : ''}<button class="btn g s" data-act="signOut" style="${S.gm ? '' : 'margin-left:auto'}">나가기</button></header>
   <div class="mbar" aria-hidden="true">${STEPS.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>
   <main>
     <section class="form" aria-labelledby="stepTitle">
@@ -1690,7 +1794,7 @@ function viewIssued() {
 }
 
 /* ═════════════ 8. 화면: 로비 ═════════════ */
-const MENU = [['home', '홈', 'home'], ['ops', '작전', 'ops'], ['base', '기지', 'base'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
+const MENU = [['home', '홈', 'home'], ['ops', '작전', 'ops'], ['base', '기지', 'base'], ['shop', '보급', 'box'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
 function viewShell() {
   const me = S.me, r = me.res || START_RES;
   return `<div class="shell${S.chatOpen ? ' chatopen' : ''}">
@@ -1708,10 +1812,11 @@ function viewShell() {
     <div class="colR${S.chatOpen ? ' open' : ''}" id="colR">${viewChat()}</div>
   </div>
   <footer class="ticker"><span class="k bb">NOTICE</span><span class="tr"><span>${esc(notices().join(' '.repeat(6)))}</span></span></footer>
-  <nav class="bnav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 20)}<span>${l}</span></button>`).join('')}</nav>
+  <nav class="bnav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" aria-label="${l}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 20)}<span>${({ files: '문서', log: '기록' })[k] || l}</span></button>`).join('')}</nav>
   <button class="fab" data-act="chat" aria-label="통신 채널 열기">${ico('msg', 24)}${S.unread + dmUnread() ? `<i>${S.unread + dmUnread() > 9 ? '9+' : S.unread + dmUnread()}</i>` : ''}</button>
   <div class="toast" id="toast" aria-live="polite"></div>
   <div class="opmodal" id="opModal"></div>
+  <div class="opmodal gmmodal" id="gmModal"></div>
 </div>`;
 }
 function resHTML(r) { return `<span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply.toLocaleString()}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research.toLocaleString()}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span>`; }
@@ -1739,6 +1844,7 @@ function viewCenter() {
   if (S.view === 'agents') return viewAgentDetail();
   if (S.view === 'base') return viewBase();
   if (S.view === 'files') return viewArchive();
+  if (S.view === 'shop') return viewShop();
   const m = MENU.find(x => x[0] === S.view);
   return `<section class="pnl wip"><span class="bb">${({ ops: 'OPERATIONS', base: 'BASE', files: 'ARCHIVE', log: 'RECORDS' })[S.view]}</span><h2>${m[1]}</h2><p class="sub" style="font-size:14px;margin:0">이 구역은 아직 개방되지 않았습니다. 다음 단계에서 가동됩니다.</p></section>`;
 }
@@ -1805,7 +1911,7 @@ function taskPanel() {
 }
 function taskPicker(e) {
   const k = S.taskPick && S.taskPick.id === e.id && S.taskPick.kind; if (!k) return '';
-  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[30, 60, 120, 180, 300].map(m => `<button class="btn s g tp" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${durTxt(m)}</b><span class="cost">${taskGainShort(k, m)}</span></button>`).join('')}<button class="btn s g tp cancel" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
+  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[30, 60, 120, 180].map(m => `<button class="btn s g tp" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${durTxt(m)}</b><span class="cost">${taskGainShort(k, m)}</span></button>`).join('')}</div>`;
 }
 setInterval(() => {
   document.querySelectorAll('.clock[data-ends]').forEach(el => { el.textContent = mmss(+el.dataset.ends - Date.now()); });
@@ -1891,7 +1997,7 @@ function viewBase() {
   // 선택한 격리실
   const e = sel, v = stabOf(e), rv = e.lockUntil > Date.now(), al = e.captured && v < 30 && !rv, [lc, ln] = lvOf(e), chk = k => S.sector.check && S.sector.check[k] ? `${S.sector.check[k].stat} + ${S.sector.check[k].skill} 판정` : '판정';
   const off = rv || busyT || inOp;
-  const actCard = (k, name, desc, extra) => `<button class="bm-act${S.taskPick && S.taskPick.id === e.id && S.taskPick.kind === k ? ' on' : ''}" data-act="taskPick" data-v="${k}" data-t="${esc(e.id)}" ${dis} ${off ? 'disabled' : ''}><b>${name}</b><small>${desc}</small></button>`;
+  const actCard = (k, name, desc, extra) => `<button class="bm-act${S.taskPick && S.taskPick.id === e.id && S.taskPick.kind === k ? ' on' : ''}" data-act="taskPick" data-v="${k}" data-t="${esc(e.id)}" aria-expanded="${!!(S.taskPick && S.taskPick.id === e.id && S.taskPick.kind === k)}" ${dis} ${off ? 'disabled' : ''}><b>${name}</b><small>${desc}</small></button>`;
   const detail = `<div class="bm-sel ${lc}">
       <div class="sh2"><span class="r1"><span class="bb">${esc(e.id)}</span>${thChip(e.threat, true)}<span class="rm">${esc(e.cell)}</span></span>
         <span class="r2"><b>${esc(e.name)}</b><span class="bb pc">${e.captured ? Math.floor(v) + '%' : '--'}</span></span>
@@ -1923,6 +2029,52 @@ function viewBase() {
     </div><aside class="bmr">${detail}${tank}${S.baseErr ? `<p class="err" role="alert" style="margin:0">${esc(S.baseErr)}</p>` : ''}</aside></div></section>`;
 }
 
+
+/* ─── 보급 상점 ─── */
+// 물품 이름표: 서버 목록이 오기 전에도 칭호를 그릴 수 있게 둔다
+const SHOPN = { night: '야간 근무자', voice: '무전 너머의 목소리', tankreg: '수조 단골', steady: '침착한 손' };
+const SHOP_SEC = [['use', 'A', 'FIELD KIT', '작전 소모품', '작전 중 현장 요원이 차례마다 하나씩 씁니다. 종류마다 3개까지 들고 다닙니다.'], ['gear', 'B', 'EQUIPMENT', '장비', '방호구와 도구 칸에 하나씩 장착합니다. 받으면 빈 칸에 바로 장착됩니다.'], ['frame', 'C', 'PASS FRAME', '출입증 테두리', '다른 요원에게도 보입니다. 미리보기로 왼쪽 출입증에 입혀 볼 수 있습니다.'], ['title', 'D', 'TITLE', '칭호', '출입증과 요원 명단에 표시됩니다.']];
+const SLOT_NAME = { armor: '방호구', tool: '도구' };
+function viewShop() {
+  if (!S.shop) { if (!S.shopLoading) { S.shopLoading = true; B.shopList().then(j => { S.shop = j; (j.items || []).forEach(x => { if (x.kind === 'title') SHOPN[x.id] = x.name; }); }).catch(() => { S.shop = { items: [] }; }).finally(() => { S.shopLoading = false; renderCenter(); }); }
+    return `<section class="pnl wip"><span class="bb">SUPPLY</span><h2>보급</h2><p class="sub" style="font-size:14px;margin:0">보급 목록을 불러오는 중입니다.</p></section>`; }
+  const me = S.me, v = me.inv || { items: {}, own: [], eq: {} }, sup = (me.res && me.res.supply) || 0, MX = S.shop.useMax || 3, cart = S.cart || {}, dis = S.shopBusy ? 'disabled' : '';
+  const all = S.shop.items, byId = Object.fromEntries(all.map(x => [x.id, x]));
+  let code = 0;
+  const row = x => {
+    code++; const n = v.items[x.id] || 0, own = v.own.includes(x.id), q = cart[x.id] || 0;
+    const on = x.kind === 'gear' ? v.eq[x.slot] === x.id : x.kind === 'frame' ? v.frame === x.id : x.kind === 'title' ? v.title === x.id : false;
+    const st = x.kind === 'use' ? `<span class="rs${n ? ' has' : ''}">보유 ${n}/${MX}</span>` : on ? '<span class="rs on">사용 중</span>' : own ? '<span class="rs has">보유</span>' : '<span class="rs">미보유</span>';
+    let ctl;
+    if (x.kind === 'use') ctl = `<span class="qty"><button class="qb" data-act="cartQ" data-v="${x.id}" data-k="-1" aria-label="${esc(x.name)} 빼기" ${q ? '' : 'disabled'}>−</button><b class="bb">${q}</b><button class="qb" data-act="cartQ" data-v="${x.id}" data-k="1" aria-label="${esc(x.name)} 더하기" ${n + q >= MX ? 'disabled' : ''}>+</button></span>`;
+    else if (own) ctl = `<button class="rq eq${on ? ' on' : ''}" data-act="shopEquip" data-v="${on ? '' : x.id}" data-k="${x.kind}" data-t="${x.slot || ''}" ${dis}>${on ? (x.kind === 'gear' ? '해제' : '빼기') : (x.kind === 'gear' ? '장착' : '달기')}</button>`;
+    else ctl = `<button class="rq${q ? ' on' : ''}" data-act="cartT" data-v="${x.id}" aria-pressed="${!!q}">${q ? '요청함' : '요청'}</button>`;
+    const pv = x.kind === 'frame' ? `<button class="pvb${S.framePrev === x.id ? ' on' : ''}" data-act="framePrev" data-v="${x.id}" aria-pressed="${S.framePrev === x.id}">${S.framePrev === x.id ? '미리보기 끄기' : '미리보기'}</button>` : '';
+    return `<div class="srow${q ? ' picked' : ''}${on ? ' using' : ''}"><span class="bb sc">S-${String(code).padStart(3, '0')}</span>
+      <span class="si">${x.kind === 'frame' ? `<i class="fsw fr-${x.id}" aria-hidden="true"></i>` : ''}<span class="sn2"><b>${x.kind === 'title' ? '「' + esc(x.name) + '」' : esc(x.name)}</b><small>${esc(x.desc)}</small></span>${pv}</span>
+      ${st}<span class="bb sp${sup < x.price && !own ? ' short' : ''}">${own && x.kind !== 'use' ? '—' : x.price}</span><span class="sctl">${ctl}</span></div>`;
+  };
+  const sec = ([k, letter, en, name, hint]) => {
+    const L = all.filter(x => x.kind === k); if (!L.length) return '';
+    const body = k === 'gear' ? ['armor', 'tool'].map(sl => `<div class="ssub"><b>${SLOT_NAME[sl]}</b><small>장착: ${v.eq[sl] && byId[v.eq[sl]] ? esc(byId[v.eq[sl]].name) : '없음'}</small></div>${L.filter(x => x.slot === sl).map(row).join('')}`).join('') : L.map(row).join('');
+    return `<section class="ssec s-${k}"><div class="ssh"><span class="bb sl">${letter}</span><span class="st2"><span class="bb">${en}</span><b>${name}</b></span><small>${hint}</small><span class="cnt">${L.length}종</span></div>
+      <div class="scol"><span>번호</span><span>품목</span><span>상태</span><span>단가</span><span></span></div>${body}</section>`;
+  };
+  const picked = all.filter(x => cart[x.id] > 0), total = picked.reduce((a, x) => a + x.price * cart[x.id], 0), left = sup - total;
+  const done = S.orderDone && Date.now() - S.orderDone < 5000;
+  return `<section class="pnl shop shopc"><div class="hd"><span class="bb">SUPPLY CATALOG</span><small>제9 격리 전진기지 보급 목록</small><span class="n">${ico('box', 14, 2)}보유 보급품 <b class="bb">${sup}</b></span></div>
+    <div class="shb"><div class="shl">
+      <nav class="sjump" aria-label="분류로 이동">${SHOP_SEC.map(([k, l, , n]) => `<a href="#sec-${k}" data-act="shopJump" data-v="${k}"><span class="bb">${l}</span>${n}</a>`).join('')}</nav>
+      ${SHOP_SEC.map(t => `<div id="sec-${t[0]}">${sec(t)}</div>`).join('')}
+    </div><aside class="req" aria-label="보급 요청서">
+      <div class="rh"><span class="bb">REQUISITION FORM</span><small>보급 요청서 · ${esc(me.num)} ${esc(me.name)} · ${me.role === 1 ? '관제팀' : '현장팀'}</small></div>
+      <div class="rl2">${picked.map(x => `<span class="ri"><span>${esc(x.name)}</span><small>× ${cart[x.id]}</small><b class="bb">${x.price * cart[x.id]}</b><button class="rx" data-act="cartDel" data-v="${x.id}" aria-label="${esc(x.name)} 지우기">${ico('x', 12, 2.5)}</button></span>`).join('') || '<span class="re">왼쪽 목록에서 물품을 고르면 이곳에 적힙니다.</span>'}</div>
+      <div class="rf"><span class="rt"><span>합계</span><b class="bb">${total}</b></span><span class="rt2"><span>요청 후 남는 보급품</span><b class="${left < 0 ? 'neg' : ''}">${left}</b></span>
+        ${S.shopErr ? `<p class="err" role="alert" style="margin:0">${esc(S.shopErr)}</p>` : ''}
+        <button class="btn" data-act="cartSubmit" ${dis} ${!picked.length || left < 0 ? 'disabled' : ''}>요청서 제출</button>${picked.length ? '<button class="rcl" data-act="cartClear">요청서 비우기</button>' : ''}
+        ${done ? '<span class="stamp">보급과 승인</span>' : ''}</div>
+    </aside></div></section>`;
+}
 /* ─── 개체 문서 ─── */
 const SEC_NAME = { info: '기본 정보', procedure: '격리 절차', observe: '관찰 기록', incidents: '사고 기록', sealed: '봉인 항목' };
 function viewArchive() {
@@ -2101,9 +2253,10 @@ function formationHTML(r, me) {
   const R = r.radar, from = r.scene ? r.scene.from : 'front';
   const show = R && R.exact && R.detected;
   const ent = `<span class="ent${R && R.detected ? '' : ' hide'}" title="개체">${ico('alert', 16, 2)}<span>${show ? R.dist + 'm' : R && R.detected ? '?' : '없음'}</span></span>`;
-  const card = m => `<span class="fm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}"><span class="ps">${m.broken ? '붕괴' : POSN[m.pos] || ''}</span><b>${esc(m.name)}</b><span class="mini"><i><span style="width:${m.hp / m.hpMax * 100}%"></span></i><i class="s"><span style="width:${m.san / m.sanMax * 100}%"></span></i></span><small class="nums" title="HP ${m.hp}/${m.hpMax}, 정신력 ${m.san}/${m.sanMax}">${m.hp} · ${m.san}</small></span>`;
+  const bar = (lab, v, mx, cls) => { const p = Math.max(0, Math.min(100, v / mx * 100)); return `<span class="vb ${cls}${cls === 'hp' ? (p <= 30 ? ' low' : p <= 60 ? ' mid' : '') : (p <= 30 ? ' low' : '')}"><small>${lab}</small><i><span style="width:${p}%"></span></i><b>${v}<em>/${mx}</em></b></span>`; };
+  const card = m => `<span class="fm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}"><span class="fh"><span class="ps">${m.broken ? '붕괴' : POSN[m.pos] || ''}</span><b>${esc(m.name)}</b></span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}</span>`;
   // 왼쪽이 후미, 오른쪽이 선두. 개체는 오는 쪽 끝에 표시한다.
-  const foe = sd => (r.minions || []).filter(x => x.side === sd).map(x => `<span class="fm foe"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b><span class="mini"><i><span style="width:${x.hp / x.hpMax * 100}%"></span></i></span><small class="nums">${x.hp}/${x.hpMax}</small></span>`).join('');
+  const foe = sd => (r.minions || []).filter(x => x.side === sd).map(x => `<span class="fm foe"><span class="fh"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b></span>${bar('HP', x.hp, x.hpMax, 'hp foe')}</span>`).join('');
   const cards = foe('rear') + line.slice().reverse().map(card).join('') + foe('front');
   const arrow = `<span class="ar">${ico('chevR', 14, 2)}</span>`;
   return `<div class="form"><span class="hh"><span class="bb">FORMATION</span><small>대열, 오른쪽이 진행 방향</small></span>
@@ -2171,6 +2324,12 @@ function opTabs(r) {
     <div class="optabs2" role="tablist" aria-label="작전 목록">${L.map(x => opRowHTML(x, 'opSel', x.op.id === r.op.id)).join('') || '<span class="sub" style="font-size:12px;padding:8px 2px">이 상태의 작전이 없습니다.</span>'}</div></aside>`;
 }
 const opSplit = (r, cls, body) => `<section class="pnl ops split${cls}"><div class="spl">${opTabs(r)}<div class="opdet">${body}</div></div></section>`;
+function opItemsHTML(r, me) {
+  const it = (S.me && S.me.inv && S.me.inv.items) || {}, used = me.itemTurn === r.turn;
+  const L = [['kit', '구급 키트', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', (r.minions || []).length > 0]].filter(([k]) => it[k] > 0);
+  if (!L.length) return '';
+  return `<div class="opitems"><small>소모품${used ? ', 이번 차례에 이미 썼습니다' : ', 차례마다 하나'}</small>${L.map(([k, n, need]) => `<button class="btn g" data-act="opItem" data-v="${k}" ${used || !need ? 'disabled' : ''}>${n} <span class="bb">×${it[k]}</span></button>`).join('')}</div>`;
+}
 function viewOps(rr, parts) {
   const r = rr || curOp();
   if (!r) return `<section class="pnl wip"><span class="bb">OPERATIONS</span><h2>작전</h2><p class="sub" style="font-size:14px;margin:0">${B && B.demo ? '데모 모드에서는 작전을 진행할 수 없습니다. 게임 서버에 접속하십시오.' : '작전 정보를 불러오는 중입니다.'}</p></section>`;
@@ -2211,6 +2370,7 @@ function viewOps(rr, parts) {
       <div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>
       ${formationHTML(r, me)}
       ${me && me.role === 'field' && !me.dead && !me.broken ? movesHTML(r, me) : ''}
+      ${canAct ? opItemsHTML(r, me) : ''}
       ${me && me.role === 'field' ? (canAct ? `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${(r.attacks || []).map(a => attackHTML(a, me, r)).join('')}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
         : `<div class="note">${ico('alert', 18)}<span>${me.dead ? '생체 신호가 끊겼습니다. 작전이 끝나면 재생 수조로 이송됩니다.' : '정신이 붕괴했습니다. 관제팀의 바이탈 안정을 기다리십시오.'}</span></div>`) : ''}
       ${ctl ? `<div class="ctl"><span class="sub">관제 행동은 현장 판정 한 번마다 한 번씩 할 수 있습니다.${me.acted ? ' <b style="color:var(--ink)">다음 현장 판정을 기다리는 중입니다.</b>' : ''}</span>
@@ -2246,7 +2406,7 @@ function viewRoster() {
   <div class="ftabs">${[['all', '전체 ' + all.length], ['field', '현장 ' + nF], ['ctrl', '관제 ' + nC]].map(([k, l]) => `<button data-act="afilter" data-v="${k}" aria-pressed="${(S.afilter || 'all') === k}">${l}</button>`).join('')}</div>
   <div class="alist">${list.map(a => { const c = a.contamination || 0; return `<button class="arow" data-act="sel" data-v="${esc(a.uid)}" aria-pressed="${a.uid === sel}">
     <span class="ph">${portrait(a)}</span>
-    <span class="t"><span class="top1"><b>${esc(a.name)}</b><small>${roleTitle(a.role)}${a.uid === S.user.uid ? ', 나' : ''}</small><span class="st${isOnline(a) ? '' : ' off'}">${isOnline(a) ? '접속 중' : '오프라인'}</span></span>
+    <span class="t"><span class="top1"><b>${esc(a.name)}</b><small>${a.inv && a.inv.title && SHOPN[a.inv.title] ? '「' + esc(SHOPN[a.inv.title]) + '」 ' : ''}${roleTitle(a.role)}${a.uid === S.user.uid ? ', 나' : ''}</small><span class="st${isOnline(a) ? '' : ' off'}">${isOnline(a) ? '접속 중' : '오프라인'}</span></span>
       <span class="cb">오염도${bars(Math.round(c / contLim(a) * 10))}<b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b></span></span></button>`; }).join('') || '<span class="empty">해당하는 요원이 없습니다.</span>'}</div>
 </div>`;
 }
@@ -2264,6 +2424,7 @@ function viewAgentDetail() {
   const sel = S.agents.find(a => a.uid === (S.sel || S.user.uid)) || S.me;
   if (!sel) return '';
   const tl = traitsOfA(sel), mine = sel.uid === S.user.uid, tr = tl[0] ? TRAITS[tl[0].id] : null, mods = statMods(sel.stats, tl), dv = derived(sel.stats, tl), c = sel.contamination || 0, st = stateOf(sel);
+  if (sel.gear) { dv.hp += sel.gear.hp || 0; dv.san += sel.gear.san || 0; dv.lim += sel.gear.lim || 0; }
   const skills = Object.entries(sel.skills || {});
   return `<section class="pnl detail" aria-label="요원 상세">
   <div class="hero">${mine ? `<div class="ph phbtn${S.photoMenu ? ' open' : ''}" role="button" tabindex="0" data-act="photoMenu" aria-label="외관 사진 바꾸기" aria-expanded="${S.photoMenu ? 'true' : 'false'}">${photoBox(sel, true)}
@@ -2355,14 +2516,13 @@ function msgHTML(m, me, first) {
 const GM_TABS = [['agents', '요원'], ['ops', '작전'], ['sector', '섹터'], ['notice', '공지·사건']];
 function gmCurOp() { const L = Object.values(S.ops || {}); return (S.gmOp && S.ops[S.gmOp]) || L.find(r => r.status === 'live') || L[0]; }
 function viewGM() {
-  return `<div class="gm">
-  <header class="top"><span class="logo">${LOGO(30)}<span class="bb w" style="font-size:26px">GM<span>CONSOLE</span></span></span><span class="sep"></span>
-    <nav class="gmtabs">${GM_TABS.map(([k, l]) => `<button data-act="gmTab" data-v="${k}" aria-pressed="${S.gmTab === k}">${l}</button>`).join('')}</nav>
-    <span class="tools">${S.me ? `<button class="btn s g" data-act="toLobby">요원 화면으로</button>` : ''}<button class="ib" data-act="theme" aria-label="화면 밝기 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span></header>
-  <div class="gmbody">
-    <main class="gmmain" id="gmMain">${gmMainHTML()}</main>
-    <div class="gmside" id="gmChat">${viewChat()}</div>
-  </div>
+  // 요원이 없는 GM 계정: 빈 배경 위에 GM 도구를 작전 팝업과 같은 크기의 창으로 띄운다
+  return `<div class="gm gmstage">
+  <div class="opmodal gmmodal on"><div class="opm-box gm-box" role="dialog" aria-label="GM 도구">
+    <div class="gmm-head"><span class="logo">${LOGO(26)}<span class="bb gmt">GM<span>CONSOLE</span></span></span><nav class="gmtabs2" role="tablist" id="gmTabs">${gmTabsHTML()}</nav>
+      <span class="tools">${S.me ? `<button class="btn s g" data-act="toLobby">요원 화면으로</button>` : `<button class="btn s" data-act="gmMakeAgent">${ico('plus', 14, 2)}요원 만들기</button>`}<button class="ib" data-act="theme" aria-label="화면 밝기 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span></div>
+    <div class="gmbody2"><main class="gmmain" id="gmMain">${gmMainHTML()}</main><div class="gmside" id="gmChat">${viewChat()}</div></div>
+  </div></div>
   <div class="toast" id="toast" aria-live="polite"></div>
 </div>`;
 }
@@ -2375,7 +2535,7 @@ function gmMainHTML() {
 }
 // 실시간 갱신: 입력 중인 칸은 건드리지 않는다
 function refreshGM(force) {
-  if (S.phase !== 'gm') return;
+  if (S.phase !== 'gm' && !S.gmOpen) return;
   if (S.gmTab === 'agents') setHTML('gmList', gmAgentListHTML());
   else if (S.gmTab === 'ops') { const el = document.getElementById('gmOpLive'); if (el) { const h = gmOpLiveHTML(); if (force || el._h !== h) { el.innerHTML = h; el._h = h; const lg = el.querySelector('.oplog'); if (lg) lg.scrollTop = lg.scrollHeight; } } setHTML('gmOpTabs', gmOpTabsHTML()); }
   const tb = document.getElementById('chatTabs'); if (tb) tb.innerHTML = chatTabsHTML();
@@ -2534,6 +2694,7 @@ function refreshTicker() { const t = app.querySelector('.ticker .tr span'); cons
 function refreshLobby() {
   if (S.phase === 'gm') return refreshGM();
   if (S.phase !== 'lobby') return;
+  if (S.gmOpen) refreshGM();
   const wait = animUntil - Date.now();
   if (wait > 0) { if (!refreshT) refreshT = setTimeout(() => { refreshT = null; refreshLobby(); }, wait + 30); return; }
   setHTML('center', viewCenter()); setHTML('colL', viewLeft()); if (S.me) setHTML('resBar', resHTML(S.me.res || START_RES)); syncMode();
@@ -2545,7 +2706,7 @@ function render() {
   else if (S.phase === 'login') app.innerHTML = viewLogin();
   else if (S.phase === 'create') app.innerHTML = viewCreate();
   else if (S.phase === 'issued') { app.innerHTML = viewIssued(); setTimeout(() => app.querySelector('[data-act=enter]')?.focus({ preventScroll: true }), calm() ? 0 : 2700); }
-  else if (S.phase === 'gm') { const first = lastPhaseDrawn !== 'gm'; app.innerHTML = viewGM(); scrollChat(); lastPhaseDrawn = 'gm'; if (first) requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl, #gmChat .pnl')], 0.1)); }
+  else if (S.phase === 'gm') { const first = lastPhaseDrawn !== 'gm'; app.innerHTML = viewGM(); fitModal(); scrollChat(); lastPhaseDrawn = 'gm'; if (first) requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl, #gmChat .pnl')], 0.1)); }
   else if (S.phase === 'lobby') { const first = lastPhaseDrawn !== 'lobby'; app.innerHTML = viewShell(); setTimeout(syncMode, 0);
     if (first) { lastPhaseDrawn = 'lobby'; requestAnimationFrame(() => { syncMode(); lastLeft = leftKind(); drawPanels([...leftPanels(), ...centerPanels(), ...app.querySelectorAll('#colR .pnl')], 0.1); }); } ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
@@ -2562,10 +2723,30 @@ function opChatHTML(r) {
   }).join('') || '<span class="empty first">작전 참가자끼리만 보이는 채팅입니다.</span>';
 }
 function fitModal() {
-  const box = document.querySelector('.opm-box'); if (!box) return;
-  if (mobile()) { box.style.removeProperty('--s'); return; }
-  const k = Math.min(1, (innerWidth - 32) / 1280, (innerHeight - 32) / 760);
-  box.style.setProperty('--s', k.toFixed(3));
+  document.querySelectorAll('.opm-box').forEach(box => {
+    if (mobile()) { box.style.removeProperty('--s'); return; }
+    const k = Math.min(1, (innerWidth - 32) / 1280, (innerHeight - 32) / 760);
+    box.style.setProperty('--s', k.toFixed(3));
+  });
+}
+// GM 도구 팝업: 요원이 있는 GM 계정은 요원 화면 위에 작전 팝업처럼 띄운다
+function gmTabsHTML() { return GM_TABS.map(([k, l]) => `<button role="tab" data-act="gmTab" data-v="${k}" aria-selected="${S.gmTab === k}">${l}</button>`).join(''); }
+function syncGMModal() {
+  const host = document.getElementById('gmModal'); if (!host) return;
+  if (!S.gmOpen) { if (host.classList.contains('on')) { host.innerHTML = ''; host.classList.remove('on'); if (!myModalOp()) document.body.classList.remove('modal-open'); } return; }
+  if (!host.classList.contains('on')) {
+    host.classList.add('on'); document.body.classList.add('modal-open');
+    host.innerHTML = `<div class="opm-box gm-box" role="dialog" aria-modal="true" aria-label="GM 도구">
+      <div class="gmm-head"><span class="bb gmt">GM<span>CONSOLE</span></span><nav class="gmtabs2" role="tablist" id="gmTabs">${gmTabsHTML()}</nav><button class="btn s g" data-act="gmClose">${ico('x', 14, 2)}닫기</button></div>
+      <main class="gmmain" id="gmMain">${gmMainHTML()}</main></div>`;
+    fitModal();
+  }
+}
+// GM 화면 다시 그리기: 콘솔이면 전체, 팝업이면 본문만
+function gmRender() {
+  if (S.phase === 'gm') return render();
+  const m = document.getElementById('gmMain'), tb = document.getElementById('gmTabs');
+  if (tb) tb.innerHTML = gmTabsHTML(); if (m) { m.innerHTML = gmMainHTML(); m._h = null; }
 }
 addEventListener('resize', fitModal);
 function syncModal() {
@@ -2595,7 +2776,7 @@ function syncModal() {
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
 }
 function syncMode() {
-  syncModal();
+  syncModal(); syncGMModal();
   const sh = app.querySelector('.shell'); if (!sh) return;
   const r = curOp(), live = !!(r && r.status === 'live');
   const mine = Object.values(S.ops || {}).some(x => x.status === 'live' && x.members.some(m => m.uid === S.user.uid));
@@ -2733,16 +2914,16 @@ app.addEventListener('click', e => {
     case 'issue': return issue();
     case 'enter': return enterLobby();
     // 로비
-    case 'view': { S.view = v; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0);
+    case 'view': { S.view = v; S.reveal = false; S.framePrev = null; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0);
       requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return; }
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
-    case 'opJoin': case 'opLeave': case 'opReady': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
+    case 'opJoin': case 'opLeave': case 'opReady': case 'opItem': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
       const r = (t.closest('#opModal') && myModalOp()) || curOp(); if (!r) return;
       if (a === 'opAbort' && !confirmAbort(t)) return;
       if (a === 'opCtl' && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
-      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
-      const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
+      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opItem: 'op:item', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
+      const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opItem') m.item = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
       S.opErr = ''; app.querySelectorAll('[data-act^="op"]').forEach(b => b.disabled = true);
       B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); renderCenter(); });
       return;
@@ -2758,8 +2939,20 @@ app.addEventListener('click', e => {
         .catch(err => { S.baseErr = errMsg(err); }).finally(() => { S.baseBusy = false; refreshLobby(); }); return;
     case 'modalHide': { const r = myModalOp(); if (r) S.modalHide = r.id; syncModal(); return; }
     case 'baseRollOk': S.baseRoll = null; return renderCenter();
+    case 'framePrev': S.framePrev = S.framePrev === v ? null : v; return refreshLobby();
+    case 'shopJump': { const el = document.getElementById('sec-' + v); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    case 'cartQ': { const c = S.cart = S.cart || {}; c[v] = Math.max(0, (c[v] || 0) + Number(t.dataset.k)); if (!c[v]) delete c[v]; S.shopErr = ''; return renderCenter(); }
+    case 'cartT': { const c = S.cart = S.cart || {}; if (c[v]) delete c[v]; else c[v] = 1; S.shopErr = ''; return renderCenter(); }
+    case 'cartDel': if (S.cart) delete S.cart[v]; return renderCenter();
+    case 'cartClear': S.cart = {}; S.shopErr = ''; return renderCenter();
+    case 'cartSubmit': case 'shopEquip': {
+      S.shopErr = ''; S.shopBusy = true; renderCenter();
+      const p = a === 'cartSubmit' ? B.shopOrder(S.cart || {}) : B.shopEquip(t.dataset.k, t.dataset.t || null, v || null);
+      p.then(j => { if (j && j.agent) S.me = j.agent; if (a === 'cartSubmit') { S.cart = {}; S.orderDone = Date.now(); setTimeout(() => renderCenter(), 5100); } }).catch(err => { S.shopErr = errMsg(err); }).finally(() => { S.shopBusy = false; refreshLobby(); });
+      return;
+    }
     case 'baseSel': S.baseSel = v; S.taskPick = null; S.baseErr = ''; return renderCenter();
-    case 'taskPick': S.taskPick = v ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
+    case 'taskPick': S.taskPick = v && !(S.taskPick && S.taskPick.id === t.dataset.t && S.taskPick.kind === v) ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
     case 'taskGo': case 'taskCancel': case 'taskAck': {
       if (a === 'taskCancel' && !S.taskCancelAsk) { S.taskCancelAsk = true; renderCenter(); setTimeout(() => { S.taskCancelAsk = false; renderCenter(); }, 4000); return; }
       S.baseErr = ''; S.baseBusy = true; S.taskCancelAsk = false; renderCenter();
@@ -2785,10 +2978,12 @@ app.addEventListener('click', e => {
     case 'dmBack': S.dmWith = null; { const col = document.getElementById(S.phase === 'gm' ? 'gmChat' : 'colR'); col.innerHTML = viewChat(); } return;
     case 'dmInbox': S.chan = 'dm'; S.dmWith = null; if (mobile()) { S.chatOpen = true; render(); } else { const col = document.getElementById('colR'); if (col) col.innerHTML = viewChat(); } return;
     case 'dmTo': if (mobile()) { S.chatOpen = true; render(); } return dmOpen(v);
-    case 'toGM': return enterGM();
+    case 'toGM': if (S.me && S.phase === 'lobby') { S.gmOpen = true; S.gmTab = S.gmTab || 'agents'; return syncGMModal(); } return enterGM();
+    case 'gmClose': S.gmOpen = false; return syncGMModal();
+    case 'gmMakeAgent': B.getDraft().then(d => { S.c = freshCreate(d); S.phase = 'create'; render(); }).catch(err => { S.gmMsg = errMsg(err); gmRender(); }); return;
     case 'toLobby': S.phase = 'lobby'; S.chan = 'all'; S.dmWith = null; S.view = 'home'; return render();
-    case 'gmTab': S.gmTab = v; S.gmMsg = ''; render(); return requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl')]));
-    case 'gmSel': S.gmSel = v; S.gmMsg = ''; return render();
+    case 'gmTab': S.gmTab = v; S.gmMsg = ''; gmRender(); return requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl')]));
+    case 'gmSel': S.gmSel = v; S.gmMsg = ''; return gmRender();
     case 'gmOpSel': S.gmOp = v; return refreshGM(true);
     case 'gmOp': { const r = gmCurOp(); if (!r) return; const b = { op: r.op.id, act: v };
       if (v === 'dist') b.v = +(app.querySelector('[data-gm=dist]') || {}).value;
@@ -2799,7 +2994,7 @@ app.addEventListener('click', e => {
       B.gmOp(b).then(() => { S.gmMsg = ''; }).catch(err => { S.gmMsg = errMsg(err); refreshGM(true); }); return; }
     case 'gmEnt': { const row = t.closest('[data-ent]'), id = row.dataset.ent, q = k => row.querySelector(`[data-k=${k}]`);
       const b = { id, stability: +q('stab').value, captured: q('cap').checked, obs: +q('obs').value }; if (t.dataset.v === 'unlock') b.unlock = true;
-      B.gmEntity(b).then(() => { S.gmMsg = id + ' 저장했습니다.'; render(); }).catch(err => { S.gmMsg = errMsg(err); render(); }); return; }
+      B.gmEntity(b).then(() => { S.gmMsg = id + ' 저장했습니다.'; gmRender(); }).catch(err => { S.gmMsg = errMsg(err); gmRender(); }); return; }
     case 'chat': S.chatOpen = !S.chatOpen; S.unread = 0; app.querySelector('.shell')?.classList.toggle('chatopen', S.chatOpen); document.getElementById('colR').classList.toggle('open', S.chatOpen); refreshFab(); if (S.chatOpen) { scrollChat(); document.getElementById('chatIn')?.focus(); } return;
   }
 });
@@ -2929,7 +3124,7 @@ app.addEventListener('submit', async e => {
     b.stats = SN.map((_, i) => n('st' + i)); b.skills = Object.fromEntries(SKILLS.map(([k]) => [k, n('sk_' + k)]));
     b.res = { supply: n('supply'), research: n('research'), pass: n('pass') }; b.contamination = n('cont'); b.career = n('career'); b.statPts = n('pts');
     if (f.querySelector('[name=clearRegen]')?.checked) b.clearRegen = true; if (f.querySelector('[name=clearQuar]')?.checked) b.clearQuar = true;
-    try { await B.gmAgent(b); S.gmMsg = '저장했습니다.'; } catch (err) { S.gmMsg = errMsg(err); } render();
+    try { await B.gmAgent(b); S.gmMsg = '저장했습니다.'; } catch (err) { S.gmMsg = errMsg(err); } gmRender();
   }
   if (kind === 'gmNarr') {
     const r = gmCurOp(), inp = f.text, text = inp.value.trim(); if (!r || !text) return;
@@ -2939,7 +3134,7 @@ app.addEventListener('submit', async e => {
     const b = { text: f.text.value.trim(), kind: kind === 'gmNotice' ? 'notice' : 'gm' };
     if (f.voice) b.voice = f.voice.value.trim(); if (f.entity) b.entity = f.entity.value; if (f.level) b.level = f.level.value;
     if (!b.text) return;
-    try { await B.gmEvent(b); S.gmMsg = kind === 'gmNotice' ? '공지를 띄웠습니다.' : '섹터 사건을 기록했습니다.'; f.reset(); } catch (err) { S.gmMsg = errMsg(err); } render();
+    try { await B.gmEvent(b); S.gmMsg = kind === 'gmNotice' ? '공지를 띄웠습니다.' : '섹터 사건을 기록했습니다.'; f.reset(); } catch (err) { S.gmMsg = errMsg(err); } gmRender();
   }
   if (kind === 'chat') {
     const inp = f.text, text = inp.value.trim(); if (!text) return;
