@@ -677,6 +677,9 @@ function runOut(r, viewer, gm) {
     : { exact: false, from: sc.from, detected: r.dist <= RADAR_RANGE, near: r.dist <= 10 }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
       patrol: !!o.patrol, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
+    steps: live ? o.scenes.map((x, i) => o.patrol ? (x.fork ? '갈림길' : i === o.scenes.length - 1 ? '승강기' : i <= r.scene ? x.title.replace(/ \(하층.*$/, '') : '구역') : x.title) : null,
+    eta: live ? (() => { const ev = Math.max(1.5, (o.countEvery || COUNT_EVERY) * scaleOf(r).every); return Math.max(0, Math.round(r.count * ev - (r.turn % ev))); })() : null,
+    ent: live ? (() => { const st = sightStage(r.dist), c = o.contact || {}; return { name: o.entity, threat: o.threat, stage: st, obs: o.forms.slice(0, st + 1), total: o.forms.length, contact: { hp: c.hp || 0, san: c.san || 0, count: c.count || 0 } }; })() : null,
     status: r.status, scene: live ? { idx: r.scene, bg: sc.bg || null, title: sc.title, text: sc.text, from: sc.from,
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
@@ -1034,7 +1037,7 @@ function entityStep(r) {
   const L = lineOf(r); if (!L.length) return;
   const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
   const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san);
-  say(r, c.text.replace('{name}', t.name), { kind: 'contact', uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
+  say(r, c.text.replace('{name}', t.name), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
   applyFx(r, t, c);
   r.dist = o.recoil || RECOIL_M;
 }

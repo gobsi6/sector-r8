@@ -1463,6 +1463,117 @@ body.modal-open{overflow:hidden}
 .choice2.r1{box-shadow:inset 0 0 0 1px var(--red)}
 .choice2.r1[data-armed]{background:color-mix(in srgb,var(--red) 14%,transparent)}
 .lg.raven{border-color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent);font-weight:700}
+/* ───────── 작전 화면 개편: 단계 · 무대 · 진행 막대 · 대열 카드 · 조우 카드 ───────── */
+.stage .prog{flex-wrap:wrap;row-gap:6px}
+.prog .steps{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.prog .sp{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);white-space:nowrap;flex:none}
+.prog .sp em{width:18px;height:18px;display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:800;box-shadow:inset 0 0 0 1.5px var(--tileLine)}
+.prog .sp.done{color:var(--navyLine)}.prog .sp.done em{background:color-mix(in srgb,var(--navyLine) 30%,transparent);box-shadow:none;color:var(--ink)}
+.prog .sp.now{color:var(--ink);font-weight:800}.prog .sp.now em{background:var(--navyLine);color:#0D1A1E;box-shadow:0 0 0 3px color-mix(in srgb,var(--navyLine) 25%,transparent)}
+.prog .sbar{flex:1 1 16px;min-width:8px;height:2px;background:var(--tileLine)}.prog .sbar.on{background:color-mix(in srgb,var(--navyLine) 55%,transparent)}
+.stage .cnt em{font-style:normal;font-size:11px;color:var(--sub)}
+.stg{position:relative;display:block}
+.stg.has-enc .cctv.big{min-height:540px}.stg.fx-contact .sideov{opacity:.15;transition:opacity .2s}
+.stg .cctv.big{min-height:400px;padding-top:40px;justify-content:flex-start;background-color:#0B1012}
+.stg .cctv.big .cap2{max-width:min(470px,calc(100% - 330px));margin:6px 0 0 14px;padding:10px 12px;background:rgba(6,9,10,.66);gap:5px}
+.stg .cctv.big .cap2>b{font-size:22px}
+.stg .goal{align-self:flex-start;margin-top:3px;padding:6px 10px;font-size:13px;line-height:1.45;background:rgba(10,20,23,.85);box-shadow:inset 0 0 0 1px var(--navyLine)}.stg .goal b{font-size:13px;color:#8FC3D3;margin-right:6px}
+.stg .foes{position:absolute;left:14px;bottom:78px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;z-index:2}
+.sfoe{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:7px 11px;background:rgba(20,8,8,.88);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 70%,transparent);font-size:12px}
+.sfoe i{width:8px;height:8px;background:var(--red);align-self:center;animation:ping 1.4s ease-in-out infinite}.sfoe b{font-size:13px}.sfoe small{color:var(--sub);font-size:11px}
+.sfoe em{font-style:normal;font-size:11px;font-weight:700;padding:1px 7px;color:#FF8A80;background:rgba(229,87,79,.14);box-shadow:inset 0 0 0 1px rgba(229,87,79,.6)}
+.sfoe em.it-scream{color:#E7B3E0;background:rgba(200,107,176,.14);box-shadow:inset 0 0 0 1px rgba(200,107,176,.6)}.sfoe em.it-call{color:#F0C774;background:rgba(217,164,65,.14);box-shadow:inset 0 0 0 1px rgba(217,164,65,.6)}
+.sfoe em.it-brace,.sfoe em.it-stun{color:var(--sub);background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}.sfoe em.it-unknown{color:#F0C774}
+.sfoe.hit{animation:hitShake .45s ease-in-out}
+.sideov{position:absolute;top:40px;right:12px;width:300px;display:flex;flex-direction:column;gap:8px;z-index:3}
+.sideov .radar{width:auto;flex-direction:row;align-items:center;gap:12px;padding:8px 10px;background:rgba(10,14,15,.84);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.sideov .radar .hh{display:none}.sideov .scope{width:78px;height:78px}.sideov .radar .rd{text-align:left;flex:1}
+/* 진행 막대: 대열 전원이 선두부터 후미까지 늘어선다 (오른쪽이 진행 방향) */
+.strip{position:absolute;left:0;right:0;bottom:0;height:74px;padding:0 26px;background:linear-gradient(180deg,transparent,rgba(5,8,9,.94) 40%);z-index:2}
+.strip .trk{position:absolute;left:26px;right:26px;top:30px;height:8px;background:rgba(255,255,255,.1)}.strip .trk .done{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--navyLine) 55%,transparent)}
+.strip>span:not(.trk):not(.sl){position:absolute;top:0;bottom:0;width:0}
+.strip .sm i,.strip .sf i,.strip .se.exact i,.strip .sg i{position:absolute;top:34px;transform:translate(-50%,-50%)}
+.strip .sm i{width:12px;height:12px;background:var(--navyLine);box-shadow:0 0 0 2px #0B1012}
+.strip .sm.me i{width:16px;height:16px;background:#EDEDEB;box-shadow:0 0 0 3px var(--navyLine)}
+.strip .sm.brk i{background:#C86BB0}
+.strip .sm b,.strip .sm small{position:absolute;left:0;transform:translateX(-50%);white-space:nowrap;line-height:1}
+.strip .sm b{top:46px;font-size:11px;color:#CFE6EE;max-width:58px;overflow:hidden;text-overflow:ellipsis}.strip .sm.me b{color:#fff}
+.strip .sm small{top:59px;font-size:9px;color:var(--navyLine);font-weight:800}
+.strip .sf i{width:12px;height:12px;background:var(--red);transform:translate(-50%,-50%) rotate(45deg)}.strip .sf small{position:absolute;top:10px;left:4px;font-size:10px;color:#FF8A80}
+.strip .sg{left:calc(100% - 26px)}.strip .sg i{width:6px;height:26px;background:#8FC3D3}.strip .sg small{position:absolute;right:6px;top:4px;white-space:nowrap;font-size:11px;font-weight:800;color:#8FC3D3}
+.strip .se.exact i{width:14px;height:14px;background:rgba(229,87,79,.3);box-shadow:inset 0 0 0 2px var(--red)}.strip .se.exact small{position:absolute;top:8px;left:0;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#FF8A80}
+.strip .se.zone{top:22px;bottom:auto;height:24px;width:auto;background:rgba(229,87,79,.1);box-shadow:inset 0 0 0 1px rgba(229,87,79,.45)}
+.strip .se.zone.front{left:72%;right:30px}.strip .se.zone.rear{left:26px;right:auto;width:16%}
+.strip .se.zone small{position:absolute;top:-16px;left:0;white-space:nowrap;font-size:10px;color:#FF8A80}
+.strip .sl{position:absolute;right:26px;bottom:6px;font-size:11px;color:#8FC3D3}
+/* 조우 카드 */
+.enc{background:rgba(14,8,8,.92);box-shadow:inset 0 0 0 1px rgba(229,87,79,.55),0 10px 30px rgba(0,0,0,.5);display:flex;flex-direction:column}
+.enc .eh{display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(90deg,rgba(229,87,79,.28),rgba(229,87,79,.05))}.enc .eh .bb{font-size:14px;letter-spacing:.12em;color:#FF8A80}
+.enc .eh em{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;color:#FF8A80;background:rgba(229,87,79,.14);box-shadow:inset 0 0 0 1px #E5574F}
+.enc .en{display:flex;align-items:baseline;gap:6px;padding:8px 12px 4px}.enc .en .bb{font-size:20px;font-weight:400}.enc .en b{font-size:15px}.enc .en small{margin-left:auto;font-size:12px;color:var(--sub)}.enc .en small b{font-size:14px;color:var(--red)}
+.enc .obs{display:flex;flex-direction:column;gap:5px;margin:4px 12px 10px;padding:8px 10px;background:rgba(255,255,255,.04)}.enc .obs>small{font-size:11px;font-weight:700;color:var(--sub)}
+.enc .ob{display:grid;grid-template-columns:50px 1fr;gap:8px;font-size:12px;line-height:1.45}.enc .ob b{font-size:11px;color:#E5574F}.enc .ob.lock{opacity:.45}.enc .ob.lock b{color:var(--sub)}
+.enc .ectc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 12px 10px;font-size:11px;color:var(--sub)}
+/* 테두리 꼬리표: 수치 변화·상태 */
+.tg{font-style:normal;font-size:11px;font-weight:700;padding:1px 7px;white-space:nowrap}
+.tg.hp{color:#FF8A80;background:rgba(229,87,79,.14);box-shadow:inset 0 0 0 1px #E5574F}
+.tg.sn{color:#C9B6F2;background:rgba(154,127,209,.16);box-shadow:inset 0 0 0 1px #9A7FD1}
+.tg.ct{color:#F0C774;background:rgba(217,164,65,.14);box-shadow:inset 0 0 0 1px #D9A441}
+.tg.gd{color:#8FC3D3;background:rgba(94,159,179,.14);box-shadow:inset 0 0 0 1px var(--navyLine)}
+/* 대열 카드 */
+.party .pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.party .fm.pc{width:auto;flex:none;padding:10px 12px;gap:6px}
+.party .fm.pc .fh b{font-size:15px}.party .fm.pc .mi{font-size:10px;font-weight:800;padding:1px 6px;background:var(--navyLine);color:#0D1A1E}
+.party .fm.pc.me{background:linear-gradient(180deg,color-mix(in srgb,var(--navyLine) 16%,var(--faint)),var(--faint));box-shadow:inset 0 0 0 2px var(--navyLine)}
+.party .fm.pc .pcx{display:flex;gap:4px;flex-wrap:wrap;align-items:center;min-height:18px}.party .fm.pc .pcx small{font-size:10px;color:var(--sub);margin-right:2px}
+.party .fm.pc.broken{opacity:.75;box-shadow:inset 0 0 0 1.5px #C86BB0}
+/* 방금 일어난 일 */
+.recap{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.recap .hh b{font-size:12px;color:var(--navyLine)}
+.recap .rc{font-size:13px;line-height:1.5;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}.recap .rc .tg{font-size:10px}
+.recap .rc.k-contact,.recap .rc.k-death{color:#FFB4AC}.recap .rc.k-warn{color:#E8D6A8}.recap .rc.k-kill{color:#B9E3C6}
+/* 연출: 가까이 있으면 노이즈가 불안하게 출렁이고, 접촉하면 무대가 크게 흔들린다 */
+.cctv .tear{position:absolute;left:0;right:0;opacity:0;pointer-events:none;z-index:1}
+.cctv .tear.t1{top:22%;height:7%;background:repeating-linear-gradient(90deg,rgba(220,235,232,.35) 0 3px,transparent 3px 9px);mix-blend-mode:screen}
+.cctv .tear.t2{top:58%;height:4%;background:rgba(229,87,79,.35);mix-blend-mode:screen}
+.cctv .tear.t3{top:71%;height:10%;background:repeating-linear-gradient(0deg,rgba(220,235,232,.25) 0 1px,transparent 1px 3px)}
+.cctv .flash{position:absolute;inset:0;background:#FFE3DF;mix-blend-mode:overlay;opacity:0;pointer-events:none;z-index:1}
+@keyframes stgShake{0%,100%{transform:none}6%{transform:translate(-14px,6px) rotate(-.6deg)}12%{transform:translate(12px,-8px) rotate(.5deg)}18%{transform:translate(-9px,4px)}24%{transform:translate(7px,-3px)}30%{transform:translate(-4px,2px)}36%{transform:translate(2px,-1px)}44%{transform:none}}
+@keyframes stgHit{0%,100%{transform:none}15%{transform:translate(-5px,2px)}30%{transform:translate(4px,-2px)}45%{transform:translate(-2px,1px)}60%{transform:none}}
+@keyframes nzBurst{0%{opacity:1}30%{opacity:.95}60%{opacity:.6}100%{opacity:.42}}
+@keyframes tearCx{0%{opacity:1;transform:translateX(-30px)}10%{opacity:1;transform:translateX(24px)}22%{opacity:.8;transform:translateX(-12px)}36%,100%{opacity:0}}
+@keyframes flashCx{0%{opacity:.75}18%{opacity:.25}45%,100%{opacity:0}}
+@keyframes ctxIn{0%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}10%{opacity:1;transform:translate(-50%,-50%) scale(1)}85%{opacity:1}100%{opacity:0}}
+@keyframes ctxRgb{0%,30%,100%{text-shadow:0 0 18px rgba(229,87,79,.9),2px 0 #E5574F,-2px 0 #5E9FB3}8%{text-shadow:0 0 18px rgba(229,87,79,.9),10px 0 #E5574F,-10px 0 #5E9FB3}}
+@keyframes nzUneasy{0%,100%{opacity:.5}45%{opacity:.62}50%{opacity:.85}52%{opacity:.55}80%{opacity:.7}}
+@keyframes jit{0%,48%,51%,86%,88%,100%{transform:none}49%{transform:translate(3px,-1px)}50%{transform:translate(-4px,1px)}87%{transform:translate(-2px,0)}}
+@keyframes tearNear{0%,47%,53%,100%{opacity:0}49%{opacity:.9;transform:translateX(-14px)}51%{opacity:.7;transform:translateX(10px)}}
+.stg.fx-contact .cctv{animation:stgShake 1.4s cubic-bezier(.2,.7,.3,1) 1}
+.stg.fx-contact .cctv .nz::before{animation:camGrain .5s steps(5) infinite,nzBurst 1.4s ease-out 1 forwards}
+.stg.fx-contact .cctv::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 55% 45%,rgba(229,87,79,.3),rgba(120,10,10,.5) 75%);mix-blend-mode:multiply;pointer-events:none;z-index:1}
+.stg.fx-contact .tear{animation:tearCx 1.2s steps(6) 1}.stg.fx-contact .tear.t2{animation-delay:.08s}.stg.fx-contact .tear.t3{animation-delay:.04s}
+.stg.fx-contact .flash{animation:flashCx 1.2s 1}
+.stg.fx-hit .cctv{animation:stgHit .5s ease-out 1}
+.stg.fx-near .cctv{animation:jit 2.6s infinite}.stg.fx-near .cctv .nz::before{animation:camGrain .5s steps(5) infinite,nzUneasy 2.6s infinite}.stg.fx-near .tear{animation:tearNear 2.6s steps(3) infinite}
+.stg .ctx{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;z-index:4;animation:ctxIn 1.6s ease-out 1 forwards}
+.stg .ctx .bb{font-size:44px;letter-spacing:.18em;color:#FFDAD6;animation:ctxRgb 1.2s steps(3) 1}
+.stg .ctx>span{padding:7px 14px;background:rgba(14,6,6,.88);box-shadow:inset 0 0 0 1px #E5574F;font-size:14px;width:max-content;max-width:min(560px,86vw)}.stg .ctx .tgs{display:flex;gap:6px;padding:0;background:none;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.stg .cctv,.stg .cctv *,.stg .ctx,.stg .ctx *{animation:none!important}.stg .tear,.stg .flash{display:none}}
+@media (max-width:999px){
+  .stg .cctv.big,.stg.has-enc .cctv.big{min-height:0;padding-bottom:84px}
+  .stg .cctv.big .cap2{max-width:none;margin:6px 10px 0}
+  .stg .foes{position:static;margin:8px 10px 0}
+  .sideov{position:static;width:auto;margin-top:8px}
+  .sideov .radar{background:var(--tile)}
+  .strip{padding:0 16px}.strip .trk{left:16px;right:16px}.strip .sl{right:16px}
+  .stg .ctx .bb{font-size:30px}
+  .prog .sp:not(.now) b{display:none}
+  .prog .steps{flex:1 1 100%}.stage .prog .cnt{margin-left:0;flex-wrap:wrap;row-gap:2px}
+  .party .pcs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* 각진 UI: 모서리를 둥글리지 않는다 (레이더 원판만 예외) */
+*:not(.scope),*::before,*::after{border-radius:0!important}
+.scope{border-radius:50%!important}
 </style>
 </head>
 <body>
@@ -1654,6 +1765,12 @@ function serverBackend() {
         (r.minions || []).forEach(x => { const q = (old.minions || []).find(y => y.id === x.id); if (q && x.hp !== q.hp) fx['m' + x.id] = { hp: x.hp - q.hp }; });
         const gone = (old.minions || []).filter(q => !(r.minions || []).some(x => x.id === q.id));
         if (Object.keys(fx).length || gone.length) { r._fx = fx; r._gone = gone; r._fxAt = Date.now(); setTimeout(() => { if (ops.get(r.op.id) === r) emitO(); }, 1700); }
+        // 개체 접촉: 무대가 크게 흔들리고 노이즈가 폭주한다 (1.6초)
+        const lastT = old.log && old.log.length ? old.log[old.log.length - 1].t : 0;
+        const hit = (r.log || []).filter(L => L.t > lastT && L.kind === 'contact' && L.ent).pop();
+        if (hit) { r._cx = { at: Date.now(), text: hit.text, fx: hit.fx || {} }; setTimeout(() => { if (ops.get(r.op.id) === r) emitO(); }, 1700); }
+        else if (old._cx && Date.now() - old._cx.at < 1600) r._cx = old._cx;
+        if (!r._fx && old._fxAt && Date.now() - old._fxAt < 1600) { r._fx = old._fx; r._gone = old._gone; r._fxAt = old._fxAt; }
       }
       if (r.deadline) r._dl = Date.now() + (r.deadline - (r.now || Date.now()));
       ops.set(r.op.id, r); emitO();
@@ -2441,6 +2558,108 @@ function whereLine(r) {
   parts.push(left <= 6 ? `${jo2(end.label, '이', '가')} 바로 앞이다.` : `${end.label}까지 약 ${Math.round(left / 5) * 5}m 남았다.`);
   return `<span class="see"><b>위치</b>${esc(parts.join(' '))}</span>`;
 }
+// ───────── 작전 화면: 단계 · 무대 · 진행 막대 · 대열 카드 · 조우 카드 · 방금 일어난 일 ─────────
+// 작전 단계: 지금 어디쯤인지와 실패 조건을 한 줄로
+function stepsHTML(r, cnt) {
+  const st = r.steps || [], i = r.scene.idx;
+  const steps = st.map((t, k) => `${k ? `<i class="sbar${k <= i ? ' on' : ''}"></i>` : ''}<span class="sp${k < i ? ' done' : k === i ? ' now' : ''}"><em>${k < i ? '✓' : k + 1}</em><b>${esc(t)}</b></span>`).join('');
+  return `<span class="prog"><span class="steps">${steps || `<span class="bb">SCENE ${i + 1} / ${r.op.scenes}</span>`}</span><span class="cnt"><small>${esc(r.op.countLabel || '')}</small><span class="cbar">${cnt}</span><b>${r.count}</b><em>0이 되면 실패${r.eta != null ? ` · 약 ${r.eta}턴` : ''}</em></span></span>`;
+}
+// 이번 장면에서 할 일: 장면이 넘어가는 선택지
+function goalLine(r) {
+  const sc = r.scene; if (!sc) return '';
+  if (r.fork) return `<span class="goal"><b>목표</b>문 A와 문 B 중 하나를 고른다 → 다음 구역</span>`;
+  const adv = (sc.choices || []).filter(c => c.adv).map(c => c.label);
+  if (!adv.length) return '';
+  return `<span class="goal"><b>목표</b>${esc(adv.slice(0, 2).join(' 또는 '))} → 다음 장면</span>`;
+}
+// 진행 막대: 지형 위에 대열 전원(선두 → 후미), 하수인, 목표, 개체
+function stripHTML(r, me) {
+  const M = r.map; if (!M) return '';
+  const len = Math.max(1, M.len), P = Math.max(0, Math.min(100, M.pos / len * 100));
+  const field = r.members.filter(m => m.role === 'field');
+  const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
+  const GAP = 60, n = Math.max(1, line.length), X = pct => `(26px + (100% - 52px) * ${(pct / 100).toFixed(4)})`;
+  const head = `max(${X(P)}, ${26 + (n - 1) * GAP + 30}px)`;
+  const at = (pct, px) => `left:min(calc(100% - 26px), calc(${head} ${px < 0 ? '-' : '+'} ${Math.abs(px)}px))`;
+  const mem = line.map((m, i) => `<span class="sm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' brk' : ''}" style="${at(P, -i * GAP)}"><i></i><b>${esc(m.name)}</b><small>${m.broken ? '붕괴' : POSN[m.pos] || ''}</small></span>`).join('');
+  const fr = (r.minions || []).filter(x => x.side === 'front').length, rr2 = (r.minions || []).filter(x => x.side === 'rear').length;
+  const foe = (fr ? `<span class="sf" style="${at(P, 34)}"><i></i>${fr > 1 ? `<small>×${fr}</small>` : ''}</span>` : '') + (rr2 ? `<span class="sf" style="${at(P, -(Math.max(0, line.length - 1)) * GAP - 34)}"><i></i>${rr2 > 1 ? `<small>×${rr2}</small>` : ''}</span>` : '');
+  const end = M.marks && M.marks.length ? M.marks[M.marks.length - 1] : { label: '구역 끝' }, left = Math.max(0, Math.round((len - M.pos) / 5) * 5);
+  const R = r.radar, from = r.scene ? r.scene.from : 'front';
+  let ent = '';
+  if (R && R.detected) {
+    if (R.exact && !R.noise && R.dist != null) { const e = Math.max(0, Math.min(100, (M.pos + (from === 'rear' ? -1 : 1) * R.dist) / len * 100)); ent = `<span class="se exact" style="left:calc${X(e)}"><i></i><small>개체 ${R.dist}m</small></span>`; }
+    else ent = `<span class="se zone ${from}"><small>개체 · ${from === 'rear' ? '뒤쪽' : '앞쪽'} 어딘가</small></span>`;
+  }
+  return `<div class="strip" aria-label="진행 막대"><span class="trk"><i class="done" style="width:${P.toFixed(1)}%"></i></span>
+    <span class="sg"><i></i><small>목표 · ${esc(end.label)}</small></span>${ent}${foe}${mem}
+    <span class="sl">${left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
+}
+// 무대 위 하수인: 이름, 체력, 다음 행동
+function foesOnStage(r) {
+  const fresh = r._fxAt && Date.now() - r._fxAt < 1600, FX = fresh ? r._fx || {} : {};
+  return ['front', 'rear'].map(sd => { const L2 = (r.minions || []).filter(x => x.side === sd); if (!L2.length) return '';
+    const x = L2[0], it = x.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null, f = FX['m' + x.id];
+    return `<span class="sfoe${f && f.hp < 0 ? ' hit' : ''}"><i></i><b>${esc(x.name)}</b><small>${sd === 'front' ? '앞' : '뒤'} · HP ${x.hp}/${x.hpMax}${L2.length > 1 ? ` · +${L2.length - 1} 대기` : ''}${x.braced ? ' · 웅크림' : ''}</small><em class="it-${it}">다음: ${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</em></span>`; }).join('');
+}
+// 조우 카드: 개체 그림 대신, 가까워질수록 관측 기록이 한 줄씩 열린다
+const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
+function encHTML(r, ctl) {
+  const E = r.ent; if (!E) return '';
+  const R = r.radar || {}, nick = (r.op.title.match(/「(.+?)」/) || [])[1];
+  const dist = ctl && R.exact && !R.noise && R.dist != null ? `${R.dist}m` : E.stage >= 3 ? '코앞' : '가까움';
+  const rows = OBS_D.map((d, k) => E.obs[k] ? `<span class="ob"><b>${d}</b><span>${esc(E.obs[k])}</span></span>` : `<span class="ob lock"><b>${d}</b><span>더 가까이 가야 보인다</span></span>`).join('');
+  const C = E.contact, tags = [C.hp ? `<em class="tg hp">HP ${C.hp}</em>` : '', C.san ? `<em class="tg sn">정신 ${C.san}</em>` : '', C.count ? `<em class="tg ct">${esc(r.op.countLabel || '셈')} ${C.count}</em>` : ''].join('');
+  return `<div class="enc" role="status"><span class="eh"><span class="bb">ENTITY CONTACT</span><em>위협 ${esc(E.threat || '')}</em></span>
+    <span class="en"><b class="bb">${esc(E.name)}</b>${nick ? `<b>「${esc(nick)}」</b>` : ''}<small>${R.from === 'rear' ? '뒤쪽' : '앞쪽'} · <b>${dist}</b></small></span>
+    <div class="obs"><small>관측 기록 · 가까워질수록 열린다</small>${rows}</div>
+    ${tags ? `<span class="ectc"><small>닿으면</small>${tags}</span>` : ''}</div>`;
+}
+// 무대: 감시 카메라 사진 위에 장면 제목·목표, 하수인, 레이더·조우 카드, 진행 막대
+function stageHTML(r, me) {
+  const sc = r.scene, src = sc.bg ? `img/${sc.bg}.jpg` : `img/${r.op.id}-${sc.idx + 1}.jpg`, S2 = r.sight, ctl = !!(me && me.role === 'ctrl');
+  if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
+  const t = new Date(), hh = n => String(n).padStart(2, '0');
+  const cam = `CAM B3-${hh(sc.idx + 1)}${S2 && S2.from === 'rear' ? ' REAR' : ''}`;
+  const R = r.radar || {}, near = (S2 && S2.stage >= 2) || (R.exact && R.detected && R.dist != null && R.dist <= 10);
+  const cx = r._cx && Date.now() - r._cx.at < 1600 ? r._cx : null;
+  const fresh = r._fxAt && Date.now() - r._fxAt < 1600, mf = fresh && me && r._fx && r._fx['u' + me.uid];
+  const fx = cx ? ' fx-contact' : (near ? ' fx-near' : '') + (mf && (mf.hp < 0 || mf.san < 0) ? ' fx-hit' : '');
+  const C = cx && cx.fx || {}, tags = [C.hp ? `<em class="tg hp">HP ${C.hp}</em>` : '', C.san ? `<em class="tg sn">정신 ${C.san}</em>` : '', C.count ? `<em class="tg ct">${esc(r.op.countLabel || '셈')} ${C.count}</em>` : ''].join('');
+  return `<div class="camrow stg${fx}${near ? ' has-enc' : ''}"><div class="cctv big${CAM_IMG[src] ? '' : ' ph'}"${CAM_IMG[src] ? ` style="background-image:url('${src}')"` : ''} aria-label="감시 카메라 화면"><i class="nz" aria-hidden="true"></i>
+    <i class="tear t1" aria-hidden="true"></i><i class="tear t2" aria-hidden="true"></i><i class="tear t3" aria-hidden="true"></i><i class="flash" aria-hidden="true"></i>
+    <i class="crn a"></i><i class="crn b"></i><i class="crn c"></i><i class="crn d"></i>
+    <span class="osd"><span class="rec"><i></i>REC ${cam}</span><span>${t.getFullYear()}.${hh(t.getMonth() + 1)}.${hh(t.getDate())} ${hh(t.getHours())}:${hh(t.getMinutes())}</span></span>
+    <span class="cap2"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p>${goalLine(r)}${S2 ? `<span class="see${S2.stage >= 2 ? ' near' : ''}"><b>시야</b>${esc(S2.text)}</span>` : ''}</span>
+    <span class="foes">${foesOnStage(r)}</span>
+    ${cx ? `<span class="ctx" role="alert"><b class="bb">CONTACT</b><span>${esc(cx.text)}</span>${tags ? `<span class="tgs">${tags}</span>` : ''}</span>` : ''}
+    ${stripHTML(r, me)}
+  </div><div class="sideov">${radarHTML(r)}${near ? encHTML(r, ctl) : ''}</div></div>`;
+}
+// 대열 카드: 선두부터 후미 순서. 내 카드는 강조.
+function partyHTML(r, me) {
+  const field = r.members.filter(m => m.role === 'field');
+  const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead), gone = field.filter(m => m.dead);
+  const fresh = r._fxAt && Date.now() - r._fxAt < 1600, FX = fresh ? r._fx || {} : {};
+  const bar = (lab, v, mx, cls) => { const p = Math.max(0, Math.min(100, v / mx * 100)); return `<span class="vb ${cls}${p <= 30 ? ' low' : cls === 'hp' && p <= 60 ? ' mid' : ''}"><small>${lab}</small><i><span style="width:${p}%"></span></i><b>${v}<em>/${mx}</em></b></span>`; };
+  const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
+  const chips = m => [m.broken ? '<em class="tg sn">정신 붕괴</em>' : '', m.guard ? '<em class="tg gd">막기</em>' : '', !m.broken && m.san / m.sanMax <= .3 ? '<em class="tg sn">정신 위험</em>' : '', r.dark && !m.broken && me && m.uid === me.uid ? '<em class="tg ct" title="관제가 구역 전원을 켜면 사라집니다">어둠 · 주사위 −1</em>' : ''].join('');
+  const card = m => { const f = FX['u' + m.uid], hit = f && (f.hp < 0 || f.san < 0);
+    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
+  return `<div class="form party"><span class="hh"><span class="bb">FORMATION</span><small>대열, 선두부터</small></span>
+    <div class="pcs">${line.map(card).join('')}</div>
+    ${gone.length ? `<span class="gone">이탈: ${gone.map(m => esc(m.name) + (m.recovered ? ' (회수됨)' : ' (미회수)')).join(', ')}</span>` : ''}</div>`;
+}
+// 방금 일어난 일: 직전 라운드의 결과 몇 줄
+const RECAP_K = { roll: 1, contact: 1, warn: 1, spawn: 1, kill: 1, shift: 1, noise: 1, sys: 1, death: 1, miss: 1, raven: 1 };
+function recapHTML(r) {
+  const L = r.log || []; if (!L.length || !r.turn) return '';
+  const T = L[L.length - 1].t, rows = L.filter(x => x.t >= T - 2500 && RECAP_K[x.kind]).slice(-4);
+  if (!rows.length) return '';
+  const fxs = fx => !fx ? '' : [fx.hp ? `<em class="tg hp">HP ${fx.hp > 0 ? '+' : ''}${fx.hp}</em>` : '', fx.san ? `<em class="tg sn">정신 ${fx.san > 0 ? '+' : ''}${fx.san}</em>` : '', fx.count ? `<em class="tg ct">${esc(r.op.countLabel || '셈')} ${fx.count > 0 ? '+' : ''}${fx.count}</em>` : ''].join('');
+  return `<div class="recap"><span class="hh"><b>방금 일어난 일</b></span>${rows.map(x => `<span class="rc k-${x.kind}">${x.kind === 'roll' ? `<b>${esc(x.name)}</b> ${esc(x.label)} · <span style="color:${TIER_C[x.tier]}">${esc(x.tierName)}</span> ` : ''}${esc(x.text)}${fxs(x.fx)}</span>`).join('')}</div>`;
+}
 function cctvHTML(r) {
   const sc = r.scene, src = sc.bg ? `img/${sc.bg}.jpg` : `img/${r.op.id}-${sc.idx + 1}.jpg`, S2 = r.sight;
   if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
@@ -2725,11 +2944,12 @@ function viewOps(rr, parts) {
   const combat = r.status === 'live' && (r.minions || []).length > 0, otherOpen = S.otherOpen && S.otherOpen[r.id];
   const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
   const stage = r.status === 'live' ? `<div class="stage${ctl && r.noise && r.noise.shown ? ' noisy' : ''}">
-      <span class="prog"><span class="bb">SCENE ${sc.idx + 1} / ${r.op.scenes}</span><span class="cnt"><small>${esc(r.op.countLabel || '')}</small><span class="cbar">${cnt}</span><b>${r.count}</b></span></span>
+      ${stepsHTML(r, cnt)}
       ${shiftBanHTML(r)}
-      ${combat ? combatBarHTML(r) : `<div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>`}
-      ${formationHTML(r, me)}
+      ${stageHTML(r, me)}
+      ${partyHTML(r, me)}
       ${combat ? foreHTML(r) : ''}
+      ${recapHTML(r)}
       ${roundBarHTML(r, me)}
       ${combat && canAct ? `<div class="cturn"><b>${esc(me.name)}의 행동</b><small>모두 고르거나 시간이 다 되면 고른 순서대로 행동하고, 그 뒤 하수인이 예고대로 움직입니다.</small></div>${combatActsHTML(r, me)}<button class="cmore" data-act="otherOpen" data-v="${r.id}" aria-expanded="${!!otherOpen}">${ico(otherOpen ? 'chevD' : 'chevR', 13, 2)}<b>전투 외 행동</b><small>${otherN}개 · 이동 4개</small></button>` : ''}
       ${r.fork && !ctl ? forkHTML(r, me) : ''}
