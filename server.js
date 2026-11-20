@@ -632,6 +632,7 @@ function runOut(r, viewer, gm) {
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.diff, diffName: DIFF_NAME[c.diff] })) } : null,
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,
+    picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     noise: live && r.noise ? (vm && vm.role === 'ctrl' ? { shown: r.noise.shown, turns: r.noise.turns } : { on: true }) : null,
     ctlUsed: live ? (r.ctlUsed || {}) : {},
     sight: live ? { stage: sightStage(r.dist), text: o.forms[sightStage(r.dist)], from: sc.from } : null,
@@ -711,6 +712,79 @@ function opReady(uid, opId, on) {
   const m = r.members.find(x => x.uid === String(uid)); if (!m) return 'op/not-member';
   m.ready = !!on; return null;
 }
+/* ───────── 라운드: 현장 요원은 라운드마다 행동을 하나씩 고른다 ─────────
+   모두 고르거나 제한 시간이 지나면 고른 순서대로 실행하고(고르지 못한 요원은 대기), 그 뒤에 한 턴이 흐른다
+   (하수인 행동 → 개체 접근 → 귀환 신호). 관제 행동과 소모품은 고르는 즉시 일어난다. */
+const ROUND_MS = Math.max(15, Number(process.env.ROUND_SECONDS || 60)) * 1000;
+const canPick = m => m.role === 'field' && !m.dead && !m.broken;
+function pickCheck(r, uid, kind, v) {
+  const m = fieldMember(r, uid), o = D(r), sc = o.scenes[r.scene], p = posOf(r, uid), L = lineOf(r);
+  if (kind === 'move') {
+    if (v === 'wait') return [null, '대기'];
+    if (v === 'swap') return L.findIndex(x => x.uid === m.uid) <= 0 ? ['op/no-ahead'] : [null, '자리 바꾸기'];
+    if (v === 'fwd' || v === 'back') {
+      if (v === 'fwd' && !(p === 'front' || p === 'solo')) return ['op/pos'];
+      if (v === 'back' && !(p === 'rear' || p === 'solo')) return ['op/pos'];
+      if (r.minions.some(x => x.side === (v === 'fwd' ? 'front' : 'rear'))) return [v === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear'];
+      return [null, v === 'fwd' ? '전진' : '후퇴'];
+    }
+    return ['op/bad-choice'];
+  }
+  let mt;
+  if ((mt = /^(atk|shv)-(front|rear)$/.exec(v))) {
+    const side = mt[2], foe = r.minions.find(x => x.side === side); if (!foe) return ['op/no-foe'];
+    const melee = p === 'solo' || p === side, ranged = p === 'mid' || (L.length === 2 && p !== side);
+    if (mt[1] === 'shv') return melee ? [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
+    return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
+  }
+  if (v === 'guard') return r.minions.length ? [null, '막기'] : ['op/no-foe'];
+  if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
+  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치')) return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
+  const c = sc.choices.find(x => x.id === v); if (!c) return ['op/bad-choice'];
+  if (!posOk(r, uid, c.pos)) return ['op/pos'];
+  if (c.reach && r.pos < sc.map.len - REACH_M) return ['op/not-there'];
+  return [null, c.label];
+}
+function opPick(uid, opId, kind, v) {
+  const r = runs.get(opId), err = canField(r, uid); if (err) return err;
+  if (r.batch) return 'op/resolving';
+  const [e, label] = pickCheck(r, uid, kind, String(v || '')); if (e) return e;
+  r.picks = r.picks || {};
+  r.picks[String(uid)] = { kind, v: String(v), label, at: now(), scene: r.scene };
+  if (r.members.filter(canPick).every(m => r.picks[m.uid])) resolveRound(r);
+  return null;
+}
+function opUnpick(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
+  if (r.batch) return 'op/resolving';
+  if (r.picks) delete r.picks[String(uid)];
+  return null;
+}
+function startRound(r) {
+  clearTimeout(r._timer); r.picks = {};
+  if (r.status !== 'live') return;
+  r.deadline = now() + ROUND_MS;
+  r._timer = setTimeout(() => { if (r.status === 'live') { resolveRound(r); emitRun(r); } }, ROUND_MS + 250);
+}
+function resolveRound(r) {
+  if (r.status !== 'live' || r.batch) return;
+  clearTimeout(r._timer);
+  const picks = r.picks || {}, sc0 = r.scene;
+  const late = r.members.filter(m => canPick(m) && !picks[m.uid]);
+  if (late.length) say(r, `시간이 다 됐다. 고르지 못한 ${late.map(m => m.name).join(', ')} 요원은 대기한다.`, { kind: 'move' });
+  r.batch = true; r._sceneChanged = false;
+  for (const [uid, p] of Object.entries(picks).sort((a, b) => a[1].at - b[1].at)) {
+    if (r.status !== 'live') break;
+    const m = r.members.find(x => x.uid === uid); if (!m) continue;
+    if (r.scene !== sc0) { say(r, `장면이 바뀌어 ${m.name} 요원의 「${p.label}」은(는) 취소됐다.`, { kind: 'move', uid }); continue; }
+    if (p.kind === 'move' && p.v === 'wait') { say(r, `${m.name} 요원은 자리를 지키며 기다렸다.`, { kind: 'move', uid }); continue; }
+    const e = p.kind === 'move' ? moveExec(r, uid, p.v) : actExec(r, uid, p.v);
+    if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
+  }
+  r.batch = false; r.picks = {};
+  if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
+  if (r.status === 'live') startRound(r);
+}
 function opStart(uid, opId) {
   const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
   if (!r.members.some(m => m.uid === String(uid))) return 'op/not-member';
@@ -728,6 +802,7 @@ function opStart(uid, opId) {
   r.minions = []; r.mseq = 0;
   say(r, o.scenes[0].text, { kind: 'scene', title: o.scenes[0].title });
   sceneEnter(r);
+  startRound(r);
   return null;
 }
 /* 기능의 상시 효과 */
@@ -845,6 +920,7 @@ function noiseTick(r) {
   r.members.filter(m => m.role === 'ctrl' && !m.broken).forEach(m => { const d = grit(m, sanD(-0.4)); m.san = Math.max(0, m.san + d); say(r, `잡음 속 속삭임이 ${m.name} 요원의 귀에 남는다.`, { kind: 'noise', uid: m.uid, fx: { san: d } }); });
 }
 function endTurn(r, moved) {
+  if (r.batch) { if (moved === false) r._sceneChanged = true; return null; }
   const o = D(r);
   r.turn++;
   if (moved !== false) { minionsAttack(r); entityStep(r); }
@@ -867,8 +943,8 @@ function endTurn(r, moved) {
   return null;
 }
 const POS_NAME = { front: '선두', mid: '중열', rear: '후미' };
-function opAct(uid, opId, choiceId) {
-  const r = runs.get(opId), err = canField(r, uid); if (err) return err;
+function actExec(r, uid, choiceId) {
+  const err = canField(r, uid); if (err) return err;
   const m = fieldMember(r, uid);
   const o = D(r), sc = o.scenes[r.scene];
   if (/^atk-(front|rear)$/.test(choiceId)) return opFight(r, m, uid, choiceId.slice(4));
@@ -919,7 +995,7 @@ function opFight(r, m, uid, side) {
   const tier = tierOf(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
   // 협공: 바로 앞 차례에 다른 요원이 친 하수인을 이어 치면 +2
-  const combo = dmg > 0 && foe.hitTurn === r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
+  const combo = dmg > 0 && foe.hitTurn >= r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
   if (combo) dmg += 2;
   const braced = dmg > 0 && foe.braced; if (braced) dmg = Math.ceil(dmg / 2);
   if (dmg > 0) { foe.hitTurn = r.turn; foe.hitBy = m.uid; }
@@ -984,8 +1060,8 @@ function opRecover(r, m, uid, target) {
   return endTurn(r);
 }
 // 이동: 전진은 선두, 후퇴는 후미, 대기와 자리 바꾸기는 누구나
-function opMove(uid, opId, kind) {
-  const r = runs.get(opId), err = canField(r, uid); if (err) return err;
+function moveExec(r, uid, kind) {
+  const err = canField(r, uid); if (err) return err;
   const m = fieldMember(r, uid), sc = D(r).scenes[r.scene], p = posOf(r, uid);
   if (kind === 'fwd' || kind === 'back') {
     if (kind === 'fwd' && !(p === 'front' || p === 'solo')) return 'op/pos';
@@ -1122,7 +1198,7 @@ function addTrait(traits) {
 }
 const R1_COST = 20, R4_COST = 15, R4_CONT = 10, R4_DELAY_MS = Number(process.env.RAVEN4_DELAY_HOURS || 2) * 3600000;
 function opFinish(r, result) {
-  const o = D(r);
+  const o = D(r); clearTimeout(r._timer); r.picks = {}; r.deadline = null;
   r.status = 'done'; r.result = result; r.ended = now();
   const reward = result === 'success' ? (r.r1 ? { supply: Math.floor(o.reward.supply / 2), research: Math.floor(o.reward.research / 2) } : o.reward) : { supply: 0, research: 0 };
   // 회수하지 못한 요원 → RAVEN-4 출동. 남겨진 요원은 재생이 늦어지고 오염이 깊어지며, 참가자 전원이 회수 비용을 낸다.
@@ -1610,7 +1686,7 @@ app.post('/api/gm/op', need, needGM, (req, res) => {
   else if (act === 'restore') {
     if (!(err = needLive())) { const m = r.members.find(x => x.uid === String(b.uid)); if (!m) err = 'op/no-target'; else { m.hp = m.hpMax; m.san = m.sanMax; m.dead = false; m.broken = false; m.recovered = false; say(r, `[GM] ${m.name} 요원의 상태를 되돌렸다.`, { kind: 'gmsys' }); } }
   }
-  else if (act === 'scene') { if (!(err = needLive())) { if (r.scene + 1 >= o.scenes.length) { say(r, '[GM] 마지막 장면을 넘겼다.', { kind: 'gmsys' }); opFinish(r, 'success'); } else { r.scene++; r.dist = o.scenes[r.scene].dist; r.pos = o.scenes[r.scene].map.start; r.minions = []; say(r, o.scenes[r.scene].text, { kind: 'scene', title: o.scenes[r.scene].title }); sceneEnter(r); } } }
+  else if (act === 'scene') { if (!(err = needLive())) { if (r.scene + 1 >= o.scenes.length) { say(r, '[GM] 마지막 장면을 넘겼다.', { kind: 'gmsys' }); opFinish(r, 'success'); } else { r.scene++; r.dist = o.scenes[r.scene].dist; r.pos = o.scenes[r.scene].map.start; r.minions = []; say(r, o.scenes[r.scene].text, { kind: 'scene', title: o.scenes[r.scene].title }); sceneEnter(r); startRound(r); } } }
   else if (act === 'end') { if (!(err = needLive())) { say(r, `[GM] 작전을 ${b.result === 'success' ? '성공' : b.result === 'fail' ? '실패' : '중단'}으로 종료한다.`, { kind: 'gmsys' }); opFinish(r, ['success', 'fail'].includes(b.result) ? b.result : 'abort'); } }
   else if (act === 'reset') { if (live) err = 'op/started'; else { runs.delete(r.op); lobbyOf(b.op); } }
   else err = 'gm/bad';
@@ -1716,8 +1792,9 @@ io.on('connection', socket => {
   socket.on('op:leave', opCall((m, id) => opLeave(uid, id)));
   socket.on('op:ready', opCall((m, id) => opReady(uid, id, m.on)));
   socket.on('op:start', opCall((m, id) => opStart(uid, id)));
-  socket.on('op:act', opCall((m, id) => opAct(uid, id, m.choice)));
-  socket.on('op:move', opCall((m, id) => opMove(uid, id, m.kind)));
+  socket.on('op:act', opCall((m, id) => opPick(uid, id, 'act', m.choice)));
+  socket.on('op:move', opCall((m, id) => opPick(uid, id, 'move', m.kind)));
+  socket.on('op:unpick', opCall((m, id) => opUnpick(uid, id)));
   socket.on('op:ctl', opCall((m, id) => opCtl(uid, id, m.kind, m.target)));
   socket.on('op:item', opCall((m, id) => opItem(uid, id, m.item)));
   socket.on('op:abort', opCall((m, id) => opAbort(uid, id)));

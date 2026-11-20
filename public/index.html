@@ -1159,6 +1159,17 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .turole .sw{display:flex;gap:4px}.turole .sw button{height:32px;padding:0 12px;border:0;border-radius:4px;font:inherit;font-size:12px;cursor:pointer;background:transparent;color:#A3A3A1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}.turole .sw button[aria-pressed=true]{background:#24505F;color:#EAF3F5;box-shadow:none}
 .tucard .tgo{min-height:52px;background:#E5574F;color:#1A0B0A;box-shadow:none}
 @media (prefers-reduced-motion:reduce){.tut-hl,.tband,.tlines p.now,.tut-bub.nag{animation:none}}
+
+/* 라운드 */
+.rbar{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.rbar .rh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rbar .rh .bb{font-size:15px;letter-spacing:.12em;color:var(--navyLine)}.rbar .rh small{font-size:12px;color:var(--sub)}
+.rbar .rt{flex:1;min-width:120px;display:flex;align-items:center;gap:8px}.rbar .rt i{flex:1;height:6px;border-radius:3px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}.rbar .rt i span{display:block;height:100%;background:var(--navyLine);transition:width .5s linear}
+.rbar .rs{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:18px;line-height:1;min-width:38px;text-align:right}
+.rbar.hurry .rt i span{background:var(--red)}.rbar.hurry .rs{color:var(--red)}
+.rbar .rp{display:flex;gap:6px;flex-wrap:wrap}.rbar .rpi{display:flex;align-items:baseline;gap:6px;padding:4px 9px;border-radius:3px;font-size:12px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}.rbar .rpi small{font-size:11px;color:var(--sub)}
+.rbar .rpi.ok{box-shadow:inset 0 0 0 1px var(--navyLine)}.rbar .rpi.ok small{color:var(--navyLine)}.rbar .rpi.me b{color:var(--navyLine)}.rbar .rpi.off{opacity:.5}
+.rbar .rme{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}.rbar .rme>span{flex:1;min-width:180px}.rbar .rme b{color:var(--navyLine)}
+.opk{box-shadow:inset 0 0 0 2px var(--navyLine),0 0 0 2px color-mix(in srgb,var(--navyLine) 35%,transparent)!important;background:color-mix(in srgb,var(--navyLine) 18%,transparent)!important}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -1599,6 +1610,7 @@ function serverBackend() {
         const gone = (old.minions || []).filter(q => !(r.minions || []).some(x => x.id === q.id));
         if (Object.keys(fx).length || gone.length) { r._fx = fx; r._gone = gone; r._fxAt = Date.now(); setTimeout(() => { if (ops.get(r.op.id) === r) emitO(); }, 1700); }
       }
+      if (r.deadline) r._dl = Date.now() + (r.deadline - (r.now || Date.now()));
       ops.set(r.op.id, r); emitO();
     });
     socket.on('sector', x => { sector = { ...x, at: Date.now() }; subs.sector.forEach(f => f(sector)); });
@@ -1764,7 +1776,7 @@ const AUTH_MSG = {
   'op/raven1-used': '이번 작전에서는 이미 RAVEN-1을 불렀습니다.',
   'op/sealed': 'RAVEN-3이 현장을 관리하고 있습니다. 봉쇄가 풀린 뒤 참가할 수 있습니다.', 'base/raven': 'RAVEN-3이 관리 중인 격리실입니다. 봉쇄가 풀린 뒤 점검할 수 있습니다.',
   'op/pos': '대열 위치가 맞지 않는 행동입니다.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.', 'op/map-start': '이 구역의 시작 지점입니다. 더 물러날 수 없습니다.', 'op/no-foe': '그쪽에는 싸울 상대가 없습니다.',
-  'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제팀만 할 수 있습니다.', 'op/bad-choice': '할 수 없는 행동입니다.',
+  'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/resolving': '라운드를 진행하는 중입니다. 잠시 뒤에 다시 고르십시오.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제팀만 할 수 있습니다.', 'op/bad-choice': '할 수 없는 행동입니다.',
   'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-noise': '지금은 잡음이 없습니다.', 'op/used': '이 장면에서는 이미 썼습니다.', 'op/noise': '잡음 때문에 거리를 읽을 수 없습니다. 먼저 해독하거나 차단하십시오.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
   'demo': '데모 모드에서는 이 기능을 쓸 수 없습니다.',
   'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
@@ -2419,6 +2431,29 @@ function radarHTML(r) {
   return `<div class="radar" aria-label="레이더"><span class="hh"><span class="bb">RADAR</span><small>${R.exact ? '관제 화면' : '현장 감지기'}</small></span>
     <span class="scope${R.noise ? ' noisy' : ''}"><i class="sw"></i>${glow}<svg viewBox="0 0 150 150" aria-hidden="true">${ring}${axis}${team}${blip}</svg></span>${rd}</div>`;
 }
+// 라운드 막대: 남은 시간, 누가 무엇을 골랐는지. 현장 요원은 내 선택과 취소 버튼도 본다.
+function roundBarHTML(r, me) {
+  if (!r.deadline || r.status !== 'live') return '';
+  const field = r.order.map(u => r.members.find(m => m.uid === u)).filter(m => m && !m.dead);
+  const able = field.filter(m => !m.broken), P = Object.fromEntries((r.picks || []).map(p => [p.uid, p]));
+  const mine = me && me.role === 'field' && !me.dead && !me.broken ? P[me.uid] : null, canMe = me && me.role === 'field' && !me.dead && !me.broken;
+  const dl = r._dl || r.deadline, left = Math.max(0, Math.ceil((dl - Date.now()) / 1000));
+  return `<div class="rbar" data-dl="${dl}" data-ms="${r.roundMs || 60000}">
+    <span class="rh"><b class="bb">ROUND ${r.turn + 1}</b><span class="rt"><i><span style="width:${Math.min(100, left * 1000 / (r.roundMs || 60000) * 100)}%"></span></i><b class="rs">${left}초</b></span><small>${Object.keys(P).length}/${able.length}명 고름</small></span>
+    <span class="rp">${field.map(m => `<span class="rpi${P[m.uid] ? ' ok' : ''}${m.broken ? ' off' : ''}${me && m.uid === me.uid ? ' me' : ''}"><b>${esc(m.name)}</b><small>${m.broken ? '붕괴' : P[m.uid] ? esc(P[m.uid].label) : '고르는 중'}</small></span>`).join('')}</span>
+    ${canMe ? `<span class="rme">${mine ? `<span>내 선택: <b>${esc(mine.label)}</b>. 다른 행동을 누르면 바뀝니다.</span><button class="btn s g" data-act="opUnpick">선택 취소</button>` : '<span>행동을 하나 고르세요. 시간이 다 되면 대기합니다.</span>'}</span>` : ''}</div>`;
+}
+// 내가 고른 행동 버튼에 표시를 붙인다
+function markPicks(root, r) {
+  if (!root || !r || !r.picks) return;
+  const p = r.picks.find(x => x.uid === S.user.uid); if (!p) return;
+  const b = root.querySelector(`[data-act="${p.kind === 'move' ? 'opMove' : 'opAct'}"][data-v="${p.v}"]`);
+  if (b) { b.classList.add('opk'); b.setAttribute('aria-pressed', 'true'); }
+}
+setInterval(() => document.querySelectorAll('.rbar[data-dl]').forEach(el => {
+  const left = Math.max(0, Math.ceil((+el.dataset.dl - Date.now()) / 1000)), s2 = el.querySelector('.rs'), bar = el.querySelector('.rt i span');
+  if (s2) s2.textContent = left + '초'; if (bar) bar.style.width = Math.min(100, left * 1000 / +el.dataset.ms * 100) + '%'; el.classList.toggle('hurry', left <= 10);
+}), 500);
 // 관제 원격 조작: 장면마다 한 번씩. 조명은 하수인을 비틀거리게, 격벽은 개체를 밀어낸다.
 function ctlRemoteHTML(r, me) {
   const U = r.ctlUsed || {}, R = r.radar || {}, foes = (r.minions || []).length, off = me.acted || me.broken;
@@ -2448,7 +2483,7 @@ function foreHTML(r) {
   const parts = ['front', 'rear'].map(sd => { const f = (r.minions || []).find(x => x.side === sd); if (!f) return '';
     const it = f.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null;
     return `<span class="fi it-${it}"><small>${sd === 'front' ? '앞' : '뒤'}</small><b>${esc(f.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</b><em>${INT_FX[it]}${tg && tg.guard ? ', 막기로 절반' : ''}</em></span>`; }).filter(Boolean);
-  return parts.length ? `<div class="fore"><span class="fl">누구든 행동 하나를 마치면</span>${parts.join('')}</div>` : '';
+  return parts.length ? `<div class="fore"><span class="fl">이번 라운드가 끝나면</span>${parts.join('')}</div>` : '';
 }
 // 교전 행동: 앞 / 나 / 뒤 세 묶음
 function combatActsHTML(r, me) {
@@ -2547,7 +2582,7 @@ function movesHTML(r, me) {
     <button class="btn s g" data-act="opMove" data-v="wait">대기 <small>누구나</small></button>
     <button class="btn s${tail ? '' : ' g'}" data-act="opMove" data-v="back" ${tail ? '' : 'disabled'}>후퇴 <small>${br ? '뒤가 막힘' : '후미'}</small></button>
     <button class="btn s g" data-act="opMove" data-v="swap" ${p === 'front' || p === 'solo' ? 'disabled' : ''}>자리 바꾸기 <small>앞으로</small></button>
-  </div><span class="sub mvhint" style="font-size:11px;line-height:1.5${r.turn > 2 ? ';display:none' : ''}">행동 하나가 한 턴입니다. 턴마다 개체가 다가오고, 시간이 지나면 「${esc(r.op.countLabel || '')}」 수치가 줄어듭니다.</span>`;
+  </div><span class="sub mvhint" style="font-size:11px;line-height:1.5${r.turn > 2 ? ';display:none' : ''}">라운드마다 행동을 하나씩 고릅니다. 라운드가 끝날 때마다 개체가 다가오고, 시간이 지나면 「${esc(r.op.countLabel || '')}」 수치가 줄어듭니다.</span>`;
 }
 // 난이도(1~4)와 권장 인원
 const LEVEL = ['', '쉬움', '보통', '어려움', '극한'];
@@ -2617,7 +2652,8 @@ function viewOps(rr, parts) {
       ${combat ? combatBarHTML(r) : `<div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>`}
       ${formationHTML(r, me)}
       ${combat ? foreHTML(r) : ''}
-      ${combat && canAct ? `<div class="cturn"><b>${esc(me.name)}의 행동</b><small>하나를 고르면 한 턴이 지나고, 하수인이 위에 예고한 대로 움직입니다.</small></div>${combatActsHTML(r, me)}<button class="cmore" data-act="otherOpen" data-v="${r.id}" aria-expanded="${!!otherOpen}">${ico(otherOpen ? 'chevD' : 'chevR', 13, 2)}<b>전투 외 행동</b><small>${otherN}개 · 이동 4개</small></button>` : ''}
+      ${roundBarHTML(r, me)}
+      ${combat && canAct ? `<div class="cturn"><b>${esc(me.name)}의 행동</b><small>모두 고르거나 시간이 다 되면 고른 순서대로 행동하고, 그 뒤 하수인이 예고대로 움직입니다.</small></div>${combatActsHTML(r, me)}<button class="cmore" data-act="otherOpen" data-v="${r.id}" aria-expanded="${!!otherOpen}">${ico(otherOpen ? 'chevD' : 'chevR', 13, 2)}<b>전투 외 행동</b><small>${otherN}개 · 이동 4개</small></button>` : ''}
       ${me && me.role === 'field' && !me.dead && !me.broken && (!combat || otherOpen || !canAct) ? movesHTML(r, me) : ''}
       ${canAct && !combat ? opItemsHTML(r, me) : ''}
       ${me && me.role === 'field' ? (canAct ? (combat && !otherOpen ? '' : `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${combat ? '' : (r.attacks || []).map(a => attackHTML(a, me, r)).join('') + guardHTML(r, me)}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>`) + `${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
@@ -2992,7 +3028,7 @@ function render() {
   else if (S.phase === 'lobby') { const first = lastPhaseDrawn !== 'lobby'; app.innerHTML = viewShell(); setTimeout(syncMode, 0);
     if (first) { lastPhaseDrawn = 'lobby'; requestAnimationFrame(() => { syncMode(); lastLeft = leftKind(); drawPanels([...leftPanels(), ...centerPanels(), ...app.querySelectorAll('#colR .pnl')], 0.1); }); } ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
-function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); fitLines(document.getElementById('center')); }
+function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); fitLines(document.getElementById('center')); if (S.view === 'ops') markPicks(document.getElementById('center'), curOp()); }
 // 대열이 화면보다 길면(주로 휴대폰) 내 칩이 가운데 오도록 가로 스크롤을 맞춘다.
 // 직접 옆으로 넘겨 본 뒤 5초 동안은 그 위치를 지킨다.
 const LINE_SCROLL = { x: 0, at: 0 };
@@ -3069,6 +3105,7 @@ function syncModal() {
   setHTML('opmHead', P.head + `<div class="opm-sub">${P.ctlTeam}${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
   fitLines(document.getElementById('opmStage'));
+  markPicks(document.getElementById('opmStage'), r);
   const lg = document.getElementById('opmLog'), atB = lg && lg.scrollHeight - lg.scrollTop - lg.clientHeight < 60;
   setHTML('opmLog', P.log); if (lg && atB) lg.scrollTop = lg.scrollHeight;
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
@@ -3143,7 +3180,7 @@ const TUT = {
       setup: r => { tutSay(r, '운영관 케스트럴: 맥파이, 핀치, 신입 하나 붙인다. B2 격리 장치를 다시 켜고 돌아와.', { kind: 'radio' }); tutChat(r, '리퍼', '5팀 신입? 구경 좀 하자. 난 신경 쓰지 마.', 'field'); tutChat(r, '핀치', '…팀장님이 왜 여기 계세요?'); },
       steps: [
         { who: 'reaper', at: '.form', anchor: '.form', say: '5팀 신입? 반가워. 난 구경하러 왔어. 우선 줄부터 봐.', head: '대열', text: '오른쪽이 진행 방향이에요. 맨 앞이 선두, 가운데가 중열, 맨 뒤가 후미예요. 자리마다 할 수 있는 행동이 달라요. 지금 당신은 중열이에요.' },
-        { who: 'reaper', at: '.moves', anchor: '.moves', say: '전진은 선두만, 후퇴는 후미만. 중열은… 뭐, 기다리거나 앞이랑 자리 바꾸는 정도?', head: '행동 하나 = 한 턴', text: '무엇이든 행동 하나를 하면 한 턴이 지나요. 턴마다 개체가 다가오고, 시간이 지나면 귀환 신호가 줄어요.' },
+        { who: 'reaper', at: '.moves', anchor: '.moves', say: '전진은 선두만, 후퇴는 후미만. 중열은… 뭐, 기다리거나 앞이랑 자리 바꾸는 정도?', head: '라운드', text: '실전에서는 라운드마다 현장 요원이 행동을 하나씩 골라요. 모두 고르거나 제한 시간이 지나면 고른 순서대로 진행되고, 그때 개체가 다가오고 하수인이 움직여요. 훈련에서는 고르는 즉시 진행돼요.' },
         { who: 'reaper', at: '[data-v="t-lift"]', anchor: '.choices', expect: ['opAct', 't-lift'], say: '문 정도는 열 수 있지? 저거 눌러 봐.', head: '장면 선택지', text: '장면마다 고를 수 있는 행동이 있어요. 판정에 성공하면 다음 장면으로 넘어가요.',
           run: r => { tutRoll(r, ME(r), '승강기 문 열기', 0, '운반', 1, 'ok', '승강기 문을 밀어 열었다. 모두 올라타자 승강기가 덜컹거리며 B2로 내려간다.'); return 'next'; } }
       ] },
@@ -3160,8 +3197,8 @@ const TUT = {
         tutRoll(r, tutM(r, 'npc-magpie'), '근접 공격 (앞)', 0, '격투', 2, 'ok', '세어진 것을 밀어붙였다.', { foe: 2 }, [14, 12, 10, 8, 8, 10]); f.hp = 1; f.combo = 'npc-magpie';
         tutChat(r, '맥파이', '한 대 먹였다. 신입, 지금 이어서!'); },
       steps: [
-        { who: 'reaper', at: '.fore', anchor: '.fore', say: '저 녀석, 다음에 누굴 물지 벌써 써 붙이고 있네. 친절하지?', head: '하수인의 예고', text: '하수인 칩과 이 줄에 다음 행동이 보여요. 누구든 행동 하나를 마치면 하수인은 이대로 움직여요. 지금은 선두의 맥파이를 물려고 해요.' },
-        { who: 'reaper', at: '[data-v="atk-front"]', anchor: '.cacts', expect: ['opAct', 'atk-front'], say: '맥파이가 방금 한 대 먹였어. 신입, 식기 전에 이어서 쳐 봐.', head: '협공', text: '다른 요원이 직전에 친 하수인을 이어서 치면 협공으로 피해가 2 늘어나요. 공격을 눌러 마무리하세요.',
+        { who: 'reaper', at: '.fore', anchor: '.fore', say: '저 녀석, 다음에 누굴 물지 벌써 써 붙이고 있네. 친절하지?', head: '하수인의 예고', text: '하수인 칩과 이 줄에 다음 행동이 보여요. 라운드가 끝나면 하수인은 이대로 움직여요. 지금은 선두의 맥파이를 물려고 해요.' },
+        { who: 'reaper', at: '[data-v="atk-front"]', anchor: '.cacts', expect: ['opAct', 'atk-front'], say: '맥파이가 방금 한 대 먹였어. 신입, 식기 전에 이어서 쳐 봐.', head: '협공', text: '같은 라운드나 바로 앞 라운드에 다른 요원이 친 하수인을 이어서 치면 협공으로 피해가 2 늘어나요. 공격을 눌러 마무리하세요.',
           run: r => { tutRoll(r, ME(r), '사격 (앞)', 2, '사격', 2, 'ok', '세어진 것을 밀어붙였다.', { foe: 4 }); tutSay(r, '협공. 세어진 것이 연달아 맞아 피해 +2.', { kind: 'kill' }); r.minions = []; tutSay(r, `${ME(r).name} 요원이 세어진 것을 쓰러뜨렸다.`, { kind: 'kill' }); tutChat(r, '맥파이', '나쁘지 않네.'); return 'step'; } },
         { who: 'reaper', at: '#opmChat', anchor: '.form', say: '5팀 애들은 말이 많아. 그래도 들어 둬, 쓸 만한 말도 섞여 있으니까.', head: '동료의 무전', text: 'NPC 동료도 작전 채팅(PC는 오른쪽 아래, 휴대폰은 맨 아래)으로 말을 걸어요. 작전 채팅은 같은 작전에 나간 사람끼리만 보여요.', done: 'next' }
       ] },
@@ -3193,7 +3230,7 @@ const TUT = {
     { title: '침수 복도 (B2)', text: '현장팀이 물이 찬 복도를 지난다. 레이더 뒤쪽에 점이 하나 떴다.', from: 'rear',
       setup: r => { r._dist = 20; tutChat(r, '맥파이', '관제, 뒤에서 뭐가 끌리는 소리 난다. 얼마나 남았어?'); tutChat(r, '벌처', '대답은 네가 해. 그게 네 자리니까.', 'ctrl'); },
       steps: [
-        { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m야. 지금 알려 주지 않으면 다음 턴에 누군가는 물리게 될 거다.', head: '거리 알리기', text: '판정 없이 턴마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
+        { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m야. 지금 알려 주지 않으면 다음 턴에 누군가는 물리게 될 거다.', head: '거리 알리기', text: '판정 없이 라운드마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
           run: r => { r.log.push({ kind: 'radio', text: '관제 보고: 개체는 대열 뒤 20m. 접근 중입니다.' }); tutChat(r, '맥파이', '들었다. 서두르자.'); return 'step'; } },
         { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 좀 벌어 두지. 격벽 내려.', head: '원격 조작', text: '조명과 격벽은 장면마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이에요. 격벽에 성공하면 개체가 물러나요.',
           run: r => { tutRoll(r, ME(r), '격벽 제어', 3, '장비 운용', 2, 'ok', '원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 12m 멀어졌다.'); r._dist = 32; r.ctlUsed.door = true; return 'next'; } }
@@ -3467,11 +3504,11 @@ app.addEventListener('click', e => {
       requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return; }
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
-    case 'opJoin': case 'opLeave': case 'opReady': case 'opItem': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
+    case 'opJoin': case 'opLeave': case 'opReady': case 'opItem': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': case 'opUnpick': {
       const r = (t.closest('#opModal') && myModalOp()) || curOp(); if (!r) return;
       if (a === 'opAbort' && !confirmAbort(t)) return;
       if (a === 'opCtl' && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
-      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opItem: 'op:item', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
+      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opItem: 'op:item', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close', opUnpick: 'op:unpick' }[a];
       const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opItem') m.item = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
       S.opErr = ''; app.querySelectorAll('[data-act^="op"]').forEach(b => b.disabled = true);
       B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); renderCenter(); });
