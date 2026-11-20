@@ -1035,6 +1035,21 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .ach .pg{flex:none;display:flex;align-items:center;gap:6px}.ach .pg i{display:block;width:54px;height:5px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}.ach .pg i span{display:block;height:100%;background:#C8A040}.ach .pg .bb{font-size:14px;line-height:1;color:var(--sub)}
 .ach .ok2{font-size:11px;font-weight:800;color:#C8A040}
 @media (max-width:999px){.ivg,.achs{grid-template-columns:1fr}}
+
+.detail .ttl3{font-size:13px;font-weight:700;color:#C8A040}
+.detail .vit3{margin-top:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.v3{padding:9px 12px;border-radius:4px;background:var(--faint);display:flex;flex-direction:column;gap:6px}
+.v3 .r{display:flex;justify-content:space-between;align-items:baseline}.v3 small{font-size:11px;color:var(--sub)}
+.v3 b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:22px;line-height:1}.v3 b em{font-style:normal;font-size:12px;color:var(--sub)}
+.v3 i{display:block;height:5px;border-radius:2px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}.v3 i span{display:block;height:100%;border-radius:2px;background:#5FAF7E}
+.v3.sn i span{background:#8F7BC8}.v3.ct i span{background:#D9A441}.v3.ct.hot i span{background:var(--red)}.v3.ct.hot b{color:var(--red)}
+.atabs{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--tileLine);position:sticky;top:0;z-index:2;background:var(--tile)}
+.atabs button{height:44px;padding:0 18px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--sub);font:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+.atabs button:hover{color:var(--ink)}.atabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--navyLine)}
+.atabs small{font-size:11px;font-weight:500;color:var(--sub)}.atabs small.pt{font-weight:800;color:var(--onNavy);background:var(--navy);padding:1px 6px;border-radius:3px}
+.detail .grid2 .span2{grid-column:1 / -1}
+.detail .tabb{padding:20px 24px 24px}.detail .tabb>.inv{margin:0}
+@media (max-width:999px){.atabs{padding:0 12px}.atabs button{padding:0 12px}.detail .tabb{padding:16px}.detail .vit3{grid-template-columns:1fr}}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -2462,7 +2477,7 @@ function ensureShop() {
   return S.shop;
 }
 function invHTML(a, mine) {
-  const sh = ensureShop(); if (!sh) return `<div class="inv"><span class="sh"><span class="bb">INVENTORY</span><small>소지품</small></span><span class="sub" style="font-size:12px">소지품을 불러오는 중입니다.</span></div>`;
+  const sh = ensureShop(); if (!sh) { const w = '<p class="sub" style="font-size:12px;margin:0">불러오는 중입니다.</p>'; return { gear: w, ach: w, gotN: 0, total: 8 }; }
   const v = a.inv || { items: {}, own: [], eq: {}, titles: [] }, by = Object.fromEntries((sh.items || []).map(x => [x.id, x])), T = sh.titles || [], c = a.ach || {}, dis = S.shopBusy ? 'disabled' : '';
   const slot = sl => { const g = by[v.eq && v.eq[sl]], opts = (v.own || []).filter(id => by[id] && by[id].slot === sl);
     return `<div class="ivs"><span class="k">${SLOT_NAME[sl]}</span><span class="nm2"><b>${g ? esc(g.name) : '비어 있음'}</b>${g ? `<small>${esc(g.desc)}</small>` : ''}</span>
@@ -2475,42 +2490,40 @@ function invHTML(a, mine) {
     return `<div class="ach${got ? ' got' : ''}${on ? ' on' : ''}"><span class="at"><b>「${esc(t.name)}」</b><small>${esc(t.desc)}</small></span>
       ${got ? (mine ? `<button class="chip2${on ? ' on' : ''}" data-act="shopEquip" data-k="title" data-v="${on ? '' : t.id}" ${dis}>${on ? '다는 중' : '달기'}</button>` : `<span class="ok2">획득</span>`) : `<span class="pg"><i><span style="width:${n / t.need * 100}%"></span></i><b class="bb">${n}/${t.need}</b></span>`}</div>`; }).join('');
   const gotN = (v.titles || []).length;
-  return `<div class="inv"><span class="sh"><span class="bb">INVENTORY</span><small>소지품${mine ? '' : `, ${esc(a.name)} 요원`}</small>${mine ? `<button class="lnk" data-act="view" data-v="shop">보급 창으로 ${ico('chevR', 12, 2.5)}</button>` : ''}</span>
+  return { gear: `<div class="inv"><span class="sh"><span class="bb">INVENTORY</span><small>소지품${mine ? '' : `, ${esc(a.name)} 요원`}</small>${mine ? `<button class="lnk" data-act="view" data-v="shop">보급 창으로 ${ico('chevR', 12, 2.5)}</button>` : ''}</span>
     <div class="ivg"><div class="ivc"><span class="ivh">장비</span>${slot('armor')}${slot('tool')}${frameRow}</div>
-      ${mine ? `<div class="ivc"><span class="ivh">들고 다니는 소모품 <small>종류마다 3개까지</small></span><div class="ivus">${items}</div></div>` : ''}</div>
-    <div class="ivc"><span class="ivh">칭호와 업적 <small>${gotN}/${T.length} 획득</small></span><div class="achs">${ach}</div></div></div>`;
+      ${mine ? `<div class="ivc"><span class="ivh">들고 다니는 소모품 <small>종류마다 3개까지</small></span><div class="ivus">${items}</div></div>` : ''}</div></div>`,
+    ach: `<div class="inv"><span class="sh"><span class="bb">ACHIEVEMENT</span><small>칭호와 업적 ${gotN}/${T.length}</small></span><div class="achs">${ach}</div></div>`, gotN, total: T.length };
 }
+const ATABS = [['stat', '능력'], ['inv', '소지품'], ['ach', '업적'], ['seal', '기록']];
 function viewAgentDetail() {
   const sel = S.agents.find(a => a.uid === (S.sel || S.user.uid)) || S.me;
   if (!sel) return '';
   const tl = traitsOfA(sel), mine = sel.uid === S.user.uid, tr = tl[0] ? TRAITS[tl[0].id] : null, mods = statMods(sel.stats, tl), dv = derived(sel.stats, tl), c = sel.contamination || 0, st = stateOf(sel);
   if (sel.gear) { dv.hp += sel.gear.hp || 0; dv.san += sel.gear.san || 0; dv.lim += sel.gear.lim || 0; }
-  const skills = Object.entries(sel.skills || {});
+  const tab = S.agentTab || 'stat', P = invHTML(sel, mine);
   return `<section class="pnl detail" aria-label="요원 상세">
   <div class="hero">${mine ? `<div class="ph phbtn${S.photoMenu ? ' open' : ''}" role="button" tabindex="0" data-act="photoMenu" aria-label="외관 사진 바꾸기" aria-expanded="${S.photoMenu ? 'true' : 'false'}">${photoBox(sel, true)}
       <input type="file" accept="image/*" data-file="photo" data-act="noop" id="phIn" hidden>
       ${S.photoMenu ? `<span class="phmenu"><label class="mi filebtn" data-act="noop">${ico('refresh', 14, 2)}사진 변경<input type="file" accept="image/*" data-file="photo" aria-label="다른 사진 고르기"></label><button class="mi" data-act="clearPhoto">${ico('user', 14, 2)}기본 실루엣</button></span>` : `<span class="phhint">${ico(sel.photo ? 'refresh' : 'plus', 13, 2)}${sel.photo ? '사진 변경' : '사진 등록'}</span>`}</div>` : `<div class="ph">${photoBox(sel, true)}</div>`}
     <div class="t"><span class="chips"><span class="c1">${esc(sel.num)}</span><span class="c2${isOnline(sel) ? '' : ' off'}">${isOnline(sel) ? '접속 중' : '오프라인'}</span>${st.k !== 'ready' ? `<span class="c2" style="background:${st.k === 'regen' ? 'var(--red)' : 'var(--navy)'}">${st.t}</span>` : ''}<span class="lv">${sel.role === 1 ? 'CONTROL' : 'FIELD'}</span></span>
-      <b class="nm">${esc(sel.name)}</b><span class="role">${roleTitle(sel.role)}, ${ROLES[sel.role][0]}, 출동 ${sel.opsDone || 0}회</span>
+      <b class="nm">${esc(sel.name)}</b>${sel.inv && sel.inv.title && SHOPN[sel.inv.title] ? `<span class="ttl3">「${esc(SHOPN[sel.inv.title])}」</span>` : ''}<span class="role">${roleTitle(sel.role)}, ${ROLES[sel.role][0]}, 출동 ${sel.opsDone || 0}회</span>
       ${!mine ? `<button class="btn s g" style="align-self:flex-start" data-act="dmTo" data-v="${sel.uid}">${ico('msg', 14, 2)}개인 메시지</button>` : ''}
       ${sel.career ? `<span class="rank"><b>계급 ${sel.career.rank}</b><span class="xpb"><i style="width:${Math.round(sel.career.cur / sel.career.need * 100)}%"></i></span><small>경력 ${sel.career.cur}/${sel.career.need}</small></span>` : ''}
-      <span class="cont">오염도<span class="bars">${Array.from({ length: 20 }, (_, i) => `<i${i < Math.round(c / contLim(sel) * 20) ? ' class="on"' : ''}></i>`).join('')}</span><b style="${contHot(sel) ? 'color:var(--red)' : ''}">${c}<small class="sub" style="font-size:.5em"> / ${contLim(sel)}</small></b></span>
+      <span class="vit3">${[['HP', dv.hp, dv.hp, 'hp'], ['정신력', dv.san, dv.san, 'sn'], ['오염도', c, contLim(sel), contHot(sel) ? 'ct hot' : 'ct']].map(([n, v, m, k]) => `<span class="v3 ${k}"><span class="r"><small>${n}</small><b>${v}<em> / ${m}</em></b></span><i><span style="width:${Math.min(100, v / Math.max(1, m) * 100)}%"></span></i></span>`).join('')}</span>
       ${mine && S.photoErr ? `<p class="err" role="alert" style="margin:0">${esc(S.photoErr)}</p>` : ''}
     </div></div>
-  <div class="grid2">
+  <nav class="atabs" role="tablist" aria-label="요원 정보">${ATABS.map(([k, n]) => `<button role="tab" data-act="agentTab" data-v="${k}" aria-selected="${tab === k}">${n}${k === 'ach' ? `<small>${P.gotN}/${P.total}</small>` : k === 'stat' && mine && sel.statPts ? `<small class="pt">+${sel.statPts}</small>` : ''}</button>`).join('')}</nav>
+  ${tab === 'stat' ? `<div class="grid2">
     <div class="sec"><span class="sh"><span class="bb">STATUS</span><small>능력치</small></span>
       ${mine && sel.statPts ? `<span class="ptsnote">능력치 포인트 <b>${sel.statPts}</b>. 올릴 능력치를 누르십시오. 훈련 상한은 ${STAT_CAP}입니다.</span>` : ''}
       ${SN.map((n, k) => `<span class="srow${mine && sel.statPts ? ' up' : ''}">${n}${bars(mods[k], true)}<b>${mods[k]}</b>${mine && sel.statPts ? `<button class="ib" data-act="statUp" data-v="${k}" aria-label="${n} 올리기" ${sel.stats[k] >= STAT_CAP || S.statBusy ? 'disabled' : ''}>${ico('plus', 14, 2)}</button>` : ''}</span>`).join('')}
-      <span class="srow" style="margin-top:4px">HP<span></span><b>${dv.hp}</b></span><span class="srow">정신력<span></span><b>${dv.san}</b></span><span class="srow">오염 한계<span></span><b>${dv.lim}</b></span>
     </div>
-    <div class="sec"><span class="sh"><span class="bb">SKILL</span><small>기능</small></span>
-      <span class="sklist">${skillRows(sel)}</span>
-      ${tl.length ? `<span class="sh" style="margin-top:8px"><span class="bb">MUTATION</span><small>변질 특성 ${tl.length}/5</small></span>
-      <span class="cards">${tl.map(t => { const T = TRAITS[t.id]; return `<span>${esc(traitName(t))}<small style="color:var(--sub)">${esc(T[1])}</small><small>장점: ${esc(T[2])}</small><small style="color:var(--red)">대가: ${esc(T[3])}</small></span>`; }).join('')}</span>` : ''}
-    </div>
-  </div>
-  ${invHTML(sel, mine)}
-  <div class="lower">${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}</div>
+    <div class="sec"><span class="sh"><span class="bb">SKILL</span><small>기능</small></span><span class="sklist">${skillRows(sel)}</span></div>
+    <div class="sec span2"><span class="sh"><span class="bb">MUTATION</span><small>변질 특성 ${tl.length}/5</small></span>
+      ${tl.length ? `<span class="cards">${tl.map(t => { const T = TRAITS[t.id]; return `<span>${esc(traitName(t))}<small style="color:var(--sub)">${esc(T[1])}</small><small>장점: ${esc(T[2])}</small><small style="color:var(--red)">대가: ${esc(T[3])}</small></span>`; }).join('')}</span>` : '<p class="sub" style="font-size:12px;margin:0">아직 드러난 변질이 없습니다.</p>'}</div>
+  </div>` : tab === 'inv' ? `<div class="tabb">${P.gear}</div>` : tab === 'ach' ? `<div class="tabb">${P.ach}</div>`
+    : `<div class="lower" style="padding-top:20px">${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}</div>`}
 </section>`;
 }
 function sealBox() {
@@ -2990,6 +3003,7 @@ app.addEventListener('click', e => {
       return;
     }
     case 'recReload': S.records = null; return renderCenter();
+    case 'agentTab': S.agentTab = v; return renderCenter();
     case 'logFold': S.logOpen = S.logOpen || {}; S.logOpen[v] = !S.logOpen[v]; return renderCenter();
     case 'opFilter': S.opFilter = v; return renderCenter();
     case 'opSel': S.opSel = v; S.opErr = ''; return renderCenter();
