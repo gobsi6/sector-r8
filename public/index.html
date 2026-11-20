@@ -1370,6 +1370,12 @@ body.modal-open{overflow:hidden}
 .cctv .crn.c{left:10px;bottom:10px;border-right:0;border-top:0}.cctv .crn.d{right:10px;bottom:10px;border-left:0;border-top:0}
 .cctv .osd{position:absolute;top:14px;left:34px;right:34px;display:flex;justify-content:space-between;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.12em;line-height:1;text-shadow:0 1px 2px #000}
 .cctv .rec{display:flex;align-items:center;gap:6px}.cctv .rec i{width:8px;height:8px;border-radius:50%;background:#FF3B30;animation:ping 1.4s ease-in-out infinite}
+.cctv .nz{position:absolute;inset:0;pointer-events:none;-webkit-backdrop-filter:blur(2.2px) brightness(.72) contrast(1.05);backdrop-filter:blur(2.2px) brightness(.72) contrast(1.05)}
+.cctv .nz::before{content:"";position:absolute;inset:-20%;opacity:.42;mix-blend-mode:screen;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .78  0 0 0 0 .88  0 0 0 0 .86  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>") 0 0/180px 180px;animation:camGrain .5s steps(5) infinite}
+.cctv .nz::after{content:"";position:absolute;left:0;right:0;height:22%;top:-25%;background:linear-gradient(180deg,transparent,rgba(200,230,226,.12) 45%,rgba(200,230,226,.04) 55%,transparent);animation:camRoll 7s linear infinite}
+@keyframes camGrain{0%{transform:translate(0,0)}20%{transform:translate(-7%,4%)}40%{transform:translate(5%,-6%)}60%{transform:translate(-4%,-3%)}80%{transform:translate(6%,5%)}}
+@keyframes camRoll{from{top:-25%}to{top:105%}}
+@media (prefers-reduced-motion:reduce){.cctv .nz::before,.cctv .nz::after{animation:none}}
 .cctv .cap2{position:relative;padding:0 34px 18px;display:flex;flex-direction:column;gap:4px}
 .cctv .cap2 b{font-size:19px}
 .cctv .cap2 p{margin:0;font-size:13px;line-height:1.6;color:rgba(232,238,240,.85);text-shadow:0 1px 2px #000}
@@ -2440,7 +2446,7 @@ function cctvHTML(r) {
   if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
   const t = new Date(), hh = n => String(n).padStart(2, '0');
   const cam = `CAM B3-${hh(sc.idx + 1)}${S2 && S2.from === 'rear' ? ' REAR' : ''}`;
-  return `<div class="cctv${CAM_IMG[src] ? '' : ' ph'}"${CAM_IMG[src] ? ` style="background-image:url('${src}')"` : ''} aria-label="감시 카메라 화면">
+  return `<div class="cctv${CAM_IMG[src] ? '' : ' ph'}"${CAM_IMG[src] ? ` style="background-image:url('${src}')"` : ''} aria-label="감시 카메라 화면"><i class="nz" aria-hidden="true"></i>
     <i class="crn a"></i><i class="crn b"></i><i class="crn c"></i><i class="crn d"></i>
     <span class="osd"><span class="rec"><i></i>REC ${cam}</span><span>${t.getFullYear()}.${hh(t.getMonth() + 1)}.${hh(t.getDate())} ${hh(t.getHours())}:${hh(t.getMinutes())}</span></span>
     <span class="cap2"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p>${whereLine(r)}${S2 ? `<span class="see${S2.stage >= 2 ? ' near' : ''}"><b>시야</b>${esc(S2.text)}</span>` : ''}</span>
