@@ -1128,6 +1128,7 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 @media (prefers-reduced-motion:reduce){.noisebox::before,.noisebox .ntx,.stage.noisy .cctv::after,.stage.noisy .radar::after,.stage.noisy .cbar2::after,.stage.noisy .cctv .cap2,.rd .glt{animation:none}}
 
 /* 튜토리얼 */
+.tutre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;border-radius:4px;background:color-mix(in srgb,var(--navyLine) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 45%,transparent)}.tutre .tx{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px}.tutre .tx b{font-size:14px}.tutre .tx small{font-size:12px;color:var(--sub)}.tutre .bt{display:flex;gap:6px}
 .tut-hl{position:relative;z-index:2;border-radius:4px;box-shadow:0 0 0 2px #8FC3D3,0 0 22px color-mix(in srgb,#5E9FB3 55%,transparent)!important;animation:tutPulse 1.6s ease-in-out infinite}
 @keyframes tutPulse{50%{box-shadow:0 0 0 2px #8FC3D3,0 0 6px color-mix(in srgb,#5E9FB3 30%,transparent)}}
 .tut-bub{position:relative;z-index:3;margin:8px 0 2px;padding:12px 14px;border-radius:3px;background:#0F1A1D;color:#DCEAEE;box-shadow:inset 0 0 0 1px rgba(94,159,179,.6),0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px;max-width:620px;flex-basis:100%}
@@ -2723,9 +2724,15 @@ function viewAgentDetail() {
     <div class="sec"><span class="sh"><span class="bb">SKILL</span><small>기능</small></span><span class="sklist">${skillRows(sel)}</span></div>
     <div class="sec span2"><span class="sh"><span class="bb">MUTATION</span><small>변질 특성 ${tl.length}/5</small></span>
       ${tl.length ? `<span class="cards">${tl.map(t => { const T = TRAITS[t.id]; return `<span>${esc(traitName(t))}<small style="color:var(--sub)">${esc(T[1])}</small><small>장점: ${esc(T[2])}</small><small style="color:var(--red)">대가: ${esc(T[3])}</small></span>`; }).join('')}</span>` : '<p class="sub" style="font-size:12px;margin:0">아직 드러난 변질이 없습니다.</p>'}</div>
-  </div>` : tab === 'inv' ? `<div class="tabb">${P.gear}</div>` : tab === 'ach' ? `<div class="tabb">${P.ach}</div>`
+  </div>` : tab === 'inv' ? `<div class="tabb">${P.gear}</div>` : tab === 'ach' ? `<div class="tabb">${mine ? tutReplayHTML(sel) : ''}${P.ach}</div>`
     : `<div class="lower" style="padding-top:20px">${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}</div>`}
 </section>`;
+}
+// 첫 출동 훈련은 언제든 다시 할 수 있다. 보상은 처음 한 번만.
+function tutReplayHTML(a) {
+  const done = a.ach && a.ach.tutDone;
+  return `<div class="tutre"><span class="tx"><b>첫 출동 훈련</b><small>${done ? '마친 훈련입니다. 다시 해도 보상은 없습니다.' : '처음 마치면 보급품 20과 칭호 「첫 출동」을 받습니다.'}</small></span>
+    <span class="bt"><button class="btn s${+a.role === 1 ? ' g' : ''}" data-act="tutStart" data-v="field">현장 훈련</button><button class="btn s${+a.role === 1 ? '' : ' g'}" data-act="tutStart" data-v="ctrl">관제 훈련</button></span></div>`;
 }
 function sealBox() {
   const p = S.priv;
@@ -3421,7 +3428,7 @@ app.addEventListener('click', e => {
   const re = () => render();
   if (S.tut && S.tut.stage === 'op' && /^(opAct|opCtl|opMove|opItem|opAbort|opClose|modalHide)$/.test(a)) return tutAct(a === 'modalHide' ? 'opClose' : a, v, t);
   switch (a) {
-    case 'tutStart': return tutStart();
+    case 'tutStart': return tutStart(v === 'field' || v === 'ctrl' ? v : undefined);
     case 'tutWake': if (S.tut.k >= 3) S.tut.stage = 'alarm'; else S.tut.k++; return syncTut();
     case 'tutRole': S.tut.role = v; return syncTut();
     case 'tutGo': S.tut.stage = 'op'; S.tut.sc = 0; S.tut.r = tutNewRun(S.tut.role); S.tut.r.log.push({ kind: 'sys', text: '훈련 작전 R8-T 개시. 이 작전에서는 쓰러지지 않습니다.' }); tutEnterScene(); syncTut(); return syncModal();
