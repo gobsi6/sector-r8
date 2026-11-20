@@ -97,6 +97,7 @@ npm start
 | `img/P-record.jpg` | 하층 순찰 · 출입 기록실 |
 | `img/P-fork.jpg` | 하층 순찰 · 갈림길 |
 | `img/P-lift.jpg` | 하층 순찰 · 상층 승강기 |
+| `img/X-ward.jpg` | 예비 · 병동(아직 쓰는 장면 없음) |
 
 장면 정의에 `bg`가 있으면 그 이름의 사진을, 없으면 `작전ID-장면번호.jpg`를 쓴다.
 
