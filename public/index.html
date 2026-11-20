@@ -2454,11 +2454,11 @@ setInterval(() => document.querySelectorAll('.rbar[data-dl]').forEach(el => {
   const left = Math.max(0, Math.ceil((+el.dataset.dl - Date.now()) / 1000)), s2 = el.querySelector('.rs'), bar = el.querySelector('.rt i span');
   if (s2) s2.textContent = left + '초'; if (bar) bar.style.width = Math.min(100, left * 1000 / +el.dataset.ms * 100) + '%'; el.classList.toggle('hurry', left <= 10);
 }), 500);
-// 관제 원격 조작: 장면마다 한 번씩. 조명은 하수인을 비틀거리게, 격벽은 개체를 밀어낸다.
+// 관제 원격 조작: 조명은 장면마다 한 번(하수인을 비틀거리게), 격벽은 작전당 한 번(개체를 밀어낸다).
 function ctlRemoteHTML(r, me) {
   const U = r.ctlUsed || {}, R = r.radar || {}, foes = (r.minions || []).length, off = me.acted || me.broken;
   const lt = `<button class="choice2 rmt" data-act="opCtl" data-v="light" ${off || U.light || !foes ? 'disabled' : ''}><b>${U.light ? '조명 제어 완료' : '구역 조명을 최대로 올린다'}</b><small>지능 + 장비 운용 · 보통(2) · ${foes ? '성공하면 하수인 전원 비틀거림' : '하수인이 있을 때만'}</small><span class="req"><i class="a">원격 조작 · 장면당 한 번</i><i class="d">실패하면 잡음</i></span></button>`;
-  const dr = `<button class="choice2 rmt" data-act="opCtl" data-v="door" ${off || U.door || !R.detected ? 'disabled' : ''}><b>${U.door ? '격벽 제어 완료' : '격벽을 원격으로 내린다'}</b><small>지능 + 장비 운용 · 보통(2) · ${R.detected ? '성공하면 개체 12m 후퇴' : '개체가 레이더에 잡힐 때만'}</small><span class="req"><i class="a">원격 조작 · 장면당 한 번</i></span></button>`;
+  const dr = `<button class="choice2 rmt" data-act="opCtl" data-v="door" ${off || U.door || !R.detected ? 'disabled' : ''}><b>${U.door ? '격벽 제어 완료' : '격벽을 원격으로 내린다'}</b><small>지능 + 장비 운용 · 어려움(3) · ${R.detected ? '성공하면 개체 8m 후퇴' : '개체가 레이더에 잡힐 때만'}</small><span class="req"><i class="a">원격 조작 · 작전당 한 번</i></span></button>`;
   return lt + dr;
 }
 // 하수인이 노리는 요원: 앞은 선두, 뒤는 후미
@@ -3232,8 +3232,8 @@ const TUT = {
       steps: [
         { who: 'vulture', at: '[data-v="radio"]', anchor: '.ctl .choices', expect: ['opCtl', 'radio'], say: '20m야. 지금 알려 주지 않으면 다음 턴에 누군가는 물리게 될 거다.', head: '거리 알리기', text: '판정 없이 라운드마다 한 번 할 수 있어요. 현장 기록에 거리가 떠서 동료들이 후퇴할지 버틸지 정할 수 있어요.',
           run: r => { r.log.push({ kind: 'radio', text: '관제 보고: 개체는 대열 뒤 20m. 접근 중입니다.' }); tutChat(r, '맥파이', '들었다. 서두르자.'); return 'step'; } },
-        { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 좀 벌어 두지. 격벽 내려.', head: '원격 조작', text: '조명과 격벽은 장면마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이에요. 격벽에 성공하면 개체가 물러나요.',
-          run: r => { tutRoll(r, ME(r), '격벽 제어', 3, '장비 운용', 2, 'ok', '원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 12m 멀어졌다.'); r._dist = 32; r.ctlUsed.door = true; return 'next'; } }
+        { who: 'vulture', at: '[data-v="door"]', anchor: '.ctl .choices', expect: ['opCtl', 'door'], say: '시간을 좀 벌어 두지. 격벽 내려.', head: '원격 조작', text: '조명은 장면마다, 격벽은 작전마다 한 번씩 원격으로 조작할 수 있어요. 지능 + 장비 운용 판정이고, 격벽은 어려워요(3). 성공하면 개체가 물러나요.',
+          run: r => { tutRoll(r, ME(r), '격벽 제어', 3, '장비 운용', 3, 'ok', '원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 8m 멀어졌다.'); r._dist = 28; r.ctlUsed.door = true; return 'next'; } }
       ] },
     { title: '사물함 구역', text: '조명이 나간 사물함 사이. 현장 카메라에는 거의 아무것도 보이지 않는다.', from: 'rear',
       setup: r => { r._dist = 30; r.ctlUsed = {}; tutSpawn(r, 'front', 'bite'); tutSay(r, '사물함 틈에서 세어진 것이 기어 나와 앞을 막았다.', { kind: 'spawn' }); tutChat(r, '슈라이크', '앞에 뭐가 있어! 안 보여!'); },
@@ -3242,7 +3242,7 @@ const TUT = {
           run: r => { tutRoll(r, ME(r), '조명 제어', 3, '장비 운용', 2, 'ok', '구역 조명을 최대로 올렸다. 세어진 것이 빛에 눈이 멀어 비틀거린다.'); r.ctlUsed.light = true; r.minions.forEach(x => { x.intent = 'stun'; x.intentName = '비틀거림'; });
             setTimeout(() => { if (!S.tut || S.tut.r !== r) return; const old = JSON.parse(JSON.stringify(r)); tutRoll(r, tutM(r, 'npc-magpie'), '근접 공격 (앞)', 0, '격투', 2, 'crit', '정확히 급소를 노렸다.', { foe: 4 }, [14, 12, 10, 8, 8, 10]); r.minions = []; tutSay(r, '맥파이 요원이 세어진 것을 쓰러뜨렸다.', { kind: 'kill' }); tutChat(r, '맥파이', '보인다! 처리했다.'); tutDerive(r); tutFx(old, r); syncModal(); }, 900);
             return 'step'; } },
-        { who: 'vulture', at: '[data-v="support"]', anchor: '.ctl .choices', expect: ['opCtl', 'support'], say: '다음은 문이야. 슈라이크가 열 거니까, 판정 전에 주사위를 얹어 둬.', head: '지원 주사위', text: '지능 + 통신, 쉬움(1). 성공하면 다음 현장 판정에 주사위가 붙어요. 최대 4개까지 쌓여요.',
+        { who: 'vulture', at: '[data-v="support"]', anchor: '.ctl .choices', expect: ['opCtl', 'support'], say: '다음은 문이야. 슈라이크가 열 거니까, 판정 전에 주사위를 얹어 둬.', head: '지원 주사위', text: '지능 + 통신, 쉬움(1). 성공하면 다음 현장 판정에 주사위가 붙어요. 최대 2개까지 쌓여요.',
           run: r => { tutRoll(r, ME(r), '지원', 3, '통신', 1, 'ok', '관제 지원 연결. 다음 현장 판정에 지원 주사위 1개를 보탠다.'); tutRoll(r, tutM(r, 'npc-shrike'), '출입문 개방', 3, '장비 운용', 2, 'ok', '지원 주사위 덕에 잠긴 문을 열었다. 현장팀이 다음 구역으로 들어간다.', null, [10, 10, 10, 12, 10, 10]); return 'next'; } }
       ] },
     { title: '출입 기록실', text: '벽 가득한 단말에 출입 기록이 흐른다. 관제실 화면이 지직거린다.', from: 'rear',
