@@ -47,7 +47,7 @@ button:disabled{cursor:default;opacity:.4}
 
 /* ───────── 공통 부품 ───────── */
 .pan{background:var(--tile);border-radius:8px;box-shadow:inset 0 0 0 1px var(--tileLine)}
-.btn{height:44px;padding:0 18px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn{white-space:nowrap;height:44px;padding:0 18px;border:0;border-radius:6px;background:var(--navy);color:var(--onNavy);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .btn:hover:not(:disabled){background:var(--navyHi)}
 .btn.g{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
 .btn.g:hover:not(:disabled){background:var(--faint)}
@@ -274,7 +274,7 @@ select.inp{appearance:none}
 .res svg{flex:none;color:var(--navyLine)}
 .res em{font-style:normal;line-height:1;padding-top:1px}
 .res b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:20px;line-height:1;padding-top:2px;color:var(--ink)}
-.tools{display:flex;gap:4px;padding-left:12px;border-left:1px solid var(--rule)}
+.tools{display:flex;align-items:center;gap:4px;padding-left:12px;border-left:1px solid var(--rule)}
 .tools .ib{border-radius:3px}
 .body3{position:relative;z-index:1;flex:1;min-height:0;display:grid;grid-template-columns:372px minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr);gap:24px;padding:28px 32px 20px}
 .body3>*{min-width:0;min-height:0}
@@ -289,10 +289,26 @@ select.inp{appearance:none}
 .mb-only{display:none}
 
 /* 화면 등장: 시안의 슬라이드 인 */
+/* 패널 그리기: 테두리 선 → 글줄 → 막대 */
+.drawing:not(.framed){box-shadow:none!important}
+.drawing{animation:bgin .6s ease-out both;animation-delay:calc(var(--d0,0s) + .5s)}
+@keyframes bgin{from{background-color:transparent}}
+.drawfr{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:6;transition:opacity .6s}
+.drawfr rect{fill:none;stroke:var(--navyLine);stroke-width:1.5;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dline .85s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--d0,0s)}
+.framed>.drawfr{opacity:0}
+@keyframes dline{to{stroke-dashoffset:0}}
+.dl{clip-path:inset(0 100% 0 0);animation:dreveal .65s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--di,0s)}
+@keyframes dreveal{to{clip-path:inset(0 0 0 0)}}
+.drawing .gb i,.drawing .xpb i,.drawing .stab .gb i{animation:dfill 1.1s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--db,0s)}
+@keyframes dfill{from{width:0}}
+.drawing .bars i{transform-origin:left;animation:dseg .35s ease-out both;animation-delay:calc(var(--db,0s) + var(--k,0) * .06s)}
+.drawing .lvp i{animation:dseg .35s ease-out both;animation-delay:calc(var(--db,0s) + .3s)}
+@keyframes dseg{from{transform:scaleX(0)}}
+@media (prefers-reduced-motion:reduce){.drawing,.drawfr rect,.dl,.drawing .gb i,.drawing .xpb i,.drawing .bars i,.drawing .lvp i{animation:none!important;clip-path:none!important}.drawfr{display:none}}
 @keyframes rise{from{opacity:0;transform:translate(var(--dx,0px),var(--dy,12px))}to{opacity:1;transform:none}}
-.in .shell>.top,.in .colL,.in .colR,.in .home>*,.in .center>.pnl,.in .center>.wip,.in .ticker,
+.in .shell>.top,.in .ticker,
 .in .login .hero>*,.in .login .side,.in .cr header,.in .cr .form,.in .cr aside,
-.in-view .home>*,.in-view .center>.pnl,.in-view .colL>*,.in-step .cr .form>*{animation:rise .6s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0s)}
+.in-step .cr .form>*{animation:rise .6s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0s)}
 .in .shell>.top{--dy:-10px}
 .in .colL{--dx:-24px;--dy:0px;--d:.12s}
 .in .home>*,.in .center>.pnl{--dx:40px;--dy:0px;--d:.22s}
@@ -316,7 +332,7 @@ select.inp{appearance:none}
 .in-step .cr .form>*:nth-child(3){animation:none}
 
 /* 작전 */
-.ops{height:100%;min-height:0;overflow-y:auto;padding:22px 24px;gap:16px}
+.ops,.pnl.ops{height:100%;min-height:0;overflow-y:auto;padding:22px 24px;gap:16px}
 .ophead .k{display:flex;align-items:center;gap:8px;color:var(--navyLine)}
 .ophead .k .btn{color:var(--ink)}
 .ophead .k .bb{font-size:18px;letter-spacing:.14em}
@@ -399,7 +415,7 @@ select.inp{appearance:none}
 .rr .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .rr .t small{font-size:11px;color:var(--sub)}
 .rr .rs{font-weight:800;font-size:13px}
-@media (max-width:999px){.ops{height:auto;padding:16px}.recs{height:auto}}
+@media (max-width:999px){.ops,.pnl.ops{height:auto;padding:16px}.recs{height:auto}}
 
 /* 과거·변질 후보 카드 */
 .pasts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px}
@@ -490,7 +506,7 @@ select.inp{appearance:none}
 .op .teams .sl{display:flex;gap:4px}
 .op .teams .sl i{width:28px;height:8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
 .op .teams .sl i.on{background:var(--onNavy);box-shadow:none}
-.op .go{height:48px;padding:0 22px 0 18px;border:0;display:flex;align-items:center;gap:10px;background:var(--onNavy);color:var(--navy);font-size:15px;font-weight:800;border-radius:4px}
+.op .go{white-space:nowrap;flex-shrink:0;height:48px;padding:0 22px 0 18px;border:0;display:flex;align-items:center;gap:10px;background:var(--onNavy);color:var(--navy);font-size:15px;font-weight:800;border-radius:4px}
 .op .go:disabled{opacity:.55}
 .tile{padding:16px 18px;gap:6px;text-align:left;border:0;font:inherit}
 button.tile{cursor:pointer}
@@ -714,7 +730,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .gents{display:flex;flex-direction:column;gap:6px}.gent{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;align-items:center;gap:12px;padding:8px 12px;box-shadow:inset 0 0 0 1px var(--tileLine);border-radius:3px;font-size:13px}
 .gent .nm small{display:block;font-size:11px}
 .lg.gm{border-color:var(--navyLine);display:flex;gap:8px}.lg.gm b{color:var(--navyLine);font-family:'Bebas Neue',sans-serif;letter-spacing:.08em}.lg.gmsys{color:var(--sub);font-size:12px}
-.gmbtn{height:30px;padding:0 10px}
+.gmbtn{height:32px;padding:0 12px;margin-right:6px;letter-spacing:.06em}
 .dmn{font-style:normal;display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;font-weight:800;margin-left:4px}
 .dmh{display:flex;align-items:center;gap:8px;padding:10px 16px 0}.dmh small{color:var(--sub);font-size:11px}
 .dml{display:flex;flex-direction:column;gap:6px}.dmnew{display:flex;align-items:center;gap:8px;font-size:12px}.dmnew select{flex:1;appearance:none;-webkit-appearance:none;background:var(--faint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23889' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;border:0;border-radius:3px;padding:7px 38px 7px 10px;color:var(--ink);font:inherit;font-size:13px}
@@ -726,6 +742,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .toast.on{opacity:1;transform:translate(-50%,0)}.toast.alert{background:var(--red);color:#fff}.toast b{font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;font-size:16px}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 @media (max-width:999px){.gmbody{grid-template-columns:1fr}.gmsplit{grid-template-columns:1fr}.gent{grid-template-columns:1fr 1fr}.gm .top{flex-wrap:wrap;height:auto;padding:12px}}
+@media (min-width:1000px) and (max-width:1279px){.body3{grid-template-columns:290px minmax(0,1fr) 300px;gap:16px;padding:20px 16px 16px}.opsmode .body3{grid-template-columns:minmax(0,1fr) 300px}.res em{display:none}}
 .sklist{display:flex;flex-direction:column;gap:6px}
 .skr{display:grid;grid-template-columns:72px auto 44px 1fr 46px;align-items:center;gap:8px;font-size:13px}.skr.zero{opacity:.45}
 .skr .lvp{display:flex;gap:2px}.skr .lvp i{width:8px;height:8px;box-shadow:inset 0 0 0 1px var(--tileLine)}.skr .lvp i.on{background:var(--navyLine);box-shadow:none}
@@ -740,10 +757,10 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .tpick{display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick .btn{justify-content:space-between;width:100%}.tpick .btn .cost{font-size:11px}
 @media (max-width:700px){.task{grid-template-columns:1fr}.task .clock{font-size:32px}}
 .tank{padding:16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--tileLine);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
-.tank .vat{width:64px;height:88px;border-radius:30px 30px 6px 6px;box-shadow:inset 0 0 0 2px var(--navyLine);position:relative;overflow:hidden}
-.tank .vat i{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--navyLine) 45%,transparent)}
-.tank .vat.on i{animation:vat 3s ease-in-out infinite alternate}
-@keyframes vat{from{transform:translateY(4px)}to{transform:translateY(-4px)}}
+.tank .vat{width:64px;height:106px;display:block}.tank .vat svg{display:block;overflow:visible}
+.vat .liq{fill:color-mix(in srgb,var(--navyLine) 38%,transparent)}.vat .surf{fill:color-mix(in srgb,var(--navyLine) 55%,transparent);stroke:var(--navyLine);stroke-width:1}.vat .glass{fill:none;stroke:var(--navyLine);stroke-width:2}.vat .hi{stroke:color-mix(in srgb,var(--ink) 25%,transparent);stroke-width:2;stroke-linecap:round}.vat .cap{fill:var(--tileLine);stroke:var(--navyLine);stroke-width:1}.vat .bb2{fill:color-mix(in srgb,var(--ink) 55%,transparent);opacity:0}
+.tank .vat.on .bb2{animation:bub 2.6s ease-in infinite}.tank .vat.on .surf{animation:vat 3s ease-in-out infinite alternate}
+@keyframes vat{from{transform:translateY(1.5px)}to{transform:translateY(-1.5px)}}@keyframes bub{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translateY(-62px)}}
 .tank .tx{display:flex;flex-direction:column;gap:6px;min-width:0}.tank .tx b{font-size:15px}.tank .tx .sub{font-size:12px}
 .tank .acts{grid-column:span 2;display:flex;gap:8px;flex-wrap:wrap}
 .cost{font-size:12px;color:var(--sub);font-weight:500}
@@ -764,7 +781,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .inc{list-style:none;padding:0!important}.inc li{display:flex;gap:10px;font-size:13px}.inc time{color:var(--sub);flex:none}
 .tile.base.al{box-shadow:inset 0 0 0 1px var(--red)}.tile.base.al .bsub{color:var(--red)!important}
 @media (max-width:999px){.base2,.arch{height:auto}.arch .bd{grid-template-columns:1fr}.elist{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--tileLine)}.eb{flex:none}.doc{padding:18px 16px}}
-@media (prefers-reduced-motion:reduce){.tank .vat.on i{animation:none}}
+@media (prefers-reduced-motion:reduce){.tank .vat.on .bb2,.tank .vat.on .surf{animation:none}}
 .ei{flex:none;width:36px;height:36px;border-radius:4px;display:grid;place-items:center;color:var(--navyLine);background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
 .cell .ch{align-items:center}.cell.un .ei{color:var(--sub)}.cell.al .ei{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
 .eb{flex-direction:row!important;align-items:center;gap:10px!important}.eb .et{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -1062,7 +1079,7 @@ const portrait = a => a && a.photo ? `<img src="${esc(a.photo)}" alt="">` : SIL;
 const LOGO = s => `<svg width="${s}" height="${Math.round(s * 46 / 42)}" viewBox="0 0 42 46" aria-hidden="true"><path d="M21 2 L39 12.5 L39 33.5 L21 44 L3 33.5 L3 12.5 Z" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M21 9 L33 16 L33 30 L21 37 L9 30 L9 16 Z" fill="var(--ink)"/><circle cx="21" cy="23" r="7" fill="none" stroke="var(--navyLine)" stroke-width="2.5"/><circle cx="21" cy="23" r="2" fill="var(--red)"/></svg>`;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const bars = (v, big) => `<span class="bars${big ? ' big' : ''}">${Array.from({ length: 10 }, (_, i) => `<i${i < Math.floor(v / 2) ? ' class="on"' : i < v / 2 ? ' class="half"' : ''}></i>`).join('')}</span>`;
+const bars = (v, big) => `<span class="bars${big ? ' big' : ''}">${Array.from({ length: 10 }, (_, i) => `<i style="--k:${i}"${i < Math.floor(v / 2) ? ' class="on"' : i < v / 2 ? ' class="half"' : ''}></i>`).join('')}</span>`;
 const hhmm = ms => { if (!ms) return '--:--'; const t = new Date(ms); return String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0'); };
 const ymd = ms => { if (!ms) return '----.--.--'; const t = new Date(ms); return t.getFullYear() + '.' + String(t.getMonth() + 1).padStart(2, '0') + '.' + String(t.getDate()).padStart(2, '0'); };
 const isOnline = a => a && (typeof a.online === 'boolean' ? a.online : a.lastSeen && Date.now() - a.lastSeen < 3 * 60 * 1000);
@@ -1613,6 +1630,20 @@ function baseTile() {
     <span class="kv">수용 개체<b>${n}</b><span class="pc-only">평균 안정도</span><b class="pc-only">${n ? Math.round(avg) + '%' : '-'}</b></span>
   </button>`;
 }
+// 재생 수조: 원기둥. 위·아래 금속 테, 유리 몸통, 안의 약액 높이(0~1). 재생 중이면 기포가 오른다.
+function vatSVG(level) {
+  const T = 14, B = 92, L = 6, R = 58, cx = 32, rx = 26, ry = 6, y = B - (B - T) * level;
+  const bub = [[22, 0], [34, 1.1], [42, 2.2], [28, 1.7]].map(([x, d]) => `<circle class="bb2" cx="${x}" cy="${B - 4}" r="1.6" style="animation-delay:${d}s"/>`).join('');
+  return `<svg viewBox="0 0 64 106" width="64" height="106">
+    <defs><clipPath id="vatc"><path d="M${L} ${T} V${B} A${rx} ${ry} 0 0 0 ${R} ${B} V${T} Z"/></clipPath></defs>
+    <g clip-path="url(#vatc)"><rect class="liq" x="${L}" y="${y}" width="${R - L}" height="${B - y + ry}"/>${bub}</g>
+    <ellipse class="surf" cx="${cx}" cy="${y}" rx="${rx}" ry="${ry}"/>
+    <path class="glass" d="M${L} ${T} V${B} A${rx} ${ry} 0 0 0 ${R} ${B} V${T}"/>
+    <ellipse class="glass" cx="${cx}" cy="${T}" rx="${rx}" ry="${ry}"/>
+    <path class="hi" d="M${L + 6} ${T + 8} V${B - 6}"/>
+    <rect class="cap" x="${L - 3}" y="${T - 9}" width="${R - L + 6}" height="6" rx="1.5"/><rect class="cap" x="${L - 3}" y="${B + 4}" width="${R - L + 6}" height="6" rx="1.5"/>
+  </svg>`;
+}
 function viewBase() {
   if (!S.sector) return `<section class="pnl wip"><span class="bb">BASE</span><h2>기지</h2><p class="sub" style="font-size:14px;margin:0">기지 상태를 불러오는 중입니다.</p></section>`;
   const C = S.sector.cost, me = S.me, st = stateOf(me), cont = me.contamination || 0, regen = st.k === 'regen', dis = S.baseBusy ? 'disabled' : '';
@@ -1629,7 +1660,7 @@ function viewBase() {
     </div>`;
   }).join('');
   const tank = `<div class="tank">
-      <span class="vat${regen ? ' on' : ''}" aria-hidden="true"><i style="height:${regen ? 78 : 18}%"></i></span>
+      <span class="vat${regen ? ' on' : ''}" aria-hidden="true">${vatSVG(regen ? 0.8 : 0.18)}</span>
       <span class="tx"><b>${regen ? '재생 수조에서 회복 중입니다' : '재생 수조 대기 중'}</b>
         <span class="sub">${regen ? esc(st.t) + '. 단축하면 남은 시간이 1시간 줄어듭니다.' : '사망한 요원은 이곳에서 재생됩니다.'}</span>
         <span class="sub">현재 오염도 <b style="color:${contHot(me) ? 'var(--red)' : 'var(--ink)'}">${contTxt(me)}</b>. 정화하면 오염도가 5 내려갑니다. 한계를 넘으면 RAVEN-3이 회수해 격리 관찰합니다.</span></span>
@@ -2129,7 +2160,45 @@ function showToast() {
 }
 
 /* ═════════════ 9. 그리기 ═════════════ */
-let playT, lastPhase = null, animUntil = 0, refreshT = null;
+// 패널을 선으로 그려 낸다. 테두리 → 글줄(위에서부터) → 막대 순서. 조금 느긋한 속도.
+const SVGNS = 'http://www.w3.org/2000/svg';
+function drawTargets(p) {
+  const out = [];
+  for (const c of p.children) {
+    if (c.classList.contains('drawfr')) continue;
+    if (c.children.length >= 3 && c.offsetHeight > 140) { for (const g of c.children) out.push(g); } else out.push(c);
+  }
+  return out.filter(e => e.offsetHeight > 0).slice(0, 20);
+}
+function drawPanels(list, start = 0) {
+  if (calm()) return;
+  let n = 0, longest = 0;
+  for (const p of list) {
+    if (!p || !p.isConnected || p.classList.contains('drawing')) continue;
+    const r = p.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const d0 = start + n++ * 0.12;
+    if (getComputedStyle(p).position === 'static') p.style.position = 'relative';
+    const svg = document.createElementNS(SVGNS, 'svg'), rect = document.createElementNS(SVGNS, 'rect');
+    svg.setAttribute('class', 'drawfr'); svg.setAttribute('aria-hidden', 'true');
+    const rad = parseFloat(getComputedStyle(p).borderTopLeftRadius) || 4;
+    rect.setAttribute('x', '.75'); rect.setAttribute('y', '.75'); rect.setAttribute('width', Math.max(0, r.width - 1.5)); rect.setAttribute('height', Math.max(0, r.height - 1.5)); rect.setAttribute('rx', rad);
+    svg.appendChild(rect); p.appendChild(svg);
+    p.style.setProperty('--len', 2 * (r.width + r.height)); p.style.setProperty('--d0', d0 + 's'); p.style.setProperty('--db', (d0 + 1.0) + 's');
+    const T = drawTargets(p);
+    T.forEach((el, i) => { el.classList.add('dl'); el.style.setProperty('--di', (d0 + 0.5 + i * 0.1) + 's'); });
+    p.classList.add('drawing');
+    const end = d0 + Math.max(1.1, 0.5 + T.length * 0.1 + 0.65, 2.2);
+    longest = Math.max(longest, end);
+    setTimeout(() => p.classList.add('framed'), (d0 + 0.85) * 1000);
+    setTimeout(() => { svg.remove(); p.classList.remove('drawing', 'framed'); ['--len', '--d0', '--db'].forEach(k => p.style.removeProperty(k)); T.forEach(el => { el.classList.remove('dl'); el.style.removeProperty('--di'); }); }, end * 1000 + 50);
+  }
+  animUntil = Math.max(animUntil, Date.now() + longest * 1000);
+}
+const centerPanels = () => [...app.querySelectorAll('#center > .pnl, #center > .wip, #center .home > *')];
+const leftPanels = () => [...app.querySelectorAll('#colL > *')].filter(e => getComputedStyle(e).display !== 'none');
+const leftKind = () => { const c = document.getElementById('colL'); if (!c || getComputedStyle(c).display === 'none') return 'none'; return S.view === 'agents' ? 'roster' : 'pass'; };
+let lastLeft = null;
+let playT, lastPhase = null, animUntil = 0, refreshT = null, lastPhaseDrawn = null;
 function play(cls) {
   app.classList.remove('in', 'in-view', 'in-step'); void app.offsetWidth;
   app.classList.add(cls); clearTimeout(playT); playT = setTimeout(() => app.classList.remove(cls), 1400);
@@ -2153,8 +2222,9 @@ function render() {
   else if (S.phase === 'login') app.innerHTML = viewLogin();
   else if (S.phase === 'create') app.innerHTML = viewCreate();
   else if (S.phase === 'issued') { app.innerHTML = viewIssued(); setTimeout(() => app.querySelector('[data-act=enter]')?.focus({ preventScroll: true }), calm() ? 0 : 2700); }
-  else if (S.phase === 'gm') { app.innerHTML = viewGM(); scrollChat(); }
-  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); setTimeout(syncMode, 0); ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
+  else if (S.phase === 'gm') { const first = lastPhaseDrawn !== 'gm'; app.innerHTML = viewGM(); scrollChat(); lastPhaseDrawn = 'gm'; if (first) requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl, #gmChat .pnl')], 0.1)); }
+  else if (S.phase === 'lobby') { const first = lastPhaseDrawn !== 'lobby'; app.innerHTML = viewShell(); setTimeout(syncMode, 0);
+    if (first) { lastPhaseDrawn = 'lobby'; requestAnimationFrame(() => { syncMode(); lastLeft = leftKind(); drawPanels([...leftPanels(), ...centerPanels(), ...app.querySelectorAll('#colR .pnl')], 0.15); }); } ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
 function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); }
 // 작전 모드: 작전 화면에서 작전이 진행 중이면 왼쪽 출입증 칸을 접고 작전 화면을 넓힌다. 메뉴의 작전 버튼에는 LIVE 표시.
@@ -2189,7 +2259,7 @@ const mobile = () => matchMedia('(max-width:999px)').matches;
 /* ═════════════ 10. 흐름 ═════════════ */
 async function onUser(u) {
   unsub.forEach(f => f && f()); unsub = []; clearInterval(touchT); S.watching = false;
-  S.user = u; S.me = null; S.priv = null; S.err = ''; S.busy = false;
+  S.user = u; S.me = null; S.priv = null; S.err = ''; S.busy = false; lastPhaseDrawn = null;
   if (!u) { S.phase = 'login'; return render(); }
   S.phase = 'boot'; render();
   try { S.me = await B.getAgent(u.uid); } catch (e) { S.phase = 'login'; S.err = errMsg(e); return render(); }
@@ -2296,7 +2366,8 @@ app.addEventListener('click', e => {
     case 'issue': return issue();
     case 'enter': return enterLobby();
     // 로비
-    case 'view': S.view = v; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0); return play('in-view');
+    case 'view': { S.view = v; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0);
+      requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return; }
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
     case 'opJoin': case 'opLeave': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
@@ -2341,7 +2412,7 @@ app.addEventListener('click', e => {
     case 'dmTo': if (mobile()) { S.chatOpen = true; render(); } return dmOpen(v);
     case 'toGM': return enterGM();
     case 'toLobby': S.phase = 'lobby'; S.chan = 'all'; S.dmWith = null; S.view = 'home'; return render();
-    case 'gmTab': S.gmTab = v; S.gmMsg = ''; return render();
+    case 'gmTab': S.gmTab = v; S.gmMsg = ''; render(); return requestAnimationFrame(() => drawPanels([...app.querySelectorAll('#gmMain > .pnl')]));
     case 'gmSel': S.gmSel = v; S.gmMsg = ''; return render();
     case 'gmOpSel': S.gmOp = v; return refreshGM(true);
     case 'gmOp': { const r = gmCurOp(); if (!r) return; const b = { op: r.op.id, act: v };
