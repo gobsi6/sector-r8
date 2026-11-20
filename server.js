@@ -684,6 +684,7 @@ function runOut(r, viewer, gm) {
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,
+    report: live && r.report && r.report.turn === r.turn && r.report.scene === r.scene && r.report.dist === r.dist ? r.report : null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     noise: live && r.noise ? (vm && vm.role === 'ctrl' ? { shown: r.noise.shown, turns: r.noise.turns } : { on: true }) : null,
     shift: live && r.shift && ctl ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
@@ -813,8 +814,14 @@ function opPick(uid, opId, kind, v) {
   const [e, label] = pickCheck(r, uid, kind, String(v || '')); if (e) return e;
   r.picks = r.picks || {};
   r.picks[String(uid)] = { kind, v: String(v), label, at: now(), scene: r.scene };
-  if (r.members.filter(canPick).every(m => r.picks[m.uid])) resolveRound(r);
+  if (roundReady(r)) resolveRound(r);
   return null;
+}
+// 라운드는 현장 전원이 고르고, 관제 전원이 관제 행동을 하거나 넘기면 끝난다. 시간이 다 되면 그대로 진행한다.
+const ctlActive = m => m.role === 'ctrl' && !m.dead && !m.broken;
+function roundReady(r) {
+  const P = r.picks || {};
+  return r.members.filter(canPick).every(m => P[m.uid]) && r.members.filter(ctlActive).every(m => m.acted);
 }
 function opUnpick(uid, opId) {
   const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
@@ -1081,7 +1088,7 @@ function endTurn(r, moved) {
   }
   noiseTick(r);
   if (moved !== false) shiftTick(r);
-  r.members.forEach(x => { x.acted = false; x.radioed = false; });
+  r.members.forEach(x => { x.acted = false; x.radioed = false; x.passed = false; });
   checkBodies(r);
   if (r.count <= 0) {
     say(r, o.endText, { kind: 'death' });
@@ -1256,6 +1263,12 @@ function opItem(uid, opId, id) {
   return null;
 }
 function opCtl(uid, opId, kind, target) {
+  const e = opCtl0(uid, opId, kind, target);
+  const r = runs.get(opId);
+  if (!e && r && r.status === 'live' && !r.batch && kind !== 'radio' && roundReady(r)) resolveRound(r);
+  return e;
+}
+function opCtl0(uid, opId, kind, target) {
   const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
   const m = r.members.find(x => x.uid === String(uid) && x.role === 'ctrl');
   if (!m) return 'op/not-ctrl';
@@ -1263,6 +1276,10 @@ function opCtl(uid, opId, kind, target) {
   if (m.acted && kind !== 'radio' && kind !== 'raven1') return 'op/ctl-wait';
   const o2 = D(r), used = r.ctlUsed || (r.ctlUsed = {});
   const row = Q.agent.get(uid);
+  if (kind === 'pass') {
+    m.acted = true; m.passed = true;
+    return null;
+  }
   if (kind === 'support') {
     const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
     r.support = Math.min(SUPPORT_MAX, r.support + add); m.acted = true;
@@ -1352,6 +1369,7 @@ function opCtl(uid, opId, kind, target) {
     if (m.radioed) return 'op/radio-wait';
     const sc = D(r).scenes[r.scene];
     m.radioed = true;
+    if (r.dist <= RADAR_RANGE) r.report = { dist: r.dist, from: sc.from, turn: r.turn, scene: r.scene, by: m.name };
     say(r, r.dist > RADAR_RANGE ? '관제 보고: 레이더 범위 밖입니다. 개체가 감지되지 않습니다.'
       : `관제 보고: 개체는 대열 ${sc.from === 'rear' ? '뒤' : '앞'} ${r.dist}m. ${r.dist <= 5 ? '접촉 직전입니다.' : '접근 중입니다.'}`, { kind: 'radio', uid: m.uid, name: m.name });
     return null;

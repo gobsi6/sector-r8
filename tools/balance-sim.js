@@ -100,6 +100,7 @@ function runOne(opId, nField, withCtrl) {
   const r = runs.get(opId); let actions = 0, guard = 0;
   while (r.status === 'live' && guard++ < 400) {
     const ctrl = r.members.find(x => x.role === 'ctrl'); if (ctrl) ctrlAct(r, ctrl);
+    if (ROUND && ctrl && r.status === 'live' && !ctrl.acted && !ctrl.broken && !ctrl.dead) opCtl(ctrl.uid, opId, 'pass'); // 관제도 라운드에 묶인다
     const field = lineOf(r).filter(x => !x.broken);
     const taken = new Set();
     if (ROUND) {
