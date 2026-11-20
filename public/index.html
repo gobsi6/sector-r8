@@ -2574,7 +2574,7 @@ function todoItems() {
     sec.entities.filter(e => e.captured && !(e.lockUntil > Date.now()) && stabOf(e) < 30).sort((a, b) => stabOf(a) - stabOf(b)).slice(0, 2)
       .forEach(e => L.push({ lv: 'danger', t: `${e.id} ${e.name} 안정도 ${Math.floor(stabOf(e))}%`, s: '0%가 되면 RAVEN-3이 투입되고 전원 보급품이 깎입니다.', act: 'view', v: 'base', b: '점검하기' }));
   }
-  if (!(me.ach && me.ach.tutDone)) L.push({ lv: 'info', t: '첫 출동 훈련', s: '리퍼와 벌처가 작전의 기본을 알려 줍니다. 처음 마치면 보급품 20과 칭호 「첫 출동」.', act: 'tutStart', b: '훈련 시작' });
+  if (!(me.ach && me.ach.tutDone)) L.push({ lv: 'info', t: '첫 출동 훈련', s: '리퍼가 작전의 기본을 알려 줍니다. 처음 마치면 보급품 20과 칭호 「첫 출동」.', act: 'tutStart', b: '훈련 시작' });
   const t = me.task;
   if (t && t.status === 'run' && t.sign) L.unshift({ lv: 'warn', t: `이상 징후: ${t.entity}`, s: `${t.sign.text} 지금 대응하면 성과가 늘어납니다.`, act: 'view', v: 'base', b: '대응하기' });
   if (t && t.status === 'done') { const bad = t.result && t.result.roll && t.result.roll.tier === 'fail'; L.push({ lv: bad ? 'danger' : 'info', t: `${TASK_NAME[t.kind]} 작업 ${bad ? '실패' : '완료'}`, s: `${t.entity} ${t.result ? esc(t.result.entityName || '') : ''}. 결과를 확인하십시오.`, act: 'view', v: 'base', b: '결과 보기' }); }
@@ -2844,8 +2844,8 @@ function shiftBoxHTML(r) {
 // 관제 NPC 무전: 가장 최근 무전 한 줄. 잡음이 끼면 끊긴다.
 function npcHTML(r) {
   const N = r.noise, last = (r.log || []).filter(x => x.kind === 'radio').slice(-1)[0];
-  if (N) return `<div class="npcr noise" role="status"><span class="who"><b class="bb">RAVEN-3</b><small>관제 벌처</small></span><span class="tx glt">${esc(N.shown || '잡음')}</span><small class="nt">무전 잡음 · 거리 보고 끊김 · ${N.left || 1}턴 뒤 복구${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' · 기술 요원이 해독·차단 가능' : ''}</small></div>`;
-  return `<div class="npcr" role="status"><span class="who"><b class="bb">RAVEN-3</b><small>관제 벌처</small></span><span class="tx">${esc(last ? last.text.replace(/^관제 (무전|보고): ?/, '') : '들리나. 레이더는 내가 본다. 거리는 계속 불러 줄게.')}</span></div>`;
+  if (N) return `<div class="npcr noise" role="status"><span class="who"><b class="bb">CONTROL</b><small>관제실</small></span><span class="tx glt">${esc(N.shown || '잡음')}</span><small class="nt">무전 잡음 · 거리 보고 끊김 · ${N.left || 1}턴 뒤 복구${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' · 기술 요원이 해독·차단 가능' : ''}</small></div>`;
+  return `<div class="npcr" role="status"><span class="who"><b class="bb">CONTROL</b><small>관제실</small></span><span class="tx">${esc(last ? last.text.replace(/^관제실: ?/, '') : '작전 회선 개방. 개체 거리와 이상 징후는 이 회선으로 하달한다.')}</span></div>`;
 }
 // 현장: 구조가 바뀐 직후 한 턴 동안 띠를 보여 준다
 function shiftBanHTML(r) {
@@ -3149,7 +3149,7 @@ function viewOps(rr, parts) {
       <div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span></span><h2>${esc(r.op.title)}</h2><p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}</div>
       <div class="facts"><span class="fc"><small>위험 등급</small>${thChip(r.op.threat, true)}</span><span class="fc"><small>난이도</small>${levelHTML(r.op)}</span><span class="fc"><small>예상 소요</small><b class="bb">${r.op.mins}분</b></span><span class="fc"><small>성공 보상</small><b>${reward}</b></span></div>
       <div class="seats"><div class="sg"><span class="sgh"><b>현장팀</b><small>${f}/${r.op.field}</small>${r.op.rec ? `<small>· 권장 ${recTxt(r.op).split(', ')[0].replace('현장 ', '')}</small>` : ''}</span><div class="sgrid">${seats('field', r.op.field)}</div></div>
-        <div class="sg c npc"><span class="sgh"><b>관제</b><small>NPC</small></span><div class="seat on npcs"><span class="sn"><b>벌처</b><small>RAVEN-3 팀장</small></span><span class="si">개체 거리와 구조 변형을 무전으로 알려 준다. 시설 조작·비컨·문 확인은 기술 요원의 요청을 받아 움직인다.</span></div></div></div></div>
+        <div class="sg c npc"><span class="sgh"><b>관제</b><small>NPC</small></span><div class="seat on npcs"><span class="sn"><b>관제실</b><small>무전 지휘</small></span><span class="si">개체 거리와 구조 변형을 무전으로 하달한다. 시설 조작·비컨·문 확인은 기술 요원의 요청을 받아 처리한다.</span></div></div></div></div>
       <div class="lbar"><span class="mys ${myState[0]}"><small>내 상태</small><span><i></i><b>${myState[1]}</b><em>${myState[2]}</em></span></span>
         ${warn ? `<span class="lwarn">${ico('alert', 16)}<span>${warn}</span></span>` : '<span class="lwarn"></span>'}
         <span class="lbtn">${me ? `<button class="btn g s" data-act="opLeave">나가기</button><button class="btn${me.ready ? ' g' : ''}" data-act="opReady" data-v="${me.ready ? 0 : 1}">${me.ready ? '준비 취소' : '준비 완료'}</button><button class="btn" data-act="opStart" ${canStart ? '' : 'disabled'}>${icoFill('play', 14)}작전 개시 ${rd}/${tot}</button>`

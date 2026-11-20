@@ -132,7 +132,7 @@ if (!db.prepare("SELECT 1 FROM pragma_table_info('agents') WHERE name = 'photo'"
 // 예전 버전(이메일 가입)으로 만든 데이터베이스면 칸 이름만 바꾼다
 if (db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'email'").get()) db.exec('ALTER TABLE users RENAME COLUMN email TO login');
 
-// 관제팀은 NPC(벌처)가 맡게 되어, 예전에 관제 요원으로 만든 캐릭터는 모두 현장 요원이 된다
+// 관제팀은 NPC(이름 없는 관제실)가 맡게 되어, 예전에 관제 요원으로 만든 캐릭터는 모두 현장 요원이 된다
 db.exec('UPDATE agents SET role = 0 WHERE role = 1');
 const Q = {
   userByLogin: db.prepare('SELECT * FROM users WHERE login = ?'),
@@ -781,7 +781,7 @@ function opReady(uid, opId, on) {
    돌격: 공격 판정 주사위 +1, 맞히면 피해 +1
    방어: 막기가 대열 전원을 지키고, 그 라운드의 개체 접촉 피해도 절반
    치유: 응급 처치(HP)와 정신 안정(정신력)을 할 수 있다
-   기술: 관제(NPC 벌처)에 시설 조작·비컨·문 확인·지원 연결·잡음 해독을 요청한다 */
+   기술: 관제실(NPC)에 시설 조작·비컨·문 확인·지원 연결·잡음 해독을 요청한다 */
 const CLS = { atk: '돌격', def: '방어', med: '치유', tech: '기술' };
 function suggestCls(row) {
   const sk = skAll(row) || {}, sc = { atk: (sk['격투'] || 0) + (sk['사격'] || 0), def: (sk['인내'] || 0) + (sk['운반'] || 0), med: (sk['응급처치'] || 0) * 2, tech: (sk['장비 운용'] || 0) + (sk['통신'] || 0) + (sk['기록 해독'] || 0) };
@@ -922,7 +922,8 @@ function opStart(uid, opId) {
   r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
-  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name} ${CLS[m.cls] || ''}`).join(', ')}). 관제는 RAVEN-3 벌처가 무전으로 맡는다.`, { kind: 'sys' });
+  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name} ${CLS[m.cls] || ''}`).join(', ')}).`, { kind: 'sys' });
+  say(r, '관제실: 작전 개시를 승인한다. 개체 거리와 이상 징후는 이 회선으로 하달한다.', { kind: 'radio', name: '관제실' });
   r.band = 0;
   say(r, `대열 편성: ${lineOf(r).map(m => m.name).join(' → ')} (민첩이 높은 요원이 선두에 선다)`, { kind: 'sys' });
   r.minions = []; r.mseq = 0;
@@ -1020,7 +1021,7 @@ function shiftTick(r) {
   if (Math.random() >= SHIFT_CHANCE) return;
   const kinds = ['extend', 'marks', 'flip'].concat(r.fac && r.fac.pwr ? ['power', 'power'] : []);
   r.shift = { kind: pick(kinds), at: r.turn + 1 };
-  say(r, `관제 무전: 도면 좌표가 흔들린다. 다음 턴이 끝나면 구조가 바뀐다(${SHIFT_KINDS[r.shift.kind].name}).${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' 기술 요원, 비컨 띄울 수 있나?' : ' 비컨을 띄울 기술 요원이 없다. 대비해.'}`, { kind: 'radio', name: '관제 벌처' });
+  say(r, `관제실: 하층 도면 좌표 이상. 다음 턴 종료 시 구조 변형(${SHIFT_KINDS[r.shift.kind].name}) 예상.${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' 기술 요원은 기준점 비컨을 가동할 것.' : ' 비컨 가동 인원 없음. 변형에 대비할 것.'}`, { kind: 'radio', name: '관제실' });
 }
 function shiftApply(r) {
   const o = D(r), sc = o.scenes[r.scene], k = r.shift.kind; let text, fx = null;
@@ -1128,13 +1129,13 @@ function noiseStart(r) {
 function noiseTick(r) {
   if (!r.noise) { if (r.turn >= 2 && Math.random() < NOISE_CHANCE * (r.beaconUntil >= r.turn ? 2 : 1)) noiseStart(r); return; }
   r.noise.turns++; r.noise.shown = garble(r.noise.text);
-  if (r.noise.turns >= 3) { r.noise = null; say(r, '관제 무전: 회선 복구했다. 다시 들리나?', { kind: 'radio', name: '관제 벌처' }); }
+  if (r.noise.turns >= 3) { r.noise = null; say(r, '관제실: 회선 복구 완료. 보고를 재개한다.', { kind: 'radio', name: '관제실' }); }
 }
 // 관제 NPC: 개체가 가까워질 때마다 무전으로 거리를 알린다(잡음이 끼면 끊긴다)
 function npcRadio(r) {
   const sc = D(r).scenes[r.scene], d = r.dist, band = d <= 5 ? 4 : d <= 10 ? 3 : d <= 20 ? 2 : d <= RADAR_RANGE ? 1 : 0;
   if (r.noise) return;
-  if (band > (r.band || 0)) say(r, `관제 무전: 개체, 대열 ${sc.from === 'rear' ? '뒤' : '앞'} ${d}m. ${band >= 4 ? '접촉 직전이다. 막을 준비해.' : band >= 3 ? '곧 붙는다.' : band >= 2 ? '빠르게 다가온다.' : '레이더에 잡혔다.'}`, { kind: 'radio', name: '관제 벌처' });
+  if (band > (r.band || 0)) say(r, `관제실: 개체, 대열 ${sc.from === 'rear' ? '후방' : '전방'} ${d}m. ${band >= 4 ? '접촉 직전. 즉시 방어 태세.' : band >= 3 ? '곧 접촉한다. 대열을 정비할 것.' : band >= 2 ? '접근 속도 상승. 대비할 것.' : '레이더 포착. 경계 유지할 것.'}`, { kind: 'radio', name: '관제실' });
   r.band = band;
 }
 function endTurn(r, moved) {
@@ -1335,7 +1336,7 @@ function opItem(uid, opId, id) {
   pushAgent(uid);
   return null;
 }
-// 포지션 행동: 기술(관제 요청) · 치유(정신 안정) · 누구나(RAVEN-1). 관제실은 NPC 벌처가 맡고, 현장 요원의 요청을 받아 움직인다.
+// 포지션 행동: 기술(관제 요청) · 치유(정신 안정) · 누구나(RAVEN-1). 관제실은 NPC가 맡고, 현장 요원의 요청을 받아 움직인다.
 function classExec(r, m, kind, target) {
   const o2 = D(r), row = Q.agent.get(Number(m.uid));
   if (kind === 'support') {
@@ -1370,7 +1371,7 @@ function classExec(r, m, kind, target) {
   } else if (kind === 'decode' || kind === 'jam') {
     if (!r.noise) return 'op/no-noise';
     
-    if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
+    if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제실 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
     const read = grit(m, sanD(-0.5)); m.san = Math.max(0, m.san + read);
     const res = rollPool(row, 3, '기록 해독', 0), tier = tierOf(res.succ, 2);
     let txt, extra = 0;
@@ -1392,7 +1393,7 @@ function classExec(r, m, kind, target) {
     if (r.noise) return 'op/noise';
     d.peeked = true; 
     const R = DOOR_RISK[d.risk], ns = d.scene;
-    say(r, `${m.name} 요원의 요청으로 관제가 ${d.name} 너머의 감시 카메라를 확인했다. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '뒤' : '앞'}쪽에서 접근한다.`, { kind: 'radio', uid: m.uid, name: '관제 벌처', peek: d.id });
+    say(r, `관제실: ${m.name} 요원 요청 확인. ${d.name} 너머 감시 카메라 판독. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '후방' : '전방'}에서 접근 예상.`, { kind: 'radio', uid: m.uid, name: '관제실', peek: d.id });
     return null;
   } else if (kind === 'fac') {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
