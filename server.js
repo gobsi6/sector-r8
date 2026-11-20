@@ -132,6 +132,8 @@ if (!db.prepare("SELECT 1 FROM pragma_table_info('agents') WHERE name = 'photo'"
 // 예전 버전(이메일 가입)으로 만든 데이터베이스면 칸 이름만 바꾼다
 if (db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'email'").get()) db.exec('ALTER TABLE users RENAME COLUMN email TO login');
 
+// 관제팀은 NPC(벌처)가 맡게 되어, 예전에 관제 요원으로 만든 캐릭터는 모두 현장 요원이 된다
+db.exec('UPDATE agents SET role = 0 WHERE role = 1');
 const Q = {
   userByLogin: db.prepare('SELECT * FROM users WHERE login = ?'),
   addUser: db.prepare('INSERT INTO users (login, pw, created) VALUES (?, ?, ?)'),
@@ -211,7 +213,7 @@ const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catc
 const TITLES = [
   { id: 'rookie', name: '신입 요원', desc: '작전을 처음으로 마친다.', key: 'ops', need: 1 },
   { id: 'veteran', name: '현장 베테랑', desc: '작전을 10번 성공한다.', key: 'success', need: 10 },
-  { id: 'voice', name: '무전 너머의 목소리', desc: '관제팀으로 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
+  { id: 'voice', name: '무전 너머의 목소리', desc: '기술 포지션으로 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
   { id: 'night', name: '야간 근무자', desc: '기지 관리 작업을 10번 마친다.', key: 'tasks', need: 10 },
   { id: 'steady', name: '침착한 손', desc: '관리 작업 중 이상 징후에 10번 대응한다.', key: 'signs', need: 10 },
   { id: 'tankreg', name: '수조 단골', desc: '재생 수조에서 3번 재생된다.', key: 'deaths', need: 3 },
@@ -354,6 +356,7 @@ app.post('/api/agent', need, (req, res) => {
   if (!realName) return fail(res, 'agent/bad-realname');
   const photo = photoOf(b.photo);
   if (photo === undefined) return fail(res, 'agent/bad-photo');
+  b.role = 0;
   if (!isInt(b.role, 0, 1) || !isInt(b.age, 18, 70) || !isInt(b.pastPick, 0, 2) || !isInt(b.traitPick, 0, 2)) return fail(res, 'agent/bad-field');
   const stats = b.stats;
   if (!Array.isArray(stats) || stats.length !== 6 || !stats.every(v => isInt(v, STAT_MIN0, STAT_MAX0)) || stats.reduce((a, c) => a + c, 0) !== STAT_SUM) return fail(res, 'agent/bad-stats');
@@ -369,7 +372,7 @@ app.post('/api/agent', need, (req, res) => {
   try {
     transaction(() => {
       if (Q.agentByNum.get(num)) { num = freeNumber(); }
-      Q.addAgent.run({ user_id: uid, num, name, role: b.role, head: 0, photo, age: b.age, stats: JSON.stringify(stats), trait, skills: JSON.stringify(skills), res: JSON.stringify(START_RES), created: now() });
+      Q.addAgent.run({ user_id: uid, num, name, role: 0, head: 0, photo, age: b.age, stats: JSON.stringify(stats), trait, skills: JSON.stringify(skills), res: JSON.stringify(START_RES), created: now() });
       db.prepare('UPDATE agents SET traits = ? WHERE user_id = ?').run(JSON.stringify([{ id: trait, lv: 1 }]), uid);
       Q.addSealed.run(uid, JSON.stringify(sealed));
       Q.dropDraft.run(uid);
@@ -413,7 +416,7 @@ const RADAR_RANGE = 50, STEP_M = 10, RECOIL_M = 8, COUNT_EVERY = 4, MINION_CAP =
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
-  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 4, ctrl: 2, level: 3, rec: { field: [3, 4], ctrl: [1, 2] }, count: 8, countEvery: 4, entity: 'AO-212',
+  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 4, ctrl: 0, level: 3, rec: { field: [3, 4], ctrl: [0, 0] }, count: 8, countEvery: 4, entity: 'AO-212',
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 개체가 셈을 마치기 전에 장치를 다시 설치하고 귀환하십시오.',
@@ -475,7 +478,7 @@ const OPS = [{
 /* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
 // 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
 const PATROL_SECTIONS = 3, REACH_M = 6, PATROL_STAB = 15;
-OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 4, ctrl: 2, level: 2, rec: { field: [2, 3], ctrl: [1, 1] }, count: 8, countEvery: 4, recoil: 12,
+OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 4, ctrl: 0, level: 2, rec: { field: [2, 4], ctrl: [0, 0] }, count: 8, countEvery: 4, recoil: 12,
   brief: '하층 B3 구역 정기 순찰입니다. 구역 문을 지나 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
   sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
   countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
@@ -577,6 +580,8 @@ function forkResolve(r) {
   const votes = Object.values(r.picks || {}).filter(p => /^fork-[ab]$/.test(p.v)).sort((a, b) => a.at - b.at);
   const n = { a: 0, b: 0 }; votes.forEach(p => { n[p.v.slice(5)]++; });
   let id, why;
+  // 아무도 투표하지 않은 첫 라운드는 갈림길에서 기다린다(문 확인 결과를 보고 고를 수 있게). 두 번째부터는 아무 문이나.
+  if (!votes.length && !r.forkIdle) { r.forkIdle = 1; say(r, '대열은 갈림길 앞에서 잠시 숨을 골랐다. 다음 라운드에는 어느 쪽이든 들어서야 한다.', { kind: 'move' }); return; }
   if (!votes.length) { id = die(2) === 1 ? 'a' : 'b'; why = '아무도 고르지 않아 대열은 먼저 눈에 띈 문으로 들어섰다.'; }
   else if (n.a === n.b) { id = votes[0].v.slice(5); why = `표가 갈렸다(${n.a}:${n.b}). 먼저 손을 든 쪽을 따른다.`; }
   else { id = n.a > n.b ? 'a' : 'b'; why = `투표 ${n.a}:${n.b}.`; }
@@ -671,10 +676,10 @@ function posOk(r, uid, need) {
 function runOut(r, viewer, gm) {
   const o = D(r), live = r.status === 'live', sc = live ? o.scenes[r.scene] : null;
   const vm = r.members.find(m => m.uid === String(viewer));
-  const ctl = !!(vm && vm.role === 'ctrl') || !!gm;
-  const radar = live ? (r.noise && vm && vm.role === 'ctrl' ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
-    : ctl ? { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }
-    : { exact: false, from: sc.from, detected: r.dist <= RADAR_RANGE, near: r.dist <= 10 }) : null;
+  const ctl = !!gm;
+  // 관제 NPC가 거리를 늘 알려 준다. 잡음이 끼면 끊긴다(GM은 계속 본다).
+  const radar = live ? (r.noise && !gm ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
+    : { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
       patrol: !!o.patrol, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
     steps: live ? o.scenes.map((x, i) => o.patrol ? (x.fork ? '갈림길' : i === o.scenes.length - 1 ? '승강기' : i <= r.scene ? x.title.replace(/ \(하층.*$/, '') : '구역') : x.title) : null,
@@ -684,10 +689,9 @@ function runOut(r, viewer, gm) {
       choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,
-    report: live && r.report && r.report.turn === r.turn && r.report.scene === r.scene && r.report.dist === r.dist ? r.report : null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
-    noise: live && r.noise ? (vm && vm.role === 'ctrl' ? { shown: r.noise.shown, turns: r.noise.turns } : { on: true }) : null,
-    shift: live && r.shift && ctl ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
+    noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
+    shift: live && r.shift ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
     shiftFx: live && r.shiftFx && r.shiftFx.turn === r.turn ? r.shiftFx : null,
     beacon: live && r.beaconUntil > r.turn ? r.beaconUntil - r.turn : 0,
     fork: live && sc.fork ? sc.doors.map(d => ({ id: d.id, name: d.name, hint: d.hint, peeked: d.peeked, tpl: d.peeked ? d.tpl : null, risk: d.peeked ? d.risk : null, riskName: d.peeked ? DOOR_RISK[d.risk].name : null, riskText: d.peeked ? DOOR_RISK[d.risk].text : null, from: d.peeked ? d.scene.from : null })) : null,
@@ -752,11 +756,12 @@ function opJoin(uid, opId, role) {
   if (r.status !== 'lobby') return 'op/started';
   if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
   const other = busyIn(uid); if (other && other !== r) return 'op/busy';
-  const o = opDef(opId), cap = role === 'field' ? o.field : o.ctrl;
+  role = 'field';
+  const o = opDef(opId), cap = o.field, prev = r.members.find(m => m.uid === String(uid));
   r.members = r.members.filter(m => m.uid !== String(uid));
   if (r.members.filter(m => m.role === role).length >= cap) return 'op/full';
   const mx = maxes(row);
-  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), dead: false, broken: false, acted: false, ready: false });
+  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), cls: (prev && prev.cls) || suggestCls(row), dead: false, broken: false, acted: false, ready: false });
   return null;
 }
 function opLeave(uid, opId) {
@@ -772,6 +777,44 @@ function opReady(uid, opId, on) {
 /* ───────── 라운드: 현장 요원은 라운드마다 행동을 하나씩 고른다 ─────────
    모두 고르거나 제한 시간이 지나면 고른 순서대로 실행하고(고르지 못한 요원은 대기), 그 뒤에 한 턴이 흐른다
    (하수인 행동 → 개체 접근 → 귀환 신호). 관제 행동과 소모품은 고르는 즉시 일어난다. */
+/* ───────── 포지션: 대기실에서 작전마다 고른다 ─────────
+   돌격: 공격 판정 주사위 +1, 맞히면 피해 +1
+   방어: 막기가 대열 전원을 지키고, 그 라운드의 개체 접촉 피해도 절반
+   치유: 응급 처치(HP)와 정신 안정(정신력)을 할 수 있다
+   기술: 관제(NPC 벌처)에 시설 조작·비컨·문 확인·지원 연결·잡음 해독을 요청한다 */
+const CLS = { atk: '돌격', def: '방어', med: '치유', tech: '기술' };
+function suggestCls(row) {
+  const sk = skAll(row) || {}, sc = { atk: (sk['격투'] || 0) + (sk['사격'] || 0), def: (sk['인내'] || 0) + (sk['운반'] || 0), med: (sk['응급처치'] || 0) * 2, tech: (sk['장비 운용'] || 0) + (sk['통신'] || 0) + (sk['기록 해독'] || 0) };
+  return Object.entries(sc).sort((a, b) => b[1] - a[1])[0][1] ? Object.entries(sc).sort((a, b) => b[1] - a[1])[0][0] : 'atk';
+}
+function opCls(uid, opId, cls) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  const m = r.members.find(x => x.uid === String(uid)); if (!m) return 'op/not-member';
+  if (!CLS[cls]) return 'op/bad-choice';
+  m.cls = cls; return null;
+}
+function classAct(v) {
+  let x;
+  if (v === 'sup') return { k: 'support', cls: 'tech' };
+  if ((x = /^fac-(\w+)$/.exec(v))) return { k: 'fac', t: x[1], cls: 'tech' };
+  if ((x = /^peek-([ab])$/.exec(v))) return { k: 'peek', t: x[1], cls: 'tech' };
+  if (v === 'decode' || v === 'jam') return { k: v, cls: 'tech' };
+  if ((x = /^calm-(.+)$/.exec(v))) return { k: 'stabilize', t: x[1], cls: 'med' };
+  if (v === 'raven1') return { k: 'raven1' };
+  return null;
+}
+// 고를 때 미리 확인한다(실행은 라운드 끝에)
+function classPre(r, m, A) {
+  if (A.cls && m.cls !== A.cls) return ['op/cls'];
+  const sc = D(r).scenes[r.scene];
+  if (A.k === 'support') return [null, '관제 지원 연결'];
+  if (A.k === 'raven1') return r.r1 ? ['op/raven1-used'] : [null, 'RAVEN-1 지원 요청'];
+  if (A.k === 'decode' || A.k === 'jam') return r.noise ? [null, A.k === 'decode' ? '신호 해독' : '회선 차단'] : ['op/no-noise'];
+  if (A.k === 'peek') { const d = sc.fork && sc.doors.find(x => x.id === A.t); if (!d) return ['op/bad-choice']; if (d.peeked) return ['op/used']; if (r.noise) return ['op/noise']; return [null, `${d.name} 확인 요청`]; }
+  if (A.k === 'stabilize') { const t = r.members.find(x => x.uid === A.t && x.role === 'field' && !x.dead); return !t || t.san >= t.sanMax ? ['op/no-target'] : [null, `${t.name} 정신 안정`]; }
+  if (A.k === 'fac') { const F = facsOf(r).find(x => x.id === A.t); if (!F) return ['op/bad-choice']; if (F.on) return ['op/used']; if (F.id === 'wall' && !F.need) return ['op/no-target']; return [null, `${F.name} 조작 요청`]; }
+  return ['op/bad-choice'];
+}
 const ROUND_MS = Math.max(15, Number(process.env.ROUND_SECONDS || 60)) * 1000;
 const canPick = m => m.role === 'field' && !m.dead && !m.broken;
 function pickCheck(r, uid, kind, v) {
@@ -780,7 +823,7 @@ function pickCheck(r, uid, kind, v) {
     const fm = /^fork-([ab])$/.exec(v);
     if (kind === 'act' && fm) return [null, `${sc.doors.find(d => d.id === fm[1]).name} 쪽에 한 표`];
     if (kind === 'move' && (v === 'fwd' || v === 'back')) return ['op/fork'];
-    if (kind === 'act' && !/^(rec|heal)-/.test(v)) return ['op/fork'];
+    if (kind === 'act' && !/^(rec-|heal-|calm-|peek-|sup$|raven1$|decode$|jam$)/.test(v)) return ['op/fork'];
   }
   if (kind === 'move') {
     if (v === 'wait') return [null, '대기'];
@@ -793,6 +836,7 @@ function pickCheck(r, uid, kind, v) {
     }
     return ['op/bad-choice'];
   }
+  const CA = classAct(v); if (CA) return classPre(r, m, CA);
   let mt;
   if ((mt = /^(atk|shv)-(front|rear)$/.exec(v))) {
     const side = mt[2], foe = r.minions.find(x => x.side === side); if (!foe) return ['op/no-foe'];
@@ -800,9 +844,9 @@ function pickCheck(r, uid, kind, v) {
     if (mt[1] === 'shv') return melee ? [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
     return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
   }
-  if (v === 'guard') return r.minions.length ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'guard') return m.cls === 'def' ? (r.minions.length || r.dist <= 10 ? [null, '엄호'] : ['op/no-foe']) : r.minions.length ? [null, '막기'] : ['op/no-foe'];
   if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
-  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치')) return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
+  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (m.cls !== 'med') return ['op/cls']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
   const c = sc.choices.find(x => x.id === v); if (!c) return ['op/bad-choice'];
   if (!posOk(r, uid, c.pos)) return ['op/pos'];
   if (c.reach && r.pos < sc.map.len - REACH_M) return ['op/not-there'];
@@ -813,19 +857,27 @@ function opPick(uid, opId, kind, v) {
   if (r.batch) return 'op/resolving';
   const [e, label] = pickCheck(r, uid, kind, String(v || '')); if (e) return e;
   r.picks = r.picks || {};
+  if (r.picks[String(uid)] && r.picks[String(uid)].v === 'peek-done') return 'op/used';
+  // 문 너머 확인은 고르는 즉시 일어난다: 그래야 동료가 보고 투표할 수 있다. 이번 라운드의 행동으로 친다.
+  if (kind === 'act' && /^peek-[ab]$/.test(String(v))) {
+    const e = classExec(r, fieldMember(r, uid), 'peek', String(v).slice(5)); if (e) return e;
+    r.picks[String(uid)] = { kind, v: 'peek-done', label, at: now(), scene: r.scene };
+    if (roundReady(r)) resolveRound(r);
+    return null;
+  }
   r.picks[String(uid)] = { kind, v: String(v), label, at: now(), scene: r.scene };
   if (roundReady(r)) resolveRound(r);
   return null;
 }
 // 라운드는 현장 전원이 고르고, 관제 전원이 관제 행동을 하거나 넘기면 끝난다. 시간이 다 되면 그대로 진행한다.
-const ctlActive = m => m.role === 'ctrl' && !m.dead && !m.broken;
 function roundReady(r) {
   const P = r.picks || {};
-  return r.members.filter(canPick).every(m => P[m.uid]) && r.members.filter(ctlActive).every(m => m.acted);
+  return r.members.filter(canPick).every(m => P[m.uid]);
 }
 function opUnpick(uid, opId) {
   const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
   if (r.batch) return 'op/resolving';
+  if (r.picks && r.picks[String(uid)] && r.picks[String(uid)].v === 'peek-done') return 'op/used';
   if (r.picks) delete r.picks[String(uid)];
   return null;
 }
@@ -846,7 +898,7 @@ function resolveRound(r) {
     if (r.status !== 'live') break;
     const m = r.members.find(x => x.uid === uid); if (!m) continue;
     if (r.scene !== sc0) { say(r, `장면이 바뀌어 ${m.name} 요원의 「${p.label}」은(는) 취소됐다.`, { kind: 'move', uid }); continue; }
-    if (/^fork-[ab]$/.test(p.v)) continue;
+    if (/^fork-[ab]$/.test(p.v) || p.v === 'peek-done') continue;
     if (p.kind === 'move' && p.v === 'wait') { say(r, `${m.name} 요원은 자리를 지키며 기다렸다.`, { kind: 'move', uid }); continue; }
     const e = p.kind === 'move' ? moveExec(r, uid, p.v) : actExec(r, uid, p.v);
     if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
@@ -870,7 +922,8 @@ function opStart(uid, opId) {
   r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
-  say(r, `작전 ${o.id} 개시. 현장팀 ${r.members.filter(m => m.role === 'field').length}명, 관제팀 ${r.members.filter(m => m.role === 'ctrl').length}명.`, { kind: 'sys' });
+  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name} ${CLS[m.cls] || ''}`).join(', ')}). 관제는 RAVEN-3 벌처가 무전으로 맡는다.`, { kind: 'sys' });
+  r.band = 0;
   say(r, `대열 편성: ${lineOf(r).map(m => m.name).join(' → ')} (민첩이 높은 요원이 선두에 선다)`, { kind: 'sys' });
   r.minions = []; r.mseq = 0;
   say(r, o.scenes[0].text, { kind: 'scene', title: o.scenes[0].title });
@@ -895,7 +948,7 @@ function applyFx(r, m, fx) {
 function checkBodies(r) {
   r.members.forEach(m => {
     if (!m.dead && m.hp <= 0) { m.dead = true; m.recovered = false; say(r, `${m.name} 요원의 생체 신호가 끊겼다. 동료가 회수하지 못하면 RAVEN-4가 출동한다.`, { kind: 'death', uid: m.uid }); }
-    if (!m.dead && !m.broken && m.san <= 0) { m.broken = true; m.recovered = false; say(r, m.role === 'ctrl' ? `관제 ${m.name} 요원의 정신이 붕괴했다. 다른 관제 요원이 바이탈을 안정시켜야 한다.` : `${m.name} 요원의 정신이 붕괴했다. 관제팀이 안정시키거나 동료가 회수해야 한다.`, { kind: 'warn', uid: m.uid }); }
+    if (!m.dead && !m.broken && m.san <= 0) { m.broken = true; m.recovered = false; say(r, `${m.name} 요원의 정신이 붕괴했다. 치유 요원이 정신을 안정시키거나 동료가 회수해야 한다.`, { kind: 'warn', uid: m.uid }); }
   });
 }
 const fieldMember = (r, uid) => r.members.find(x => x.uid === String(uid) && x.role === 'field');
@@ -909,12 +962,13 @@ function canField(r, uid) {
 }
 // 하수인: 대열 앞(front)이나 뒤(rear)에 붙어 길을 막고, 턴마다 그쪽 끝 요원을 공격한다
 /* 인원 보정: 인원이 많을수록 압박이 커지고, 적을수록 완화된다(작전 시작 때 인원 기준). 시뮬레이터(봇 수천 판)로 맞춘 값이다.
+   관제를 NPC로 바꾸면서(현장 요원이 시설 조작에 차례를 쓴다) 3~4인 값을 다시 맞췄다.
    시간 압박은 현장 인원으로 정한다 — every: 귀환 신호 감소 주기 배수 · speed: 개체 접근 속도 배수
    하수인은 현장 인원으로 정한다 — hp: 하수인 체력 + · spawn: 장면·시간 경과 때 더 나오는 수 · cap: 시간 경과로 나올 때 상한
    R8_SCALE 환경 변수(JSON, {"time":{…},"foe":{…}})로 덮어쓸 수 있다. */
 const SCALE_ENV = (() => { try { return JSON.parse(process.env.R8_SCALE || '{}'); } catch { return {}; } })();
-const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.1, speed: 0.9 }, 3: { every: 1.05, speed: 0.95 }, 4: { every: 0.92, speed: 1.1 } }, SCALE_ENV.time || {});
-const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 1, spawn: 1, cap: 3 }, 4: { hp: 2, spawn: 1, cap: 4 } }, SCALE_ENV.foe || {});
+const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.1, speed: 0.9 }, 3: { every: 1.2, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
+const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 0, spawn: 0, cap: 2 }, 4: { hp: 1, spawn: 0, cap: 3 } }, SCALE_ENV.foe || {});
 const scaleOf = r => ({ ...SCALE_T[Math.min(4, Math.max(1, r.nt || 1))], ...SCALE_F[Math.min(4, Math.max(1, r.nf || 1))] });
 function spawnMinion(r, side, n) {
   const o = D(r);
@@ -966,7 +1020,7 @@ function shiftTick(r) {
   if (Math.random() >= SHIFT_CHANCE) return;
   const kinds = ['extend', 'marks', 'flip'].concat(r.fac && r.fac.pwr ? ['power', 'power'] : []);
   r.shift = { kind: pick(kinds), at: r.turn + 1 };
-  if (r.members.some(m => m.role === 'ctrl' && !m.dead)) say(r, '관제실 계기판에 경보등이 켜졌다. 하층 도면의 좌표가 흔들리고 있다.', { kind: 'shift' });
+  say(r, `관제 무전: 도면 좌표가 흔들린다. 다음 턴이 끝나면 구조가 바뀐다(${SHIFT_KINDS[r.shift.kind].name}).${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' 기술 요원, 비컨 띄울 수 있나?' : ' 비컨을 띄울 기술 요원이 없다. 대비해.'}`, { kind: 'radio', name: '관제 벌처' });
 }
 function shiftApply(r) {
   const o = D(r), sc = o.scenes[r.scene], k = r.shift.kind; let text, fx = null;
@@ -994,7 +1048,7 @@ function shiftApply(r) {
   say(r, text, { kind: 'shift', title: SHIFT_KINDS[k].name });
 }
 function sceneEnter(r) {
-  r.ctlUsed = {}; r.fac = {}; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
+  r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
   const sc0 = D(r).scenes[r.scene];
   if (sc0.fork) { r.minions = []; return; }
   const sp = sc0.spawn;
@@ -1044,6 +1098,7 @@ function entityStep(r) {
   const L = lineOf(r); if (!L.length) return;
   const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
   const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san);
+  if (r.cover === r.turn - 1) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); c.text += ' (엄호로 절반)'; }
   say(r, c.text.replace('{name}', t.name), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
   applyFx(r, t, c);
   r.dist = o.recoil || RECOIL_M;
@@ -1065,15 +1120,22 @@ const NOISE_CHANCE = 0.2;
 const SUPPORT_MAX = 2; // 관제 지원 주사위는 2개까지 쌓인다(시뮬레이터로 맞춘 값)
 function garble(t) { return [...t].map(ch => ch === ' ' || ch === '.' ? ch : Math.random() < 0.55 ? '▒█▓░'[Math.floor(Math.random() * 4)] : ch).join(''); }
 function noiseStart(r) {
-  if (r.noise || !r.members.some(m => m.role === 'ctrl' && !m.broken)) return;
+  if (r.noise) return;
   const text = NOISE_TEXT[Math.floor(Math.random() * NOISE_TEXT.length)];
   r.noise = { text, shown: garble(text), turns: 0 };
-  say(r, '관제 화면에 잡음이 끼었다. 알 수 없는 신호가 흘러든다.', { kind: 'noise' });
+  say(r, '무전에 잡음이 끼었다. 관제 보고가 끊기고, 알 수 없는 신호가 흘러든다.', { kind: 'noise' });
 }
 function noiseTick(r) {
   if (!r.noise) { if (r.turn >= 2 && Math.random() < NOISE_CHANCE * (r.beaconUntil >= r.turn ? 2 : 1)) noiseStart(r); return; }
   r.noise.turns++; r.noise.shown = garble(r.noise.text);
-  r.members.filter(m => m.role === 'ctrl' && !m.broken).forEach(m => { const d = grit(m, sanD(-0.4)); m.san = Math.max(0, m.san + d); say(r, `잡음 속 속삭임이 ${m.name} 요원의 귀에 남는다.`, { kind: 'noise', uid: m.uid, fx: { san: d } }); });
+  if (r.noise.turns >= 3) { r.noise = null; say(r, '관제 무전: 회선 복구했다. 다시 들리나?', { kind: 'radio', name: '관제 벌처' }); }
+}
+// 관제 NPC: 개체가 가까워질 때마다 무전으로 거리를 알린다(잡음이 끼면 끊긴다)
+function npcRadio(r) {
+  const sc = D(r).scenes[r.scene], d = r.dist, band = d <= 5 ? 4 : d <= 10 ? 3 : d <= 20 ? 2 : d <= RADAR_RANGE ? 1 : 0;
+  if (r.noise) return;
+  if (band > (r.band || 0)) say(r, `관제 무전: 개체, 대열 ${sc.from === 'rear' ? '뒤' : '앞'} ${d}m. ${band >= 4 ? '접촉 직전이다. 막을 준비해.' : band >= 3 ? '곧 붙는다.' : band >= 2 ? '빠르게 다가온다.' : '레이더에 잡혔다.'}`, { kind: 'radio', name: '관제 벌처' });
+  r.band = band;
 }
 function endTurn(r, moved) {
   if (r.batch) { if (moved === false) r._sceneChanged = true; return null; }
@@ -1088,6 +1150,7 @@ function endTurn(r, moved) {
   }
   noiseTick(r);
   if (moved !== false) shiftTick(r);
+  npcRadio(r);
   r.members.forEach(x => { x.acted = false; x.radioed = false; x.passed = false; });
   checkBodies(r);
   if (r.count <= 0) {
@@ -1098,7 +1161,7 @@ function endTurn(r, moved) {
   }
   if (!r.members.some(x => x.role === 'field' && !x.dead)) return opFinish(r, 'fail');
   // 관제팀이 없는데 현장팀이 모두 붕괴하면 더 진행할 수 없다
-  if (!r.members.some(x => x.role === 'field' && !x.dead && !x.broken) && !r.members.some(x => x.role === 'ctrl')) { say(r, '현장팀 전원의 정신이 붕괴했다. 응답할 요원이 없다.', { kind: 'death' }); return opFinish(r, 'fail'); }
+  if (!r.members.some(x => x.role === 'field' && !x.dead && !x.broken)) { say(r, '현장팀 전원의 정신이 붕괴했다. 응답할 요원이 없다.', { kind: 'death' }); return opFinish(r, 'fail'); }
   return null;
 }
 const POS_NAME = { front: '선두', mid: '중열', rear: '후미' };
@@ -1109,6 +1172,8 @@ function actExec(r, uid, choiceId) {
   if (/^atk-(front|rear)$/.test(choiceId)) return opFight(r, m, uid, choiceId.slice(4));
   if (/^shv-(front|rear)$/.test(choiceId)) return opShove(r, m, uid, choiceId.slice(4));
   if (choiceId === 'guard') return opGuard(r, m, uid);
+  const CA = classAct(choiceId);
+  if (CA) { const [pe] = classPre(r, m, CA); if (pe) return pe; const e = classExec(r, m, CA.k, CA.t); if (e) return e; checkBodies(r); return endTurn(r); }
   if (choiceId.startsWith('rec-')) return opRecover(r, m, uid, choiceId.slice(4));
   if (choiceId.startsWith('heal-')) return opHeal(r, m, uid, choiceId.slice(5));
   const c = sc.choices.find(x => x.id === choiceId);
@@ -1151,9 +1216,11 @@ function opFight(r, m, uid, side) {
   if (!melee && !ranged) return 'op/pos';
   const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup);
+  const atk = m.cls === 'atk';
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
   const tier = tierOf(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
+  if (atk && dmg > 0) dmg += 1;
   // 협공: 바로 앞 차례에 다른 요원이 친 하수인을 이어 치면 +2
   const combo = dmg > 0 && foe.hitTurn >= r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
   if (combo) dmg += 2;
@@ -1185,6 +1252,12 @@ function opShove(r, m, uid, side) {
 }
 // 막기: 판정 없이 이번 차례 하수인에게 받는 피해(물기·비명)를 절반으로 줄인다.
 function opGuard(r, m, uid) {
+  if (m.cls === 'def') {
+    if (!r.minions.length && r.dist > 10) return 'op/no-foe';
+    r.members.filter(x => x.role === 'field' && !x.dead).forEach(x => { x.guard = true; }); r.cover = r.turn;
+    say(r, `${m.name} 요원이 방패를 세우고 대열을 엄호했다. 이번 라운드에 받는 피해가 절반으로 준다.`, { kind: 'sys', uid: m.uid });
+    return endTurn(r);
+  }
   if (!r.minions.length) return 'op/no-foe';
   m.guard = true;
   say(r, `${m.name} 요원이 자세를 낮추고 막을 준비를 했다.`, { kind: 'sys', uid: m.uid });
@@ -1195,7 +1268,7 @@ const needsRecovery = m => m.role === 'field' && !m.recovered && (m.dead || m.br
 // 응급처치: 기능이 있는 현장 요원이 다친 동료(자기 자신 포함)의 체력을 회복한다. 지능 + 응급처치, 보통(2).
 const canHeal = t => t.role === 'field' && !t.dead && t.hp < t.hpMax;
 function opHeal(r, m, uid, target) {
-  if (!lvOf(m, '응급처치')) return 'op/no-skill';
+  if (m.cls !== 'med') return 'op/cls';
   const t = r.members.find(x => x.uid === String(target));
   if (!t || !canHeal(t)) return 'op/no-target';
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
@@ -1262,35 +1335,20 @@ function opItem(uid, opId, id) {
   pushAgent(uid);
   return null;
 }
-function opCtl(uid, opId, kind, target) {
-  const e = opCtl0(uid, opId, kind, target);
-  const r = runs.get(opId);
-  if (!e && r && r.status === 'live' && !r.batch && kind !== 'radio' && roundReady(r)) resolveRound(r);
-  return e;
-}
-function opCtl0(uid, opId, kind, target) {
-  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
-  const m = r.members.find(x => x.uid === String(uid) && x.role === 'ctrl');
-  if (!m) return 'op/not-ctrl';
-  if (m.broken) return 'op/broken';
-  if (m.acted && kind !== 'radio' && kind !== 'raven1') return 'op/ctl-wait';
-  const o2 = D(r), used = r.ctlUsed || (r.ctlUsed = {});
-  const row = Q.agent.get(uid);
-  if (kind === 'pass') {
-    m.acted = true; m.passed = true;
-    return null;
-  }
+// 포지션 행동: 기술(관제 요청) · 치유(정신 안정) · 누구나(RAVEN-1). 관제실은 NPC 벌처가 맡고, 현장 요원의 요청을 받아 움직인다.
+function classExec(r, m, kind, target) {
+  const o2 = D(r), row = Q.agent.get(Number(m.uid));
   if (kind === 'support') {
     const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
-    r.support = Math.min(SUPPORT_MAX, r.support + add); m.acted = true;
-    say(r, add ? `관제 지원 연결. 다음 현장 판정에 지원 주사위 ${add}개를 보탠다.` : '지원 신호가 잡음에 묻혔다.', { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '지원', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
+    r.support = Math.min(SUPPORT_MAX, r.support + add); 
+    say(r, add ? `관제 회선 연결. 다음 판정에 지원 주사위 ${add}개를 보탠다.` : '지원 신호가 잡음에 묻혔다.', { kind: 'roll', uid: m.uid, name: m.name, label: '관제 지원 연결', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'stabilize') {
-    const t = r.members.find(x => x.uid === String(target) && !x.dead && (x.role === 'field' || (x.role === 'ctrl' && x.uid !== m.uid)));
+    const t = r.members.find(x => x.uid === String(target) && !x.dead && (x.role === 'field'));
     if (!t) return 'op/bad-target';
     if (t.san >= t.sanMax) return 'op/no-need';
     const res = rollPool(row, 5, '응급처치', 0), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
-    t.san = Math.min(t.sanMax, t.san + heal); if (t.broken && t.san > 0) t.broken = false; m.acted = true;
-    say(r, heal ? `${t.name} 요원의 바이탈이 안정됐다. (정신력 +${heal})` : `${t.name} 요원에게 닿지 않았다.`, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '바이탈 안정', stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
+    t.san = Math.min(t.sanMax, t.san + heal); if (t.broken && t.san > 0) t.broken = false; 
+    say(r, heal ? `${t.name} 요원의 호흡이 가라앉았다. (정신력 +${heal})` : `${t.name} 요원은 아직 눈의 초점이 돌아오지 않는다.`, { kind: 'roll', uid: m.uid, name: m.name, label: `${t.name} 정신 안정`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'raven1') {
     // RAVEN-1 지원: 작전당 한 번. 하수인 소탕, 개체 밀어냄, 셈·귀환 신호 회복. 대가는 작전이 끝날 때 치른다.
     if (r.r1) return 'op/raven1-used';
@@ -1299,8 +1357,8 @@ function opCtl0(uid, opId, kind, target) {
     const n = r.minions.length; r.minions = [];
     r.dist = Math.min(60, r.dist + 25);
     r.count = Math.min(o.count, r.count + 2);
-    m.acted = true;
-    say(r, `관제 ${m.name} 요원이 RAVEN-1 지원을 요청했다. RAVEN-1이 투입됐다.${n ? ` ${jo(o.minion.name, '이', '가')} 모두 제거됐다.` : ''} 개체는 크게 물러났다. ${o.countLabel} +2.`, { kind: 'raven', uid: m.uid });
+    
+    say(r, `${m.name} 요원이 RAVEN-1 지원을 요청했다. RAVEN-1이 투입됐다.${n ? ` ${jo(o.minion.name, '이', '가')} 모두 제거됐다.` : ''} 개체는 크게 물러났다. ${o.countLabel} +2.`, { kind: 'raven', uid: m.uid });
     // 고위험 개체라면 RAVEN-1이 관찰 기록을 남긴다
     const e = ENTITIES.find(x => x.op === r.op);
     if (e && e.observe && !QS.unlocks.all().some(u => u.entity === e.id && u.section === 'observe')) {
@@ -1311,8 +1369,8 @@ function opCtl0(uid, opId, kind, target) {
     return null;
   } else if (kind === 'decode' || kind === 'jam') {
     if (!r.noise) return 'op/no-noise';
-    m.acted = true;
-    if (kind === 'jam') { r.noise = null; say(r, `관제 ${m.name} 요원이 잡음 회선을 차단했다. 화면이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
+    
+    if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
     const read = grit(m, sanD(-0.5)); m.san = Math.max(0, m.san + read);
     const res = rollPool(row, 3, '기록 해독', 0), tier = tierOf(res.succ, 2);
     let txt, extra = 0;
@@ -1325,31 +1383,31 @@ function opCtl0(uid, opId, kind, target) {
       r.noise = null;
     }
     m.san = Math.max(0, m.san + extra);
-    say(r, txt, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '신호 해독', stat: res.stat, statVal: res.statVal, skill: '기록 해독', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: { san: read + extra } });
+    say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: '신호 해독', stat: res.stat, statVal: res.statVal, skill: '기록 해독', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: { san: read + extra } });
     checkBodies(r);
   } else if (kind === 'peek') {
     const sc = o2.scenes[r.scene], d = sc.fork && sc.doors.find(x => x.id === target);
     if (!d) return 'op/bad-choice';
     if (d.peeked) return 'op/used';
     if (r.noise) return 'op/noise';
-    d.peeked = true; m.acted = true;
+    d.peeked = true; 
     const R = DOOR_RISK[d.risk], ns = d.scene;
-    say(r, `관제 ${m.name} 요원이 ${d.name} 너머의 감시 카메라를 확인했다. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '뒤' : '앞'}쪽에서 접근한다.`, { kind: 'radio', uid: m.uid, name: m.name, peek: d.id });
+    say(r, `${m.name} 요원의 요청으로 관제가 ${d.name} 너머의 감시 카메라를 확인했다. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '뒤' : '앞'}쪽에서 접근한다.`, { kind: 'radio', uid: m.uid, name: '관제 벌처', peek: d.id });
     return null;
   } else if (kind === 'fac') {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
     if (F.id === 'beacon') {
-      m.acted = true; r.beaconUntil = r.turn + BEACON_TURNS;
+      r.beaconUntil = r.turn + BEACON_TURNS;
       const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, F.diff);
       let txt;
       if (tier === 'fail') txt = '비컨 신호가 하층의 잡음에 묻혔다. 좌표를 붙들지 못했다. 심연은 신호를 들었다.';
       else { const k = SHIFT_KINDS[r.shift.kind].name; r.shift = null; r.shiftDone = true; txt = `기준점 비컨이 원래 도면 좌표를 송출했다. 구조가 제자리에 붙들렸다(${k} 차단). 심연도 그 신호를 들었다.`; }
-      say(r, txt, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: '기준점 비컨', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
+      say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: '기준점 비컨', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
       return null;
     }
     if (F.on) return 'op/used';
     if (F.id === 'wall' && !F.need) return 'op/no-target';
-    m.acted = true;
+    
     const res = rollPool(row, 3, '장비 운용', 0), tier = tierOf(res.succ, F.diff);
     let txt;
     if (F.id === 'pwr') {
@@ -1363,16 +1421,7 @@ function opCtl0(uid, opId, kind, target) {
       if (tier === 'fail') txt = '격벽이 반쯤 내려오다 멈췄다. 개체는 틈으로 그대로 다가온다.';
       else { const push = tier === 'crit' ? 12 : 8; r.dist = Math.min(60, r.dist + push); txt = `원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 ${push}m 멀어졌다.`; }
     }
-    say(r, txt, { kind: 'roll', ctl: true, uid: m.uid, name: m.name, label: F.name + ' 조작', stat: res.stat, statVal: res.statVal, skill: '장비 운용', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
-  } else if (kind === 'radio') {
-    if (r.noise) return 'op/noise';
-    if (m.radioed) return 'op/radio-wait';
-    const sc = D(r).scenes[r.scene];
-    m.radioed = true;
-    if (r.dist <= RADAR_RANGE) r.report = { dist: r.dist, from: sc.from, turn: r.turn, scene: r.scene, by: m.name };
-    say(r, r.dist > RADAR_RANGE ? '관제 보고: 레이더 범위 밖입니다. 개체가 감지되지 않습니다.'
-      : `관제 보고: 개체는 대열 ${sc.from === 'rear' ? '뒤' : '앞'} ${r.dist}m. ${r.dist <= 5 ? '접촉 직전입니다.' : '접근 중입니다.'}`, { kind: 'radio', uid: m.uid, name: m.name });
-    return null;
+    say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: F.name + ' 조작', stat: res.stat, statVal: res.statVal, skill: '장비 운용', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
   } else return 'op/bad-choice';
   return null;
 }
@@ -1432,7 +1481,7 @@ function opFinish(r, result) {
   say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: 보급품 ${reward.supply}, 연구 자료 ${reward.research}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
   sectorOnOp(r.op, result, r.members.map(m => m.name).join(', '));
   for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
-  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.role === 'ctrl' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
+  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'tech' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
   r.members.forEach(m => { const row = Q.agent.get(Number(m.uid)); if (row) io.emit('agent', publicAgent(row)); });
   emitSector();
   return null;
@@ -1982,14 +2031,15 @@ io.on('connection', socket => {
     const r = runs.get(opId); if (r) emitRun(r);
     reply({ ok: true });
   };
-  socket.on('op:join', opCall((m, id) => opJoin(uid, id, m.role === 'ctrl' ? 'ctrl' : 'field')));
+  socket.on('op:join', opCall((m, id) => opJoin(uid, id, 'field')));
   socket.on('op:leave', opCall((m, id) => opLeave(uid, id)));
   socket.on('op:ready', opCall((m, id) => opReady(uid, id, m.on)));
   socket.on('op:start', opCall((m, id) => opStart(uid, id)));
   socket.on('op:act', opCall((m, id) => opPick(uid, id, 'act', m.choice)));
   socket.on('op:move', opCall((m, id) => opPick(uid, id, 'move', m.kind)));
   socket.on('op:unpick', opCall((m, id) => opUnpick(uid, id)));
-  socket.on('op:ctl', opCall((m, id) => opCtl(uid, id, m.kind, m.target)));
+  socket.on('op:ctl', opCall(() => 'op/not-ctrl'));
+  socket.on('op:cls', opCall((m, id) => opCls(uid, id, m.cls)));
   socket.on('op:item', opCall((m, id) => opItem(uid, id, m.item)));
   socket.on('op:abort', opCall((m, id) => opAbort(uid, id)));
   socket.on('op:close', opCall((m, id) => opClose(uid, id)));

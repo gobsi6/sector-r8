@@ -27,7 +27,7 @@ const now = () => Date.now();
 BOTS.forEach((b, i) => {
   const uid = Number(Q.addUser.run('sim' + i, 'x', now()).lastInsertRowid); b.uid = uid;
   const skills = Object.fromEntries(b.sk.map(k => [k, 1]));
-  Q.addAgent.run({ user_id: uid, num: 'S-' + i, name: b.name, role: i === 4 ? 1 : 0, head: 0, photo: null, age: 30, stats: JSON.stringify(b.stats), trait: 1, skills: JSON.stringify(skills), res: JSON.stringify({ supply: 100, research: 0, pass: 0 }), created: now() });
+  Q.addAgent.run({ user_id: uid, num: 'S-' + i, name: b.name, role: 0, head: 0, photo: null, age: 30, stats: JSON.stringify(b.stats), trait: 1, skills: JSON.stringify(skills), res: JSON.stringify({ supply: 100, research: 0, pass: 0 }), created: now() });
   db.prepare('UPDATE agents SET traits = ? WHERE user_id = ?').run(JSON.stringify([]), uid);
 });
 const SKLV = Math.max(1, Math.min(5, +(process.env.SKLV || 1))); // 봇 기능 등급(SKLV=3이면 중견 요원)
@@ -71,47 +71,62 @@ function fieldPick(r, mem, taken) {
   taken.add('adv');
   return ['act', best.id];
 }
-function ctrlAct(r, mem) {
-  if (mem.broken || mem.acted) return;
-  const CM = process.env.CTRL || 'all'; if (CM === 'none') return;
-  const opid = r.op, facsOf = G('facsOf');
-  if (r.noise) return opCtl(mem.uid, opid, mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam');
-  const scN = D(r).scenes[r.scene];
-  if (scN.fork && CM !== 'nofork') { const d = scN.doors.find(x => !x.peeked); if (d && !scN.doors.some(x => x.peeked && (x.risk === 'none' || x.risk === 'cache'))) return opCtl(mem.uid, opid, 'peek', d.id); }
-  if (r.shift && CM !== 'nobeacon' && facsOf) return opCtl(mem.uid, opid, 'fac', 'beacon');
-  const low = r.members.filter(x => x.role === 'field' && !x.dead && x.san < x.sanMax * 0.35).sort((a, c) => a.san - c.san)[0];
-  if (facsOf && CM !== 'nofac') {
-    if (scN.fork) return opCtl(mem.uid, opid, 'support');
-    const F = facsOf(r), pwr = F.find(x => x.id === 'pwr'), sp = F.find(x => x.id === 'sp'), wall = F.find(x => x.id === 'wall');
-    if (!pwr.on) return opCtl(mem.uid, opid, 'fac', 'pwr');
-    if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
-    if (!sp.on) return opCtl(mem.uid, opid, 'fac', 'sp');
-    if (!wall.on && wall.need && r.dist <= 15) return opCtl(mem.uid, opid, 'fac', 'wall');
-  } else if (low && CM !== 'nostab') return opCtl(mem.uid, opid, 'stabilize', low.uid);
-  if (CM === 'nosupport') return; return opCtl(mem.uid, opid, 'support');
+// 포지션 봇: 자기 포지션 행동이 필요하면 그것부터, 아니면 일반 판단(fieldPick)
+// 기본 편성(CLS 환경 변수로 바꿀 수 있다. 예: CLS=atk,tech,med,def)
+const CLS_DEF = { 1: ['atk'], 2: ['atk', 'tech'], 3: ['atk', 'med', 'tech'], 4: ['atk', 'med', 'tech', 'def'] };
+function classPick(r, mem, taken) {
+  const sc = D(r).scenes[r.scene], facsOf = G('facsOf'), p = posOf(r, mem.uid);
+  const team = r.members.filter(x => x.role === 'field' && !x.dead);
+  const lead = p === 'front' || p === 'solo';
+  const adv0 = sc.choices ? sc.choices.filter(c => c.adv !== false) : [], needLead = !sc.fork && adv0.length && adv0.every(c => c.reach && r.pos < sc.map.len - REACH_M) && !r.minions.some(x => x.side === 'front');
+  if (mem.cls === 'tech') {
+    if (r.noise && r.count <= 4) return ['act', mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam'];
+    if (sc.fork) { const d = sc.doors.find(x => !x.peeked); if (d && !sc.doors.some(x => x.peeked && (x.risk === 'none' || x.risk === 'cache'))) return ['act', 'peek-' + d.id]; return null; }
+    if (r.minions.some(x => x.side === p || p === 'solo')) return null;
+    if (lead && needLead) return null;
+    const F = facsOf(r), f = id => F.find(x => x.id === id);
+    if (f('beacon')) return ['act', 'fac-beacon'];
+    if (!f('pwr').on) return ['act', 'fac-pwr'];
+    if (!f('sp').on) return ['act', 'fac-sp'];
+    if (!f('wall').on && f('wall').need && r.dist <= 15) return ['act', 'fac-wall'];
+    if (r.support < 2 && !taken.has('sup')) { taken.add('sup'); return ['act', 'sup']; }
+    return null;
+  }
+  if (mem.cls === 'med') {
+    const crit = lead && needLead ? 0.25 : 1;
+    const lowS = team.filter(x => x.san < x.sanMax * 0.4 * crit).sort((a, b) => a.san / a.sanMax - b.san / b.sanMax)[0];
+    if (lowS) return ['act', 'calm-' + lowS.uid];
+    const lowH = team.filter(x => x.hp < x.hpMax * 0.5 * crit).sort((a, b) => a.hp / a.hpMax - b.hp / b.hpMax)[0];
+    if (lowH) return ['act', 'heal-' + lowH.uid];
+    return null;
+  }
+  if (mem.cls === 'def' && !taken.has('cover') && !(lead && needLead)) {
+    const threat = r.minions.some(x => x.intent === 'bite' || x.intent === 'scream') || r.dist <= sc.speed + 1;
+    if (threat && (r.minions.length || r.dist <= 10)) { taken.add('cover'); return ['act', 'guard']; }
+  }
+  return null;
 }
 function runOne(opId, nField, withCtrl) {
   resetBots(); runs.delete(opId); lobbyOf(opId);
-  const team = BOTS.slice(0, nField);
+  const cl0 = process.env.CLS ? process.env.CLS.split(',') : CLS_DEF[nField], BI = { atk: 0, med: 1, tech: 2, def: 3 };
+  const used = new Set(), team = cl0.slice(0, nField).map(c => { let i = BI[c]; while (used.has(i)) i = (i + 1) % 4; used.add(i); return BOTS[i]; });
   team.forEach(b => opJoin(b.uid, opId, 'field'));
-  if (withCtrl) opJoin(BOTS[4].uid, opId, 'ctrl');
+  team.forEach((b, i) => G('opCls')(b.uid, opId, cl0[i]));
   runs.get(opId).members.forEach(x => opReady(Number(x.uid), opId, true));
   const e = opStart(team[0].uid, opId); if (e) throw new Error('start ' + e);
   const r = runs.get(opId); let actions = 0, guard = 0;
   while (r.status === 'live' && guard++ < 400) {
-    const ctrl = r.members.find(x => x.role === 'ctrl'); if (ctrl) ctrlAct(r, ctrl);
-    if (ROUND && ctrl && r.status === 'live' && !ctrl.acted && !ctrl.broken && !ctrl.dead) opCtl(ctrl.uid, opId, 'pass'); // 관제도 라운드에 묶인다
     const field = lineOf(r).filter(x => !x.broken);
     const taken = new Set();
     if (ROUND) {
       if (!field.length) { resolveRound(r); continue; }
-      for (const mem of field) { if (r.status !== 'live') break; const [k, v] = fieldPick(r, mem, taken); actions++;
+      for (const mem of field) { if (r.status !== 'live') break; const [k, v] = classPick(r, mem, taken) || fieldPick(r, mem, taken); actions++;
         if (opPick(mem.uid, opId, k, v)) opPick(mem.uid, opId, 'move', 'wait'); }
     } else {
       if (!field.length) { const any = r.members.find(x => x.role === 'field'); opMove(any.uid, opId, 'wait'); continue; } // 예전 방식: 아무도 못 움직이면 멈추므로 시간만 흐른다고 본다
       for (const mem of field) { if (r.status !== 'live' || mem.broken || mem.dead) continue; const [k, v] = fieldPick(r, mem, new Set()); actions++;
         const err = k === 'move' ? opMove(mem.uid, opId, v) : opAct(mem.uid, opId, v); if (err) opMove(mem.uid, opId, 'wait');
-        const c2 = r.members.find(x => x.role === 'ctrl'); if (c2 && r.status === 'live') ctrlAct(r, c2); }
+      }
     }
   }
   const f = r.members.filter(x => x.role === 'field');
@@ -121,7 +136,7 @@ function runOne(opId, nField, withCtrl) {
 }
 if (process.env.PEEK) { const [op, nf, c] = process.env.PEEK.split(','); const res = runOne(op, +nf, c === '1'); const r = runs.get(op); console.log(JSON.stringify(res)); r.log.forEach(L => console.log('-', L.kind, L.label || '', L.tierName || '', (L.text || '').slice(0, 90), L.fx ? JSON.stringify(L.fx) : '')); process.exit(0); }
 const out = [];
-for (const opId of (process.env.OPS || 'R8-14,R8-P').split(',')) for (const nf of [1, 2, 3, 4]) for (const ctl of [false, true]) {
+for (const opId of (process.env.OPS || 'R8-14,R8-P').split(',')) for (const nf of [1, 2, 3, 4]) for (const ctl of [false]) {
   const R = []; for (let i = 0; i < N; i++) R.push(runOne(opId, nf, ctl));
   const pct = k => Math.round(R.filter(x => x.why === k).length / N * 100);
   const avg = k => +(R.reduce((a, x) => a + x[k], 0) / N).toFixed(2);
