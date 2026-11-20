@@ -76,6 +76,15 @@ CREATE TABLE IF NOT EXISTS sector_entities (
   updated INTEGER NOT NULL,
   captured INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS dm (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_id INTEGER NOT NULL,
+  to_id INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  ts INTEGER NOT NULL,
+  read INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS dm_pair ON dm (from_id, to_id);
 CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -126,6 +135,7 @@ const Q = {
   userByLogin: db.prepare('SELECT * FROM users WHERE login = ?'),
   addUser: db.prepare('INSERT INTO users (login, pw, created) VALUES (?, ?, ?)'),
   addSession: db.prepare('INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)'),
+  allUsers: db.prepare('SELECT id, login FROM users'),
   session: db.prepare('SELECT users.id, users.login FROM sessions JOIN users ON users.id = sessions.user_id WHERE token = ?'),
   dropSession: db.prepare('DELETE FROM sessions WHERE token = ?'),
   agent: db.prepare('SELECT * FROM agents WHERE user_id = ?'),
@@ -182,7 +192,7 @@ function publicAgent(row) {
     uid: String(row.user_id), num: row.num, name: row.name, role: row.role, head: row.head, photo: row.photo || null, age: row.age,
     stats: JSON.parse(row.stats), trait: row.trait, traits: traitsOf(row), skills: JSON.parse(row.skills), contamination: row.contamination,
     task: typeof QT !== 'undefined' ? taskOut(QT.mine.get(row.user_id)) : null,
-    skillXp: JSON.parse(row.skill_xp || '{}'), career: rankOf(row.career || 0), statPts: row.stat_pts || 0, statCap: STAT_CAP,
+    skillXp: JSON.parse(row.skill_xp || '{}'), career: { ...rankOf(row.career || 0), total: row.career || 0 }, statPts: row.stat_pts || 0, statCap: STAT_CAP,
     regenUntil: row.regen_until || null, quarUntil: row.quar_until || null, contLimit: contLimit(row), opsDone: row.ops_done || 0,
     res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
@@ -190,6 +200,10 @@ function publicAgent(row) {
 function chatOut(r) { return { id: r.id, uid: String(r.user_id), num: r.num, name: r.name, role: r.role, channel: r.channel, text: r.text, ts: r.ts }; }
 function newToken(userId) { const t = crypto.randomBytes(32).toString('hex'); Q.addSession.run(t, userId, now()); return t; }
 function authUser(token) { return token ? Q.session.get(String(token)) : null; }
+// GM 계정: 기본은 admin. 환경 변수 GM_LOGINS에 쉼표로 적으면 그 아이디들로 바뀐다 (대소문자 무시)
+const GM_LOGINS = String(process.env.GM_LOGINS || 'admin').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const isGM = u => !!(u && GM_LOGINS.includes(String(u.login).toLowerCase()));
+const needGM = (req, res, next) => isGM(req.user) ? next() : fail(res, 'gm/forbidden', 403);
 
 // 같은 주소에서 로그인 시도가 몰리면 잠시 막는다
 const tries = new Map();
@@ -242,7 +256,7 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/me', need, (req, res) => {
   const s = Q.sealed.get(req.user.id);
-  res.json({ user: { uid: String(req.user.id), login: req.user.login }, agent: publicAgent(Q.agent.get(req.user.id)), sealed: s ? JSON.parse(s.data) : null });
+  res.json({ user: { uid: String(req.user.id), login: req.user.login, gm: isGM(req.user) }, agent: publicAgent(Q.agent.get(req.user.id)), sealed: s ? JSON.parse(s.data) : null });
 });
 
 // ── 재생 절차 초안: 넘버와 과거·변질 후보를 서버가 정해 두고, 새로고침해도 바뀌지 않게 저장한다
@@ -555,10 +569,10 @@ function posOk(r, uid, need) {
   return p === need;
 }
 // 관제팀만 레이더의 정확한 값을 받는다. 현장팀과 참관자는 감지 여부만 받는다.
-function runOut(r, viewer) {
+function runOut(r, viewer, gm) {
   const o = D(r), live = r.status === 'live', sc = live ? o.scenes[r.scene] : null;
   const vm = r.members.find(m => m.uid === String(viewer));
-  const ctl = !!(vm && vm.role === 'ctrl');
+  const ctl = !!(vm && vm.role === 'ctrl') || !!gm;
   const radar = live ? (ctl ? { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }
     : { exact: false, from: sc.from, detected: r.dist <= RADAR_RANGE, near: r.dist <= 10 }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS + 1 : o.scenes.length,
@@ -576,7 +590,7 @@ function runOut(r, viewer) {
     count: r.count, support: r.support, log: r.log.slice(-60), result: r.result, started: r.started, ended: r.ended,
     sealedUntil: entLocked(ENTITIES.find(x => x.op === r.op)) };
 }
-const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op', runOut(r, s.user && s.user.id)); };
+const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op', runOut(r, s.user && s.user.id, isGM(s.user))); };
 const busyIn = uid => { for (const r of runs.values()) if (r.status !== 'done' && r.members.some(m => m.uid === String(uid))) return r; return null; };
 /* ───────── 요원 경력 ───────── */
 // 출동과 관리 작업으로 경력이 쌓이면 계급이 오르고, 계급마다 능력치 포인트 2를 받는다.
@@ -1077,7 +1091,8 @@ function sectorOut() {
   return {
     decay: DECAY_PER_H, cost: COST, raven: { cost: RAVEN_COST, restore: RAVEN_RESTORE },
     tasks: TASKS, check: { maintain: { stat: SN[CHECK.maintain.stat], skill: CHECK.maintain.skill }, observe: { stat: SN[CHECK.observe.stat], skill: CHECK.observe.skill }, emergency: { stat: SN[CHECK.emergency.stat], skill: CHECK.emergency.skill } }, esc: { low: ESC_LOW, lowAdd: ESC_LOW_ADD, anom: ESC_ANOM, cont: ESC_CONT },
-    events: QS.events.all().slice(0, 8).map(x => ({ id: x.id, at: x.at, kind: x.kind, entity: x.entity, text: x.text, voice: x.voice })),
+    notice: (() => { const n = QS.events.all().find(x => x.kind === 'notice'); return n && now() - n.at < 864e5 ? { text: n.text, at: n.at } : null; })(),
+    events: QS.events.all().filter(x => x.kind !== 'notice').slice(0, 8).map(x => ({ id: x.id, at: x.at, kind: x.kind, entity: x.entity, text: x.text, voice: x.voice })),
     entities: ENTITIES.map(e => {
       const row = QS.ent.get(e.id), st = Math.round(stabNow(row) * 10) / 10;
       const open = sec => sec === 'info' || sec === 'incidents' || un.some(u => u.entity === e.id && u.section === sec);
@@ -1260,6 +1275,65 @@ app.post('/api/stat', need, (req, res) => {
   db.prepare('UPDATE agents SET stats = ?, stat_pts = stat_pts - 1 WHERE user_id = ?').run(JSON.stringify(st), req.user.id);
   const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
 });
+/* ───────── GM 도구 ───────── */
+const gmAgentOut = row => ({ ...publicAgent(row) });
+app.get('/api/gm/state', need, needGM, (req, res) => res.json({ agents: Q.agents.all().map(gmAgentOut), runs: [...runs.values()].map(r => runOut(r, req.user.id, true)) }));
+app.post('/api/gm/agent', need, needGM, (req, res) => {
+  const b = req.body || {}, uid = Number(b.uid), row = Q.agent.get(uid);
+  if (!row) return fail(res, 'agent/none');
+  const set = {};
+  if (b.stats) { if (!Array.isArray(b.stats) || b.stats.length !== 6 || !b.stats.every(v => isInt(v, 1, 30))) return fail(res, 'gm/bad'); set.stats = JSON.stringify(b.stats); }
+  if (b.skills) { const sk = {}; for (const k of SKILLS) { const v = Number(b.skills[k] || 0); if (!isInt(v, 0, SKILL_MAX)) return fail(res, 'gm/bad'); if (v) sk[k] = v; } set.skills = JSON.stringify(sk); }
+  if (b.res) { const r = {}; for (const k of ['supply', 'research', 'pass']) { const v = Number(b.res[k]); if (!isInt(v, 0, 999999)) return fail(res, 'gm/bad'); r[k] = v; } set.res = JSON.stringify(r); }
+  if (b.contamination != null) { if (!isInt(Number(b.contamination), 0, 300)) return fail(res, 'gm/bad'); set.contamination = Number(b.contamination); }
+  if (b.career != null) { if (!isInt(Number(b.career), 0, 100000)) return fail(res, 'gm/bad'); set.career = Number(b.career); }
+  if (b.statPts != null) { if (!isInt(Number(b.statPts), 0, 999)) return fail(res, 'gm/bad'); set.stat_pts = Number(b.statPts); }
+  if (b.clearRegen) set.regen_until = null;
+  if (b.clearQuar) set.quar_until = null;
+  const keys = Object.keys(set); if (!keys.length) return fail(res, 'gm/bad');
+  db.prepare(`UPDATE agents SET ${keys.map(k => k + ' = ?').join(', ')} WHERE user_id = ?`).run(...keys.map(k => set[k]), uid);
+  const agent = publicAgent(Q.agent.get(uid)); io.emit('agent', agent); res.json({ agent });
+});
+// 작전 개입: 진행 중인 작전에 GM이 직접 손을 댄다. 기록에는 [GM]으로 남는다.
+app.post('/api/gm/op', need, needGM, (req, res) => {
+  const b = req.body || {}, r = runs.get(b.op); if (!r) return fail(res, 'op/none');
+  const live = r.status === 'live', o = D(r), act = b.act;
+  const needLive = () => live ? null : 'op/not-live';
+  let err = null;
+  if (act === 'narrate') { const t = str(b.text, 400); if (!t) err = 'chat/empty'; else if (!(err = needLive())) say(r, t, { kind: 'gm' }); }
+  else if (act === 'dist') { if (!(err = needLive())) { r.dist = Math.max(0, Math.min(80, Math.round(Number(b.v) || 0))); say(r, `[GM] 개체 거리 조정: ${r.dist}m.`, { kind: 'gmsys' }); } }
+  else if (act === 'count') { if (!(err = needLive())) { r.count = Math.max(0, Math.min(o.count, r.count + (Number(b.v) || 0))); say(r, `[GM] ${o.countLabel || '셈'} 조정: ${r.count}.`, { kind: 'gmsys' }); } }
+  else if (act === 'spawn') { if (!(err = needLive())) spawnMinion(r, b.side === 'rear' ? 'rear' : 'front', 1); }
+  else if (act === 'clearMinions') { if (!(err = needLive())) { r.minions = []; say(r, '[GM] 하수인을 모두 치웠다.', { kind: 'gmsys' }); } }
+  else if (act === 'restore') {
+    if (!(err = needLive())) { const m = r.members.find(x => x.uid === String(b.uid)); if (!m) err = 'op/no-target'; else { m.hp = m.hpMax; m.san = m.sanMax; m.dead = false; m.broken = false; m.recovered = false; say(r, `[GM] ${m.name} 요원의 상태를 되돌렸다.`, { kind: 'gmsys' }); } }
+  }
+  else if (act === 'scene') { if (!(err = needLive())) { if (r.scene + 1 >= o.scenes.length) { say(r, '[GM] 마지막 장면을 넘겼다.', { kind: 'gmsys' }); opFinish(r, 'success'); } else { r.scene++; r.dist = o.scenes[r.scene].dist; r.pos = o.scenes[r.scene].map.start; r.minions = []; say(r, o.scenes[r.scene].text, { kind: 'scene', title: o.scenes[r.scene].title }); sceneEnter(r); } } }
+  else if (act === 'end') { if (!(err = needLive())) { say(r, `[GM] 작전을 ${b.result === 'success' ? '성공' : b.result === 'fail' ? '실패' : '중단'}으로 종료한다.`, { kind: 'gmsys' }); opFinish(r, ['success', 'fail'].includes(b.result) ? b.result : 'abort'); } }
+  else if (act === 'reset') { if (live) err = 'op/started'; else { runs.delete(r.op); lobbyOf(b.op); } }
+  else err = 'gm/bad';
+  if (err) return fail(res, err);
+  const rr = runs.get(b.op); if (rr) emitRun(rr);
+  res.json({ ok: true });
+});
+app.post('/api/gm/entity', need, needGM, (req, res) => {
+  const b = req.body || {}, e = ENTITIES.find(x => x.id === b.id), row = e && QS.ent.get(e.id);
+  if (!row) return fail(res, 'gm/bad');
+  const cap = b.captured != null ? (b.captured ? 1 : 0) : row.captured;
+  const st = b.stability != null ? Math.max(0, Math.min(100, Number(b.stability) || 0)) : stabNow(row);
+  QS.setEnt.run(st, now(), cap, e.id);
+  if (b.unlock) db.prepare('UPDATE sector_entities SET lock_until = 0 WHERE id = ?').run(e.id);
+  if (b.obs != null && isInt(Number(b.obs), 0, 99)) db.prepare('UPDATE sector_entities SET obs = ? WHERE id = ?').run(Number(b.obs), e.id);
+  emitSector(); res.json({ ok: true });
+});
+app.post('/api/gm/event', need, needGM, (req, res) => {
+  const b = req.body || {}, text = str(b.text, 400), voice = str(b.voice, 200);
+  if (!text) return fail(res, 'chat/empty');
+  const ent = ENTITIES.find(x => x.id === b.entity);
+  QS.addEvent.run(now(), b.kind === 'notice' ? 'notice' : 'gm', ent ? ent.id : null, text, voice || null);
+  if (b.kind === 'notice') io.emit('notice', { text, level: b.level === 'alert' ? 'alert' : 'info', at: now() });
+  emitSector(); res.json({ ok: true });
+});
 app.get('/api/sector', need, (req, res) => res.json(sectorOut()));
 app.post('/api/base', need, (req, res) => {
   const err = baseAct(req.user.id, req.body && req.body.kind, req.body && req.body.entity);
@@ -1296,6 +1370,26 @@ io.use((socket, next) => {
   socket.user = u; next();
 });
 
+/* ───────── 개인 메신저 ───────── */
+const QD = {
+  add: db.prepare('INSERT INTO dm (from_id, to_id, text, ts) VALUES (?, ?, ?, ?)'),
+  history: db.prepare('SELECT * FROM dm WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?) ORDER BY id DESC LIMIT 200'),
+  mine: db.prepare('SELECT * FROM dm WHERE from_id = ? OR to_id = ? ORDER BY id DESC LIMIT 1000'),
+  read: db.prepare('UPDATE dm SET read = 1 WHERE from_id = ? AND to_id = ? AND read = 0'),
+  user: db.prepare('SELECT id, login FROM users WHERE id = ?')
+};
+const dmOut = d => ({ id: d.id, from: String(d.from_id), to: String(d.to_id), text: d.text, ts: d.ts, read: d.read });
+// 요원이 있거나 GM인 계정만 주고받을 수 있다
+const dmCan = id => !!Q.agent.get(id) || isGM(QD.user.get(id));
+function dmList(uid) {
+  const conv = new Map();
+  for (const d of QD.mine.all(uid, uid)) {
+    const other = d.from_id === uid ? d.to_id : d.from_id;
+    if (!conv.has(other)) conv.set(other, { with: String(other), last: dmOut(d), unread: 0 });
+    if (d.to_id === uid && !d.read) conv.get(other).unread++;
+  }
+  return { gms: Q.allUsers.all().filter(isGM).map(u => String(u.id)), conv: [...conv.values()] };
+}
 io.on('connection', socket => {
   const uid = socket.user.id;
   online.set(uid, (online.get(uid) || 0) + 1);
@@ -1305,7 +1399,9 @@ io.on('connection', socket => {
   const me = Q.agent.get(uid);
   if (me) io.emit('agent', publicAgent(me));
 
-  socket.emit('ops', [...runs.values()].map(r => runOut(r, uid)));
+  socket.emit('ops', [...runs.values()].map(r => runOut(r, uid, isGM(socket.user))));
+  socket.join('u:' + uid);
+  socket.emit('dm:list', dmList(uid));
   socket.emit('sector', sectorOut());
   const opCall = fn => (m, ack) => {
     const reply = typeof ack === 'function' ? ack : () => {};
@@ -1335,6 +1431,32 @@ io.on('connection', socket => {
     const ts = now(), info = Q.addChat.run(uid, a.num, a.name, a.role, channel, text, ts);
     io.emit('chat', { id: Number(info.lastInsertRowid), uid: String(uid), num: a.num, name: a.name, role: a.role, channel, text, ts });
     reply({ ok: true });
+  });
+
+  // 개인 메신저: 1:1. GM도 남의 대화는 볼 수 없다.
+  let lastDm = 0;
+  socket.on('dm:send', (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const to = Number(m && m.to), text = str(m && m.text, 500);
+    if (!dmCan(uid)) return reply({ error: 'agent/none' });
+    if (!to || to === uid || !dmCan(to)) return reply({ error: 'dm/bad-target' });
+    if (!text) return reply({ error: 'chat/empty' });
+    if (now() - lastDm < 400) return reply({ error: 'chat/too-fast' });
+    lastDm = now();
+    const ts = now(), info = QD.add.run(uid, to, text, ts);
+    const msg = { id: Number(info.lastInsertRowid), from: String(uid), to: String(to), text, ts, read: 0 };
+    io.to('u:' + uid).to('u:' + to).emit('dm', msg);
+    reply({ ok: true, msg });
+  });
+  socket.on('dm:history', (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const w = Number(m && m.with); if (!w) return reply({ error: 'dm/bad-target' });
+    reply({ ok: true, list: QD.history.all(uid, w, w, uid).reverse().map(dmOut) });
+  });
+  socket.on('dm:read', (m, ack) => {
+    const w = Number(m && m.with); if (w) QD.read.run(w, uid);
+    io.to('u:' + uid).emit('dm:read', { with: String(w) });
+    if (typeof ack === 'function') ack({ ok: true });
   });
 
   socket.on('disconnect', () => {
