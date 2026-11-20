@@ -646,17 +646,24 @@ function opJoin(uid, opId, role) {
   r.members = r.members.filter(m => m.uid !== String(uid));
   if (r.members.filter(m => m.role === role).length >= cap) return 'op/full';
   const mx = maxes(row);
-  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), dead: false, broken: false, acted: false });
+  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), dead: false, broken: false, acted: false, ready: false });
   return null;
 }
 function opLeave(uid, opId) {
   const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
   r.members = r.members.filter(m => m.uid !== String(uid)); return null;
 }
+// 대기실 준비 완료: 참가자 전원이 준비 완료를 눌러야 작전을 개시할 수 있다.
+function opReady(uid, opId, on) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  const m = r.members.find(x => x.uid === String(uid)); if (!m) return 'op/not-member';
+  m.ready = !!on; return null;
+}
 function opStart(uid, opId) {
   const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
   if (!r.members.some(m => m.uid === String(uid))) return 'op/not-member';
   if (!r.members.some(m => m.role === 'field')) return 'op/no-field';
+  if (r.members.some(m => !m.ready)) return 'op/not-ready';
   if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
   const base = opDef(opId);
   r.gen = base.patrol ? genPatrol(base) : null;
@@ -1460,6 +1467,7 @@ io.on('connection', socket => {
   };
   socket.on('op:join', opCall((m, id) => opJoin(uid, id, m.role === 'ctrl' ? 'ctrl' : 'field')));
   socket.on('op:leave', opCall((m, id) => opLeave(uid, id)));
+  socket.on('op:ready', opCall((m, id) => opReady(uid, id, m.on)));
   socket.on('op:start', opCall((m, id) => opStart(uid, id)));
   socket.on('op:act', opCall((m, id) => opAct(uid, id, m.choice)));
   socket.on('op:move', opCall((m, id) => opMove(uid, id, m.kind)));

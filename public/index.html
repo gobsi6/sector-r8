@@ -701,7 +701,8 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .task .clock{font-family:var(--mono,monospace);font-size:40px;font-weight:800;letter-spacing:.04em;line-height:1;font-variant-numeric:tabular-nums}
 .task .gb{height:6px}.task .sub{font-size:12px}.task.done{box-shadow:inset 0 0 0 1px #C8A040}.task.done .tl>.bb{color:#C8A040}
 .ptsnote{font-size:12px;color:var(--navyLine);font-weight:700}.ptsnote b{font-size:14px}
-.detail .srow.up{grid-template-columns:44px minmax(0,1fr) 20px 22px}.srow .ib{width:22px;height:22px}
+.detail .srow.up{grid-template-columns:44px minmax(0,1fr) 20px 26px}.srow .ib{width:26px;height:26px;border-radius:3px;color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--navyLine)}
+.srow .ib:hover:not(:disabled){background:var(--navy);color:var(--onNavy);box-shadow:none}.srow .ib:disabled{color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine);opacity:.6}
 .rank{display:grid;grid-template-columns:auto 120px auto;align-items:center;gap:8px;font-size:12px}.rank small{color:var(--sub)}.rank .xpb{height:4px;background:var(--faint);position:relative}.rank .xpb i{position:absolute;inset:0 auto 0 0;background:var(--navyLine)}
 .gm{min-height:100vh;display:flex;flex-direction:column}
 .gm .top{display:flex;align-items:center;gap:16px;padding:0 24px;height:72px;border-bottom:1px solid var(--tileLine)}
@@ -802,6 +803,104 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .opmodal.on{display:flex;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(6,10,14,.72);backdrop-filter:blur(3px)}
 [data-theme=light] .opmodal.on{background:rgba(30,40,48,.45)}
 .opm-box{width:1280px;height:760px;flex:none;transform:scale(var(--s,1));transform-origin:center;display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-radius:6px;background:var(--tile);box-shadow:0 20px 60px rgba(0,0,0,.45),inset 0 0 0 1px var(--line2);color:var(--ink);overflow:hidden}
+.ops.split,.ops.split.live{display:block;padding:0;overflow-y:auto;container-type:inline-size}
+.spl{height:100%;display:grid;grid-template-columns:300px minmax(0,1fr)}
+.opcol{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto;padding:18px 14px 18px 18px;border-right:1px solid var(--tileLine);background:var(--faint)}
+.ochd{display:flex;align-items:baseline;gap:8px}.ochd .bb{font-size:15px;letter-spacing:.12em;color:var(--navyLine)}.ochd small{font-size:11px;color:var(--sub)}
+.opcol .optabs2{gap:6px}
+.ofl{display:flex;gap:4px;flex-wrap:wrap}.ofl button{height:30px;padding:0 10px;border:0;border-radius:4px;font:inherit;font-size:12px;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.ofl button b{font-weight:800}.ofl button.on{background:var(--navy);color:var(--onNavy);box-shadow:none}
+.opcol .oprow{grid-template-columns:auto auto minmax(0,1fr);row-gap:4px;column-gap:8px;padding:10px 12px 10px 14px}
+.opcol .oprow>.bb{grid-row:1;grid-column:1}.opcol .oprow>:nth-child(2){grid-row:1;grid-column:2}
+.opcol .oprow>.st{grid-row:1;grid-column:3;justify-self:end}
+.opcol .oprow>b{grid-row:2;grid-column:1 / -1;font-size:14px}
+.opcol .oprow>.ppl{grid-row:3;grid-column:1 / -1}
+.opdet{min-width:0;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.ops.split.live .opdet{padding:16px 20px;gap:12px}
+@media (max-width:999px){.ops.split,.ops.split.live{overflow:visible}.spl{height:auto;display:flex;flex-direction:column}.opcol{border-right:0;border-bottom:1px solid var(--tileLine);padding:14px;overflow:visible}.opdet{padding:16px;overflow:visible}.opcol .oprow>.ppl{display:block}}
+.ops.split.lobby .opdet{padding:0;gap:0;overflow:hidden}
+.loba{flex:1;min-height:0;display:flex;flex-direction:column}
+.lobm{flex:1;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:18px}
+.lobm .ophead h2{margin-top:6px}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fc{padding:12px 14px;border-radius:5px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+.fc small{font-size:11px;color:var(--sub)}.fc b{font-size:13px;line-height:1.4}.fc b.bb{font-size:24px;font-weight:400;line-height:1}.fc .thc{margin:0}
+.seats{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.sg{display:flex;flex-direction:column;gap:10px;min-width:0}.sgh{display:flex;align-items:baseline;gap:8px}.sgh b{font-size:14px}.sgh small{font-size:12px;color:var(--sub)}
+.sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sg.c .sgrid{grid-template-columns:minmax(0,1fr)}
+.seat{min-height:58px;padding:9px 14px;border:0;border-radius:5px;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:4px;text-align:left;font:inherit;color:var(--navyLine);background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine);cursor:pointer;min-width:0}
+button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);background:color-mix(in srgb,var(--navyLine) 8%,transparent)}button.seat:disabled{cursor:default;opacity:.55}
+.seat.on{color:var(--ink);background:color-mix(in srgb,var(--navyLine) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--navyLine) 40%,transparent);cursor:default}
+.seat.me{box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.seat .sn{display:flex;align-items:center;gap:6px;min-width:0}.seat .sn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat .sn small{font-size:10px;font-weight:800;padding:1px 5px;border-radius:2px;background:var(--navy);color:var(--onNavy)}
+.seat .rd{margin-left:auto;flex:none;font-size:11px;font-weight:800;color:var(--sub)}.seat .rd.ok{color:var(--navyLine)}
+.seat .si{font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lbar{flex:none;padding:14px 24px;display:flex;align-items:center;gap:16px;border-top:1px solid var(--tileLine);background:var(--faint)}
+.mys{display:flex;flex-direction:column;gap:3px;flex:none}.mys small{font-size:11px;color:var(--sub)}.mys>span{display:flex;align-items:center;gap:7px;font-size:13px}
+.mys i{width:8px;height:8px;border-radius:50%;background:var(--navyLine)}.mys.no i{background:var(--red)}.mys em{font-style:normal;color:var(--sub);font-size:12px}
+.lwarn{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.5;color:#B8942F;padding-left:16px;border-left:1px solid var(--tileLine)}.lwarn{color:#D9C48A}[data-theme=light] .lwarn{color:#7A5E14}.lwarn svg{flex:none;color:#C8A040}.lwarn:empty{border-left:0}
+.lbtn{flex:none;display:flex;align-items:center;gap:8px}
+.lbar .err{flex-basis:100%;margin:0}
+@container (max-width:1000px){.spl{grid-template-columns:250px minmax(0,1fr)}.facts{grid-template-columns:repeat(2,minmax(0,1fr))}.seats{grid-template-columns:1fr}.lbar{flex-wrap:wrap}.lwarn{order:3;flex-basis:100%}}
+@container (max-width:680px){.spl{height:auto;display:flex;flex-direction:column}.opcol{border-right:0;border-bottom:1px solid var(--tileLine);overflow:visible}.opdet,.ops.split.lobby .opdet,.lobm{overflow:visible}}
+@media (max-width:999px){.ops.split.lobby .opdet{overflow:visible}.lobm{overflow:visible;padding:16px}.facts{grid-template-columns:repeat(2,minmax(0,1fr))}.seats{grid-template-columns:1fr}.lbar{flex-wrap:wrap;padding:14px 16px}.lwarn{order:3;flex-basis:100%;padding-left:0;border-left:0}.mys{flex-basis:100%}.lbtn{flex-basis:100%;flex-wrap:wrap}.lbtn .btn{flex:1;padding:0 10px}}
+
+.base2.bmap{container-type:inline-size;overflow-y:auto}
+.bmb{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.bml{min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.bmr{min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--tileLine)}
+.bm-lg{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.bm-lg .bb{font-size:16px;letter-spacing:.12em;color:var(--navyLine)}.bm-lg small{font-size:12px;color:var(--sub)}
+.bm-lg .lgd{margin-left:auto;display:flex;gap:12px;font-size:11px;color:var(--sub)}.bm-lg .lgd span{display:flex;align-items:center;gap:5px}.bm-lg .lgd i{width:10px;height:10px;border-radius:2px}
+.bm-lg i.ok,.bm-room.ok{--lc:var(--navyLine)}.bm-lg i.warm,.bm-room.warm{--lc:#D9A441}.bm-lg i.hot,.bm-room.hot{--lc:var(--red)}.bm-lg .lgd i{background:var(--lc)}
+.bm-wings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bm-wing{display:flex;flex-direction:column;gap:8px;padding:10px;border:1.5px solid color-mix(in srgb,var(--navyLine) 35%,transparent);border-radius:3px}
+.bm-wing .wh{display:flex;align-items:baseline;gap:6px}.bm-wing .wh .bb{font-size:15px;letter-spacing:.1em;color:var(--navyLine);font-weight:400}.bm-wing .wh small{font-size:11px;color:var(--sub)}
+.bm-wing .wr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.bm-room{position:relative;overflow:hidden;min-height:116px;padding:8px 10px 9px 12px;border:0;border-radius:3px;display:flex;flex-direction:column;gap:5px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;min-width:0;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--lc) 12%,transparent) 0%,transparent 75%),var(--tile);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--lc) 40%,transparent)}
+.bm-room::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--lc)}
+.bm-room.on{background:linear-gradient(160deg,color-mix(in srgb,var(--lc) 24%,transparent) 0%,transparent 75%),var(--tile);box-shadow:inset 0 0 0 2px var(--ink)}
+.bm-room:hover:not(.on){box-shadow:inset 0 0 0 1.5px var(--lc)}
+.bm-room .r1{display:flex;align-items:center;gap:6px;min-width:0}.bm-room .r1 .bb{white-space:nowrap;font-size:14px;letter-spacing:.05em;color:var(--tht)}.bm-room .r1 .thc{height:16px;padding:0 5px;font-size:10px}
+.bm-room .rm{margin-left:auto;font-size:10px;color:var(--sub);white-space:nowrap}
+.bm-room .rn{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm-room .rw{display:flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.bm-room .rw i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--navyLine)}.bm-room .rw .nw{color:var(--sub);opacity:.75}.bm-room .rw .rvtag{font-style:normal}
+.bm-room .r4{margin-top:auto;display:flex;align-items:baseline;justify-content:space-between}.bm-room .lv{font-size:11px;font-weight:800;color:var(--lc)}.bm-room .pc{font-size:22px;line-height:1}.bm-room.warm .pc,.bm-room.hot .pc{color:var(--lc)}
+.rb{height:4px;border-radius:2px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden;flex:none}.rb i{display:block;height:100%;border-radius:2px;background:var(--lc,var(--navyLine))}
+.bm-room.un,.bm-room.empty{--lc:var(--sub);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ink) 3%,transparent) 0 6px,transparent 6px 12px);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.bm-room.un::before,.bm-room.empty::before{display:none}.bm-room.un .r1 .bb{color:var(--sub)}.bm-room.un .rn{color:var(--sub)}.bm-room.un .rw{margin-top:auto;white-space:normal;color:var(--sub)}
+.bm-room.un.on{box-shadow:inset 0 0 0 2px var(--ink)}
+.bm-room.empty{cursor:default;display:grid;place-items:center;font-size:10px;color:var(--sub);opacity:.7}
+.bm-room.rv{opacity:.75}
+.bm-ev{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 12px;border-radius:4px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);font-size:12px}.bm-ev b{font-size:12px}.bm-ev small{flex-basis:100%;color:var(--sub);font-size:11px}
+.bm-ev.hot{box-shadow:inset 0 0 0 1px var(--red);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.bm-sel{border-radius:5px;box-shadow:inset 0 0 0 1px var(--tileLine);overflow:hidden;display:flex;flex-direction:column;flex:none}
+.bm-sel.ok{--lc:var(--navyLine)}.bm-sel.warm{--lc:#D9A441}.bm-sel.hot{--lc:var(--red)}.bm-sel.un{--lc:var(--sub)}
+.bm-sel .sh2{padding:14px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--tileLine);background:linear-gradient(110deg,color-mix(in srgb,var(--lc) 14%,transparent) 0%,transparent 70%)}
+.bm-sel .r1{display:flex;align-items:center;gap:8px}.bm-sel .r1 .bb{font-size:19px;letter-spacing:.06em}.bm-sel .r1 .rm{margin-left:auto;font-size:11px;color:var(--sub)}
+.bm-sel .r2{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.bm-sel .r2 b{font-size:20px}.bm-sel .r2 .pc{font-size:32px;line-height:1}
+.bm-sel .stt{font-size:12px;color:var(--sub)}
+.bm-sel .sb2{padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}.bm-sel .wkn{font-size:12px;line-height:1.5;color:var(--navyLine)}.bm-sel .whyblk{margin:0}
+.bm-act{min-height:52px;padding:9px 14px;border:0;border-radius:5px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.bm-act b{display:flex;align-items:center;gap:6px;font-size:14px}.bm-act small{font-size:11px;color:var(--sub);line-height:1.4}
+.bm-act:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine)}.bm-act:disabled{cursor:default;opacity:.5}
+.bm-act.on{background:color-mix(in srgb,var(--navyLine) 12%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.bm-act.al{box-shadow:inset 0 0 0 1.5px var(--red);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.bm-act.c{align-items:center;text-align:center;min-height:46px}
+.bm-sel .tpick{border-top:0;padding-top:0}
+.bm-tank{flex:none;padding:14px 16px;border-radius:5px;box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:12px;--lc:#79A98C}
+.bm-tank .th2{display:flex;align-items:baseline;gap:8px}.bm-tank .th2 .bb{font-size:16px;letter-spacing:.12em;color:var(--navyLine)}.bm-tank .th2 small{font-size:12px;color:var(--sub)}.bm-tank .tst{margin-left:auto;font-size:11px;font-weight:800;color:var(--navyLine)}
+.bm-tank.on .tst{color:var(--red)}
+.bm-tank .tb{display:flex;gap:16px;align-items:center}.bm-tank .vat{flex:none;width:64px;height:106px;display:block}.bm-tank .vat svg{display:block;overflow:visible}
+.bm-tank .vat.on .bb2{animation:bub 2.6s ease-in infinite}.bm-tank .vat.on .surf{animation:vat 3s ease-in-out infinite alternate}
+.bm-tank .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.bm-tank .tx .nm{font-size:13px;letter-spacing:.06em;color:var(--navyLine)}.bm-tank .tx>b{font-size:14px}.bm-tank .tx>small{font-size:12px;color:var(--sub);line-height:1.45}
+.bm-tank .ct{margin-top:6px;display:flex;flex-direction:column;gap:4px}.bm-tank .ct>span:first-child{display:flex;justify-content:space-between;font-size:12px}.bm-tank .ct small{font-size:11px;color:var(--sub);line-height:1.4}
+.bm-tank .ta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@container (min-width:1240px){.bm-wings{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (max-width:960px){.bmb{grid-template-columns:minmax(0,1fr) 290px}.bm-wings{grid-template-columns:1fr}.bm-room{min-height:104px}}
+@container (max-width:640px){.bmb{display:flex;flex-direction:column;flex:none}.bm-wings{grid-template-columns:1fr}.bml,.bmr{overflow:visible}.bmr{border-left:0;border-top:1px solid var(--tileLine)}}
+@media (max-width:999px){.bm-wings{grid-template-columns:1fr}.bm-lg .lgd{margin-left:0}.base2.bmap .hd .n{display:none}}
+@media (prefers-reduced-motion:reduce){.bm-tank .vat.on .bb2,.bm-tank .vat.on .surf{animation:none}}
 .opm-head .optabs2{display:none}.opm-head .ophead h2{font-size:20px;margin-top:2px}.opm-head .ophead p{display:none}
 .opm-head .ophead .ttl{font-size:17px;color:var(--ink);margin-left:8px;white-space:nowrap}
 .opm-sub{display:flex;align-items:center;gap:10px;margin-top:6px}.opm-sub .ctlline{flex:1}
@@ -857,7 +956,7 @@ body.modal-open{overflow:hidden}
 @media (max-width:700px){.task{grid-template-columns:1fr}.task .clock{font-size:32px}}
 .tank{padding:16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--tileLine);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
 .tank .vat{width:64px;height:106px;display:block}.tank .vat svg{display:block;overflow:visible}
-.vat .liq{fill:color-mix(in srgb,var(--navyLine) 38%,transparent)}.vat .surf{fill:color-mix(in srgb,var(--navyLine) 38%,transparent);stroke:var(--navyLine);stroke-width:1}.vat .glass{fill:none;stroke:var(--navyLine);stroke-width:2}.vat .hi{stroke:color-mix(in srgb,var(--ink) 25%,transparent);stroke-width:2;stroke-linecap:round}.vat .cap{fill:var(--tileLine);stroke:var(--navyLine);stroke-width:1}.vat .bb2{fill:color-mix(in srgb,var(--ink) 55%,transparent);opacity:0}
+.vat .liq{fill:color-mix(in srgb,var(--navyLine) 26%,var(--tile))}.vat .surf{fill:color-mix(in srgb,var(--navyLine) 48%,var(--tile));stroke:var(--navyLine);stroke-width:1}.vat .glass{fill:none;stroke:var(--navyLine);stroke-width:2}.vat .hi{stroke:color-mix(in srgb,var(--ink) 25%,transparent);stroke-width:2;stroke-linecap:round}.vat .cap{fill:var(--tileLine);stroke:var(--navyLine);stroke-width:1}.vat .bb2{fill:color-mix(in srgb,var(--ink) 55%,transparent);opacity:0}
 .tank .vat.on .bb2{animation:bub 2.6s ease-in infinite}.tank .vat.on .surf{animation:vat 3s ease-in-out infinite alternate}
 @keyframes vat{from{transform:translateY(1.5px)}to{transform:translateY(-1.5px)}}@keyframes bub{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translateY(-62px)}}
 .tank .tx{display:flex;flex-direction:column;gap:6px;min-width:0}.tank .tx b{font-size:15px}.tank .tx .sub{font-size:12px}
@@ -1387,7 +1486,7 @@ const AUTH_MSG = {
   'agent/bad-field': '입력값을 확인하십시오.',
   'chat/too-fast': '전송 간격이 너무 짧습니다.',
   'op/regen': '재생 수조에서 회복 중이라 참가할 수 없습니다.', 'op/started': '이미 시작된 작전입니다.', 'op/busy': '다른 작전에 참가 중입니다.', 'op/full': '해당 팀의 자리가 모두 찼습니다.',
-  'op/no-field': '현장팀이 1명 이상 있어야 합니다.', 'op/not-member': '작전 참가자만 할 수 있습니다.', 'op/not-live': '진행 중인 작전이 아닙니다.', 'op/dead': '생체 신호가 끊긴 상태입니다.',
+  'op/no-field': '현장팀이 1명 이상 있어야 합니다.', 'op/not-ready': '참가자 전원이 준비 완료를 눌러야 개시할 수 있습니다.', 'op/not-member': '작전 참가자만 할 수 있습니다.', 'op/not-live': '진행 중인 작전이 아닙니다.', 'op/dead': '생체 신호가 끊긴 상태입니다.',
   'op/not-there': '아직 구역 끝 문에 닿지 않았습니다. 도면을 보고 전진하십시오.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.',
   'op/no-target': '대상이 아닙니다.', 'op/no-skill': '응급처치 기능이 있어야 할 수 있습니다.',
   'op/quarantine': '오염 한계를 넘어 격리 관찰 중입니다. 관찰이 끝난 뒤 참가할 수 있습니다.',
@@ -1767,38 +1866,61 @@ function viewBase() {
   const mt = myTask(), quar = me.quarUntil && me.quarUntil > Date.now(), busyT = (mt && mt.status === 'run') || regen || quar;
   const inOp = Object.values(S.ops || {}).some(r => r.status === 'live' && opMine(r));
   const why = mt && mt.status === 'run' ? `이미 ${TASK_NAME[mt.kind]} 작업이 진행 중이라 새 작업은 끝난 뒤 시작할 수 있습니다.` : regen ? '재생 수조에서 회복 중이라 관찰·유지 보수를 할 수 없습니다. 긴급 점검은 할 수 있습니다.' : quar ? '격리 관찰 중이라 관찰·유지 보수를 할 수 없습니다.' : inOp ? '작전에 참가 중이라 관찰·유지 보수를 시작할 수 없습니다.' : '';
-  const cells = S.sector.entities.map(e => {
-    const v = stabOf(e), rv = e.lockUntil > Date.now(), al = e.captured && v < 30 && !rv;
-    return `<div class="cell ${thC(e.threat)}${al ? ' al' : ''}${rv ? ' rv' : ''}${e.captured ? '' : ' un'}">
-      <span class="ch"><span class="ei">${eico(e, 22)}</span><span class="nm"><span class="bb">${esc(e.id)}</span><b>${esc(e.name)}</b></span></span>
-      <span class="loc"><span>${esc(e.cell)}</span>${rv ? '<span class="rvtag">RAVEN-3</span>' : ''}${thChip(e.threat, true)}</span>
-      <span class="stab"><span class="gb"><i style="width:${v}%"></i></span><span class="bb">${e.captured ? Math.floor(v) + '%' : '--'}</span></span>
-      <span class="stt">${stabState(e)}</span>
-      ${(e.workers || []).length ? `<span class="wk">${e.workers.map(w => `<span>${esc(w.name)}, ${TASK_NAME[w.kind]}</span>`).join('')}</span>` : ''}
-      ${e.captured ? `<span class="cb"><button class="btn s g" data-act="taskPick" data-v="observe" data-t="${esc(e.id)}" ${dis} ${rv || busyT || inOp ? 'disabled' : ''}>관찰</button><button class="btn s g" data-act="taskPick" data-v="maintain" data-t="${esc(e.id)}" ${dis} ${rv || busyT || inOp ? 'disabled' : ''}>유지 보수</button><button class="btn s${al ? '' : ' g'}" data-act="baseAct" data-v="maintain" data-t="${esc(e.id)}" ${dis} ${v >= 99.5 || rv || !canPay(C.maintain) ? 'disabled' : ''}>${ico('refresh', 14, 2)}긴급 점검 <span class="cost">${costTxt(C.maintain)}</span></button></span>${taskPicker(e)}` : ''}
-    </div>`;
+  const ents = S.sector.entities, held = ents.filter(e => e.captured);
+  const lvOf = e => { if (!e.captured) return ['un', '미확보']; const v = stabOf(e); return v < 30 ? ['hot', '위험'] : v < 50 ? ['warm', '주의'] : ['ok', '안정']; };
+  const sel = ents.find(e => e.id === S.baseSel) || held.slice().sort((x, y) => stabOf(x) - stabOf(y))[0] || ents[0];
+  // 평면도: '격리동 B-3' → B동 3호실, 그 밖('관측동 옥상')은 앞말이 동 이름이다.
+  const W = new Map();
+  ents.forEach(e => { const m = /^격리동 ([A-Z])-(\d+)(.*)$/.exec(e.cell);
+    const wk = m ? m[1] : e.cell.split(' ')[0], room = m ? m[1] + '-' + m[2] : e.cell.split(' ').slice(1).join(' ') || e.cell;
+    if (!W.has(wk)) W.set(wk, { code: m ? wk : 'OBS', name: m ? '격리동 ' + wk : wk, extra: '', rooms: new Map(), grid: !!m });
+    const w = W.get(wk); if (m && m[3]) w.extra = m[3].replace(/^,\s*/, ''); w.rooms.set(room, e); });
+  const wings = [...W.values()].sort((x, y) => (x.grid === y.grid ? x.code.localeCompare(y.code) : x.grid ? -1 : 1)).map(w => {
+    let slots;
+    if (w.grid) { const mx = Math.max(4, ...[...w.rooms.keys()].map(k => +k.split('-')[1])); slots = Array.from({ length: mx }, (_, i) => w.code + '-' + (i + 1)); }
+    else { slots = [...w.rooms.keys()]; while (slots.length < 4) slots.push(''); }
+    const tiles = slots.map(k => { const e = k && w.rooms.get(k); if (!e) return `<span class="bm-room empty">${k ? esc(k) + ' ' : ''}비어 있음</span>`;
+      const [lc, ln] = lvOf(e), v = stabOf(e), rv = e.lockUntil > Date.now(), wk = e.workers || [];
+      if (!e.captured) return `<button class="bm-room un${sel === e ? ' on' : ''}" data-act="baseSel" data-v="${esc(e.id)}" aria-pressed="${sel === e}"><span class="r1"><span class="bb">${esc(e.id)}</span><span class="rm">${esc(k)}</span></span><b class="rn">${esc(e.name)}</b><span class="rw">미확보 · ${e.op ? `확보 작전 ${esc(e.op)} 편성됨` : '확보 작전 없음'}</span></button>`;
+      return `<button class="bm-room ${lc} ${thC(e.threat)}${sel === e ? ' on' : ''}${rv ? ' rv' : ''}" data-act="baseSel" data-v="${esc(e.id)}" aria-pressed="${sel === e}">
+        <span class="r1"><span class="bb">${esc(e.id)}</span>${thChip(e.threat)}<span class="rm">${esc(k)}</span></span><b class="rn">${esc(e.name)}</b>
+        <span class="rw">${rv ? '<em class="rvtag">RAVEN-3 봉쇄</em>' : wk.length ? wk.map(x => `<i></i><b>${esc(x.name)}</b> ${TASK_NAME[x.kind]}`).join(', ') : '<span class="nw">작업 중인 요원 없음</span>'}</span>
+        <span class="r4"><span class="lv">${ln}</span><span class="bb pc">${Math.floor(v)}%</span></span><span class="rb"><i style="width:${v}%"></i></span></button>`; }).join('');
+    return `<div class="bm-wing"><span class="wh"><b class="bb">${esc(w.code)}</b><small>${esc(w.name)}${w.extra ? ', ' + esc(w.extra) : ''}</small></span><div class="wr">${tiles}</div></div>`;
   }).join('');
-  const tank = `<div class="tank">
-      <span class="vat${regen ? ' on' : ''}" aria-hidden="true">${vatSVG(regen ? 0.8 : 0.18)}</span>
-      <span class="tx"><b>${regen ? '재생 수조에서 회복 중입니다' : '재생 수조 대기 중'}</b>
-        <span class="sub">${regen ? esc(st.t) + '. 단축하면 남은 시간이 1시간 줄어듭니다.' : '사망한 요원은 이곳에서 재생됩니다.'}</span>
-        <span class="sub">현재 오염도 <b style="color:${contHot(me) ? 'var(--red)' : 'var(--ink)'}">${contTxt(me)}</b>. 정화하면 오염도가 5 내려갑니다. 한계를 넘으면 RAVEN-3이 회수해 격리 관찰합니다.</span></span>
-      <span class="acts"><button class="btn s g" data-act="baseAct" data-v="purge" ${dis} ${!cont || !canPay(C.purge) ? 'disabled' : ''}>${ico('flask', 14, 2)}오염 정화 <span class="cost">${costTxt(C.purge)}</span></button>
-        <button class="btn s g" data-act="baseAct" data-v="hasten" ${dis} ${!regen || !canPay(C.hasten) ? 'disabled' : ''}>${ico('plus', 14, 2)}재생 단축 <span class="cost">${costTxt(C.hasten)}</span></button></span>
+  // 선택한 격리실
+  const e = sel, v = stabOf(e), rv = e.lockUntil > Date.now(), al = e.captured && v < 30 && !rv, [lc, ln] = lvOf(e), chk = k => S.sector.check && S.sector.check[k] ? `${S.sector.check[k].stat} + ${S.sector.check[k].skill} 판정` : '판정';
+  const off = rv || busyT || inOp;
+  const actCard = (k, name, desc, extra) => `<button class="bm-act${S.taskPick && S.taskPick.id === e.id && S.taskPick.kind === k ? ' on' : ''}" data-act="taskPick" data-v="${k}" data-t="${esc(e.id)}" ${dis} ${off ? 'disabled' : ''}><b>${name}</b><small>${desc}</small></button>`;
+  const detail = `<div class="bm-sel ${lc}">
+      <div class="sh2"><span class="r1"><span class="bb">${esc(e.id)}</span>${thChip(e.threat, true)}<span class="rm">${esc(e.cell)}</span></span>
+        <span class="r2"><b>${esc(e.name)}</b><span class="bb pc">${e.captured ? Math.floor(v) + '%' : '--'}</span></span>
+        ${e.captured ? `<span class="rb"><i style="width:${v}%"></i></span>` : ''}<span class="stt">${stabState(e)}</span></div>
+      <div class="sb2">${e.captured ? `${(e.workers || []).length ? `<span class="wkn">작업 중: ${e.workers.map(w => `${esc(w.name)}, ${TASK_NAME[w.kind]}`).join(' · ')}. 함께 하면 지원 주사위가 붙습니다.</span>` : ''}
+        ${why ? `<p class="whyblk">${ico('lock', 14, 2)}<span>${why}</span></p>` : ''}
+        ${actCard('observe', '관찰', `${chk('observe')} · 연구 자료와 관찰 진척`)}${actCard('maintain', '유지 보수', `${chk('maintain')} · 안정도 회복, 보급품`)}
+        <button class="bm-act${al ? ' al' : ''}" data-act="baseAct" data-v="maintain" data-t="${esc(e.id)}" ${dis} ${v >= 99.5 || rv || !canPay(C.maintain) ? 'disabled' : ''}><b>${ico('refresh', 14, 2)}긴급 점검</b><small>${costTxt(C.maintain)} · 바로 판정, 기다리지 않음</small></button>
+        ${taskPicker(e)}` : `<span class="wkn">${e.op ? `확보 작전 ${esc(e.op)}에 성공하면 이 격리실에 수용됩니다.` : '확보 작전이 아직 편성되지 않았습니다.'}</span>${e.op ? `<button class="btn" data-act="opGo" data-v="${esc(e.op)}">${ico('ops', 16, 2)}작전 ${esc(e.op)} 보기</button>` : ''}`}</div>
     </div>`;
-  const evList = (S.sector.events || []).slice(0, 4).map(x => `<li><time>${ymd(x.at)} ${hhmm(x.at)}</time><span>${esc(x.text)}</span>${x.voice ? `<span class="vo">${esc(x.voice)}</span>` : ''}</li>`).join('');
-  const evBlock = `<div><p class="sh"><b>섹터 사건</b><small>안정도가 0%가 되거나 개체가 탈출하면 RAVEN-3이 투입됩니다. 섹터 전 요원 보급품 −${S.sector.raven ? S.sector.raven.cost : 20}, 해당 격리실 봉쇄.</small></p>${evList ? `<ul class="evs">${evList}</ul>` : '<ul class="evs empty"><li>기록된 격리 실패가 없습니다.</li></ul>'}</div>`;
+  const tank = `<div class="bm-tank${regen ? ' on' : ''}">
+      <span class="th2"><span class="bb">REGEN TANK</span><small>재생 수조</small><span class="tst">${regen ? esc(st.t.replace('재생 중, ', '')) + ' 남음' : '대기 중'}</span></span>
+      <div class="tb"><span class="vat${regen ? ' on' : ''}" aria-hidden="true">${vatSVG(regen ? 0.8 : 0.45)}</span>
+        <span class="tx"><span class="bb nm">${esc(me.num)} ${esc(me.name)}</span><b>${regen ? '재생 수조에서 회복 중입니다' : '재생 수조 대기 중'}</b><small>${regen ? '단축하면 남은 시간이 1시간 줄어듭니다.' : '사망한 요원은 이곳에서 재생됩니다.'}</small>
+          <span class="ct"><span><small>오염도</small><b style="color:${contHot(me) ? 'var(--red)' : 'var(--ink)'}">${contTxt(me)}</b></span><span class="rb"><i style="width:${Math.min(100, cont / Math.max(1, contLim(me)) * 100)}%"></i></span><small>한계를 넘으면 RAVEN-3이 회수해 격리 관찰합니다.</small></span></span></div>
+      <div class="ta"><button class="bm-act c" data-act="baseAct" data-v="purge" ${dis} ${!cont || !canPay(C.purge) ? 'disabled' : ''}><b>오염 정화</b><small>${costTxt(C.purge)} · 오염도 −5</small></button>
+        <button class="bm-act c" data-act="baseAct" data-v="hasten" ${dis} ${!regen || !canPay(C.hasten) ? 'disabled' : ''}><b>재생 단축</b><small>${costTxt(C.hasten)} · 1시간</small></button></div>
+    </div>`;
+  const evs = S.sector.events || [], ev0 = evs[0];
+  const evLine = `<div class="bm-ev${recentBreach() ? ' hot' : ''}"><b>섹터 사건</b><span>${ev0 ? `${ymd(ev0.at)} ${hhmm(ev0.at)} ${esc(ev0.text)}` : '기록된 격리 실패가 없습니다.'}</span><small>안정도가 0%가 되거나 개체가 탈출하면 RAVEN-3이 투입됩니다. 섹터 전 요원 보급품 −${S.sector.raven ? S.sector.raven.cost : 20}, 해당 격리실 봉쇄.</small></div>`;
   const { n } = sectorSum();
-  return `<section class="pnl base2"><div class="hd"><span class="bb">BASE</span><small>기지</small><span class="n">수용 개체 ${n}종, 안정도는 위협 등급이 높을수록 빨리 떨어집니다</span></div>
-    <div class="bd">
+  return `<section class="pnl base2 bmap"><div class="hd"><span class="bb">BASE</span><small>기지</small><span class="n">수용 개체 ${n}종, 안정도는 위협 등급이 높을수록 빨리 떨어집니다</span></div>
+    <div class="bmb"><div class="bml">
       ${S.baseRoll ? `<div><p class="sh"><b>점검 결과</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${baseRollCard()}</div>` : ''}
       ${mt ? `<div><p class="sh"><b>내 작업</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${taskPanel()}</div>` : ''}
-      ${recentBreach() ? evBlock : ''}
-      <div><p class="sh"><b>격리 구역</b><small>관리는 모두 주사위 판정입니다. 실패하면 안정도가 떨어지고 개체가 탈출할 수 있습니다. 함께 하면 지원 주사위가 붙습니다.</small></p>${why ? `<p class="whyblk">${ico('lock', 14, 2)}<span>${why}</span></p>` : ''}<div class="cells">${cells}</div></div>
-      ${recentBreach() ? '' : evBlock}
-      <div><p class="sh"><b>재생 수조</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${tank}</div>
-      ${S.baseErr ? `<p class="err" role="alert" style="margin:0">${esc(S.baseErr)}</p>` : ''}
-    </div></section>`;
+      <div class="bm-lg"><span class="bb">SECTOR R-8 FLOOR PLAN</span><small>격리실을 누르면 오른쪽에서 관리합니다</small><span class="lgd"><span><i class="ok"></i>안정</span><span><i class="warm"></i>주의 50% 미만</span><span><i class="hot"></i>위험 30% 미만</span></span></div>
+      <div class="bm-wings">${wings}</div>
+      ${evLine}
+    </div><aside class="bmr">${detail}${tank}${S.baseErr ? `<p class="err" role="alert" style="margin:0">${esc(S.baseErr)}</p>` : ''}</aside></div></section>`;
 }
 
 /* ─── 개체 문서 ─── */
@@ -2042,30 +2164,43 @@ function recNote(r) {
   return lack.length ? `<div class="note" style="box-shadow:inset 0 0 0 1px #C8A040">${ico('alert', 18)}<span>권장 인원보다 ${lack.join(', ')}이 부족합니다. 이대로도 개시할 수 있지만 위험이 커집니다.</span></div>` : '';
 }
 function opTabs(r) {
-  const L = opsSorted(); if (L.length < 2) return '';
-  return `<div class="optabs2" role="tablist">${L.map(x => opRowHTML(x, 'opSel', x.op.id === r.op.id)).join('')}</div>`;
+  const A = opsSorted(), F = [['all', '전체', A], ['lobby', '대기실', A.filter(x => x.status === 'lobby')], ['live', '진행 중', A.filter(x => x.status === 'live')]];
+  const fk = F.some(x => x[0] === S.opFilter) ? S.opFilter : 'all', L = F.find(x => x[0] === fk)[2];
+  return `<aside class="opcol"><div class="ochd"><span class="bb">OPERATIONS</span><small>작전 ${A.length}개</small></div>
+    <div class="ofl" role="group" aria-label="작전 거르기">${F.map(([k, n, xs]) => `<button class="${k === fk ? 'on' : ''}" data-act="opFilter" data-v="${k}" aria-pressed="${k === fk}">${n} <b>${xs.length}</b></button>`).join('')}</div>
+    <div class="optabs2" role="tablist" aria-label="작전 목록">${L.map(x => opRowHTML(x, 'opSel', x.op.id === r.op.id)).join('') || '<span class="sub" style="font-size:12px;padding:8px 2px">이 상태의 작전이 없습니다.</span>'}</div></aside>`;
 }
+const opSplit = (r, cls, body) => `<section class="pnl ops split${cls}"><div class="spl">${opTabs(r)}<div class="opdet">${body}</div></div></section>`;
 function viewOps(rr, parts) {
   const r = rr || curOp();
   if (!r) return `<section class="pnl wip"><span class="bb">OPERATIONS</span><h2>작전</h2><p class="sub" style="font-size:14px;margin:0">${B && B.demo ? '데모 모드에서는 작전을 진행할 수 없습니다. 게임 서버에 접속하십시오.' : '작전 정보를 불러오는 중입니다.'}</p></section>`;
   const me = r.members.find(m => m.uid === S.user.uid), st = stateOf(S.me);
   const team = role => r.members.filter(m => m.role === role);
   const err = S.opErr ? `<p class="err" role="alert" style="margin:0">${esc(S.opErr)}</p>` : '';
-  const head = (r.status === 'live' && me ? '' : opTabs(r)) + `<div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${r.status === 'live' ? `<b class="ttl">${esc(r.op.title)}</b>` : ''}${thChip(r.op.threat, true)}${levelHTML(r.op)}${me && r.status === 'live' ? `<button class="btn g s" data-act="opAbort">${ico('x', 14, 2)}철수</button>` : ''}</span>${r.status === 'live' ? '' : `<h2>${esc(r.op.title)}</h2>`}${r.status === 'lobby' ? `<p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}<p class="rec">권장 인원: ${recTxt(r.op)} · 정원: 현장 ${r.op.field}명, 관제 ${r.op.ctrl}명 · 예상 소요 ${r.op.mins}분</p>` : ''}</div>`;
+  const head = `<div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${r.status === 'live' ? `<b class="ttl">${esc(r.op.title)}</b>` : ''}${thChip(r.op.threat, true)}${levelHTML(r.op)}${me && r.status === 'live' ? `<button class="btn g s" data-act="opAbort">${ico('x', 14, 2)}철수</button>` : ''}</span>${r.status === 'live' ? '' : `<h2>${esc(r.op.title)}</h2>`}${r.status === 'lobby' ? `<p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}<p class="rec">권장 인원: ${recTxt(r.op)} · 정원: 현장 ${r.op.field}명, 관제 ${r.op.ctrl}명 · 예상 소요 ${r.op.mins}분</p>` : ''}</div>`;
   const member = m => `<span class="mem${m.dead ? ' dead' : ''}${m.uid === S.user.uid ? ' me' : ''}"><span class="nm"><b>${esc(m.name)}</b><small>${esc(m.num)}</small>${m.dead ? '<span class="tagx r">사망</span>' : m.broken ? '<span class="tagx y">붕괴</span>' : ''}</span>
     ${r.status === 'lobby' ? '' : `<span class="gg"><small>HP</small><span class="gb"><i style="width:${m.hp / m.hpMax * 100}%"></i></span><b>${m.hp}/${m.hpMax}</b></span><span class="gg s"><small>정신력</small><span class="gb"><i style="width:${m.san / m.sanMax * 100}%"></i></span><b>${m.san}/${m.sanMax}</b></span>`}</span>`;
   const teams = `<div class="teams2">${[['field', '현장팀', r.op.field], ['ctrl', '관제팀', r.op.ctrl]].map(([k, l, cap]) => `<div class="tm"><span class="th"><b>${l}</b><small>${team(k).length}/${cap}</small></span>${team(k).map(member).join('')}${r.status === 'lobby' ? Array.from({ length: cap - team(k).length }, () => '<span class="mem empty">빈 자리</span>').join('') : team(k).length ? '' : '<span class="mem empty">없음</span>'}</div>`).join('')}</div>`;
   if (r.status === 'lobby') {
     const sealed = r.sealedUntil > Date.now(), busy = st.k === 'regen' || sealed;
-    return `<section class="pnl ops">${head}
-      ${teams}
-      ${recNote(r)}
-      ${sealed ? `<div class="note" style="box-shadow:inset 0 0 0 1px #C8A040">${ico('alert', 18)}<span>격리 실패로 RAVEN-3이 현장을 인수했습니다. 봉쇄 해제까지 ${leftTime(r.sealedUntil - Date.now())} 남았습니다.</span></div>` : ''}
-      ${st.k === 'regen' ? `<div class="note">${ico('alert', 18)}<span>재생 수조에서 회복 중입니다. ${esc(st.t.replace('재생 중, ', ''))} 뒤에 참가할 수 있습니다.</span></div>` : ''}
-      <div class="acts">${me ? `<button class="btn g" data-act="opLeave">대기실 나가기</button><button class="btn" data-act="opStart" ${team('field').length && !sealed ? '' : 'disabled'}>${icoFill('play', 14)}작전 개시</button>`
-        : `<button class="btn" data-act="opJoin" data-v="field" ${busy ? 'disabled' : ''}>현장팀으로 참가</button><button class="btn g" data-act="opJoin" data-v="ctrl" ${busy ? 'disabled' : ''}>관제팀으로 참가</button>`}</div>
-      ${me && !team('field').length ? '<span class="sub">현장팀이 1명 이상 있어야 작전을 개시할 수 있습니다.</span>' : ''}${err}
-    </section>`;
+    const f = team('field').length, c = team('ctrl').length, rd = r.members.filter(m => m.ready).length, tot = r.members.length;
+    const seats = (role, cap) => { const L = team(role), nm = role === 'ctrl' ? '관제팀' : '현장팀'; return Array.from({ length: cap }, (_, i) => { const m = L[i];
+      return m ? `<div class="seat on${m.uid === S.user.uid ? ' me' : ''}"><span class="sn"><b>${esc(m.name)}</b>${m.uid === S.user.uid ? '<small>나</small>' : ''}<span class="rd${m.ready ? ' ok' : ''}">${m.ready ? '준비 완료' : '준비 중'}</span></span><span class="si">${esc(m.num)} · HP ${m.hpMax} · 정신력 ${m.sanMax}</span></div>`
+        : `<button class="seat" data-act="opJoin" data-v="${role}" ${busy || (me && me.role === role) ? 'disabled' : ''}><span class="sn"><b>+ 이 자리로 참가</b></span><span class="si">빈 자리 · 누르면 ${nm}으로 참가</span></button>`; }).join(''); };
+    const lack = []; if (r.op.rec) { if (f < r.op.rec.field[0]) lack.push(`현장팀 ${r.op.rec.field[0] - f}명`); if (c < r.op.rec.ctrl[0]) lack.push(`관제팀 ${r.op.rec.ctrl[0] - c}명`); }
+    const warn = !f ? '현장팀이 1명 이상 있어야 작전을 개시할 수 있습니다.' : lack.length ? `권장 인원보다 ${lack.join(', ')}이 부족합니다. 이대로도 개시할 수 있지만 위험이 커집니다.` : me && rd < tot ? `참가자 전원이 준비 완료를 눌러야 개시할 수 있습니다. (${rd}/${tot})` : '';
+    const myState = sealed ? ['no', '봉쇄 중', `해제까지 ${leftTime(r.sealedUntil - Date.now())}`] : st.k === 'regen' ? ['no', '재생 중', esc(st.t.replace('재생 중, ', '')) + ' 남음'] : ['ok', '출동 가능', `오염도 ${S.me ? contTxt(S.me) : '-'}`];
+    const reward = r.op.patrol ? `보급품 ${r.op.reward ? r.op.reward.supply : 40}, 수용 개체 안정도 +15%` : `보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}`;
+    const canStart = me && f && !sealed && rd === tot;
+    return opSplit(r, ' lobby', `<div class="loba"><div class="lobm">
+      <div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span></span><h2>${esc(r.op.title)}</h2><p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}</div>
+      <div class="facts"><span class="fc"><small>위험 등급</small>${thChip(r.op.threat, true)}</span><span class="fc"><small>난이도</small>${levelHTML(r.op)}</span><span class="fc"><small>예상 소요</small><b class="bb">${r.op.mins}분</b></span><span class="fc"><small>성공 보상</small><b>${reward}</b></span></div>
+      <div class="seats"><div class="sg"><span class="sgh"><b>현장팀</b><small>${f}/${r.op.field}</small>${r.op.rec ? `<small>· 권장 ${recTxt(r.op).split(', ')[0].replace('현장 ', '')}</small>` : ''}</span><div class="sgrid">${seats('field', r.op.field)}</div></div>
+        <div class="sg c"><span class="sgh"><b>관제팀</b><small>${c}/${r.op.ctrl}</small>${r.op.rec ? `<small>· 권장 ${(recTxt(r.op).split(', ')[1] || '').replace('관제 ', '')}</small>` : ''}</span><div class="sgrid">${seats('ctrl', r.op.ctrl)}</div></div></div></div>
+      <div class="lbar"><span class="mys ${myState[0]}"><small>내 상태</small><span><i></i><b>${myState[1]}</b><em>${myState[2]}</em></span></span>
+        ${warn ? `<span class="lwarn">${ico('alert', 16)}<span>${warn}</span></span>` : '<span class="lwarn"></span>'}
+        <span class="lbtn">${me ? `<button class="btn g s" data-act="opLeave">나가기</button><button class="btn${me.ready ? ' g' : ''}" data-act="opReady" data-v="${me.ready ? 0 : 1}">${me.ready ? '준비 취소' : '준비 완료'}</button><button class="btn" data-act="opStart" ${canStart ? '' : 'disabled'}>${icoFill('play', 14)}작전 개시 ${rd}/${tot}</button>`
+          : `<button class="btn" data-act="opJoin" data-v="field" ${busy ? 'disabled' : ''}>현장팀으로 참가</button><button class="btn g" data-act="opJoin" data-v="ctrl" ${busy ? 'disabled' : ''}>관제팀으로 참가</button>`}</span>${err}</div></div>`);
   }
   const ctlTeam = `<div class="ctlline"><b>관제팀</b><small>${team('ctrl').length}/${r.op.ctrl}</small>${team('ctrl').map(m => `<span class="cm${m.uid === S.user.uid ? ' me' : ''}">${esc(m.name)}</span>`).join('') || '<span class="sub">없음. 현장팀만 진행 중입니다.</span>'}</div>`;
   const sc = r.scene, cnt = Array.from({ length: r.op.count }, (_, i) => `<i class="${i < r.count ? 'on' : ''}"></i>`).join('');
@@ -2087,10 +2222,9 @@ function viewOps(rr, parts) {
       <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
   if (parts) return { head, stage, ctlTeam, log: logHTML(r, me) };
-  return `<section class="pnl ops live">${head}
+  return opSplit(r, ' live', `${head}
     <div class="opgrid"><div class="opmain">${stage}<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol></div>
-      <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>
-  </section>`;
+      <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>`);
 }
 function viewRecords() {
   if (!S.records) { B.getRecords().then(l => { S.records = l; renderCenter(); }).catch(() => { S.records = []; renderCenter(); }); return `<section class="pnl wip"><span class="bb">RECORDS</span><h2>작전 기록</h2><p class="sub" style="margin:0">기록을 불러오는 중입니다.</p></section>`; }
@@ -2603,17 +2737,18 @@ app.addEventListener('click', e => {
       requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return; }
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
-    case 'opJoin': case 'opLeave': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
+    case 'opJoin': case 'opLeave': case 'opReady': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
       const r = (t.closest('#opModal') && myModalOp()) || curOp(); if (!r) return;
       if (a === 'opAbort' && !confirmAbort(t)) return;
       if (a === 'opCtl' && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
-      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
-      const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
+      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
+      const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
       S.opErr = ''; app.querySelectorAll('[data-act^="op"]').forEach(b => b.disabled = true);
       B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); renderCenter(); });
       return;
     }
     case 'recReload': S.records = null; return renderCenter();
+    case 'opFilter': S.opFilter = v; return renderCenter();
     case 'opSel': S.opSel = v; S.opErr = ''; return renderCenter();
     case 'opGo': S.opSel = v; S.opErr = ''; S.view = 'ops'; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0); requestAnimationFrame(() => { syncMode(); const k = leftKind(); drawPanels(k !== lastLeft ? [...leftPanels(), ...centerPanels()] : centerPanels()); lastLeft = k; }); return;
     case 'fileSel': S.fileSel = v; S.fileErr = ''; return renderCenter();
@@ -2623,6 +2758,7 @@ app.addEventListener('click', e => {
         .catch(err => { S.baseErr = errMsg(err); }).finally(() => { S.baseBusy = false; refreshLobby(); }); return;
     case 'modalHide': { const r = myModalOp(); if (r) S.modalHide = r.id; syncModal(); return; }
     case 'baseRollOk': S.baseRoll = null; return renderCenter();
+    case 'baseSel': S.baseSel = v; S.taskPick = null; S.baseErr = ''; return renderCenter();
     case 'taskPick': S.taskPick = v ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
     case 'taskGo': case 'taskCancel': case 'taskAck': {
       if (a === 'taskCancel' && !S.taskCancelAsk) { S.taskCancelAsk = true; renderCenter(); setTimeout(() => { S.taskCancelAsk = false; renderCenter(); }, 4000); return; }
