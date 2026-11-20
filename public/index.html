@@ -74,7 +74,7 @@ select.inp{appearance:none}
 .err{color:var(--red);font-size:13px;font-weight:700;min-height:1em}
 .bars{display:flex;gap:2px;height:4px}
 .bars i{flex:1;border-radius:1px;background:var(--rule)}
-.bars i.on{background:var(--navyLine)}
+.bars i.on{background:var(--navyLine)}.bars i.half{background:linear-gradient(90deg,var(--navyLine) 50%,var(--rule) 50%)}
 .bars.big{gap:3px;height:8px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--sub);flex:none}
 .dot.on{background:#3CC48A}
@@ -117,7 +117,7 @@ select.inp{appearance:none}
 }
 
 /* ───────── 재생 절차(캐릭터 생성) ───────── */
-.cr{min-height:100%;display:flex;flex-direction:column}
+.cr{min-height:100vh;display:flex;flex-direction:column}
 .cr header{height:72px;padding:0 32px;display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--rule);background:var(--bar);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
 .cr .steps{display:flex;gap:4px;margin:0 auto}
 .cr .steps button{height:36px;padding:0 12px;border:0;border-radius:6px;background:transparent;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--sub)}
@@ -149,8 +149,8 @@ select.inp{appearance:none}
 .stepper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .stepper b{width:64px;text-align:center;font-size:40px}
 .statrow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--tileLine)}
-.statrow .ctl{display:flex;align-items:center;gap:6px}
-.statrow .ctl b{width:24px;text-align:center;font-size:24px}
+.statrow .ctl{display:flex;flex-direction:row;align-items:center;gap:6px}
+.statrow .ctl b{width:32px;text-align:center;font-size:24px}
 .statrow .ib{width:32px;height:32px;background:var(--faint)}
 .derived{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .derived .pan{padding:10px 14px;display:flex;flex-direction:column;gap:2px}
@@ -168,7 +168,8 @@ select.inp{appearance:none}
 .trait .chips span{height:28px;padding:0 10px;border-radius:4px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;background:rgba(255,255,255,.18)}
 .trait .chips span.c{background:var(--red);color:#fff}
 .skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.skills button{height:52px;padding:0 14px;border:0;border-radius:6px;display:flex;align-items:center;gap:10px;text-align:left;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.skills .skt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}.skills .skt>b{display:flex;align-items:baseline;gap:6px}.skills .lv{white-space:nowrap;flex-shrink:0}.skills .tag{flex-shrink:0}
+.skills button{min-height:52px;padding:10px 14px;border:0;border-radius:6px;display:flex;align-items:center;gap:10px;text-align:left;background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}
 .skills button.dept{background:var(--faint);cursor:default}
 .skills button[aria-pressed=true]:not(.dept){background:var(--selBg);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
 .skills .lv{margin-left:auto;font-size:18px}
@@ -183,7 +184,7 @@ select.inp{appearance:none}
   .cr main{grid-template-columns:1fr;padding:20px 16px 24px;gap:24px}
   .cr .form{min-height:0}
   .cr aside{position:static;order:-1}
-  .cr aside .badge .stats,.cr aside .badge dl{display:none}
+  .cr aside .badge .stats,.cr aside .badge dl,.cr aside .badge.pv .seal{display:none}
   .photo .ph{width:120px;height:146px}
   .skills{grid-template-columns:1fr}
 }
@@ -248,7 +249,7 @@ select.inp{appearance:none}
 .badge.mb .ph .dots{background-size:6px 6px}
 .badge.mb .who{gap:4px}
 .badge.mb .num{font-size:14px}
-.badge.mb .nm{font-size:24px}
+.badge.mem .nm{font-size:24px}
 .badge.mb .mstats{margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 8px}
 .badge.mb .mstats>span{display:flex;flex-direction:column;gap:3px}
 .badge.mb .mstats .l{display:flex;justify-content:space-between;font-size:10px;color:var(--sub)}
@@ -313,6 +314,132 @@ select.inp{appearance:none}
 .in-step .cr .form>*:nth-child(1){--dx:16px;--dy:0px}
 .in-step .cr .form>*:nth-child(2){--dx:16px;--dy:0px;--d:.06s}
 .in-step .cr .form>*:nth-child(3){animation:none}
+
+/* 작전 */
+.ops{height:100%;min-height:0;overflow-y:auto;padding:22px 24px;gap:16px}
+.ophead .k{display:flex;align-items:center;gap:8px;color:var(--navyLine)}
+.ophead .k .btn{color:var(--ink)}
+.ophead .k .bb{font-size:18px;letter-spacing:.14em}
+.ophead .tg{margin-left:auto;font-size:12px;font-weight:700;padding:3px 8px;box-shadow:inset 0 0 0 1px var(--navyLine)}
+.ophead h2{margin:8px 0 0;font-size:26px}
+.ophead p{margin:6px 0 0;color:var(--sub);font-size:14px;line-height:1.6}
+.teams2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tm{display:flex;flex-direction:column;gap:6px}
+.tm .th{display:flex;align-items:baseline;gap:8px;font-size:13px}
+.tm .th small{color:var(--sub)}
+.mem{padding:10px 12px;border-radius:3px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:6px;font-size:13px}
+.mem.me{box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.mem.empty{color:var(--sub);background:transparent;border:1px dashed var(--tileLine);box-shadow:none}
+.mem.dead{opacity:.6}
+.mem .nm{display:flex;align-items:center;gap:6px}
+.mem .nm small{color:var(--sub);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.06em}
+.tagx{margin-left:auto;font-size:11px;font-weight:700;padding:1px 6px;color:#fff}
+.tagx.r{background:var(--red)}.tagx.y{background:#C8A040}
+.gg{display:grid;grid-template-columns:40px 1fr 44px;align-items:center;gap:8px;font-size:11px;color:var(--sub)}
+.gg b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:14px;color:var(--ink);text-align:right}
+.gb{height:6px;background:var(--rule);position:relative}
+.gb i{position:absolute;inset:0 auto 0 0;background:var(--navyLine)}
+.gg.s .gb i{background:#8F7BC8}
+.ops .acts{display:flex;gap:8px;flex-wrap:wrap}
+.opgrid{display:flex;flex-direction:column;gap:14px}
+.ops.live .opmain{margin-top:12px}
+.ops.live .opside{padding-bottom:4px;border-bottom:1px solid var(--tileLine)}
+.opmain{display:flex;flex-direction:column;gap:14px;min-width:0}
+.opside{display:flex;flex-direction:column;gap:10px;order:-1}
+.opside .mem{padding:7px 10px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px}
+.opside .gg{grid-template-columns:auto 1fr auto;gap:6px}
+.opside .tm{gap:4px}
+@media (max-width:999px){.opside .mem{grid-template-columns:1fr 1fr}.opside .mem .nm{grid-column:span 2}}
+.stage{padding:16px 18px;border-radius:4px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:10px}
+.stage .prog{display:flex;align-items:center;gap:12px}
+.stage .prog .bb{font-size:15px;letter-spacing:.14em;color:var(--navyLine);white-space:nowrap}
+.stage .cnt{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--sub);white-space:nowrap}
+.stage .cbar{display:flex;gap:2px}
+.stage .cbar i{width:10px;height:8px;background:var(--rule)}
+.stage .cbar i.on{background:var(--red)}
+.stage .cnt b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:20px;color:var(--red)}
+.stage .st{font-size:20px}
+.stage p{margin:0;font-size:14px;line-height:1.7}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.choice2{padding:12px 14px;border:0;border-radius:3px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--line2);text-align:left;display:flex;flex-direction:column;gap:4px;color:var(--ink)}
+.choice2:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.choice2 b{font-size:14px}
+.choice2 small{font-size:12px;color:var(--sub)}
+.sup{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--navyLine);font-weight:700}
+.ctl{display:flex;flex-direction:column;gap:8px}
+.stage.done .res{font-size:28px;letter-spacing:.12em}
+.stage.done .res.success{color:var(--navyLine)}.stage.done .res.fail{color:var(--red)}.stage.done .res.abort{color:var(--sub)}
+.oplog{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.lg{padding:10px 12px;border-left:2px solid var(--tileLine);display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.6}
+.lg.scene{border-color:var(--navyLine);background:var(--faint)}
+.lg.scene b{font-size:13px;color:var(--navyLine)}
+.lg.death{border-color:var(--red);color:var(--red)}
+.lg.warn{border-color:#C8A040}
+.lg.end{border-color:var(--navyLine);font-weight:700}
+.lg.sys{color:var(--sub)}
+.lg .who{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.lg .who small{color:var(--sub);font-size:11px}
+.lg .tier{margin-left:auto;font-weight:800;font-size:12px}
+.lg .fx{font-size:11px;color:var(--red);font-weight:700}
+.dice2{display:flex;gap:3px;flex-wrap:wrap}
+.dc{width:22px;height:22px;border-radius:3px;display:grid;place-items:center;font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:15px;padding-top:2px;background:#E8E8E6;color:#222;opacity:.55}
+.dc.b{background:#111;color:#ddd;box-shadow:inset 0 0 0 1px #555}
+.dc.s{background:var(--navy);color:var(--onNavy)}
+.dc.hit{opacity:1;box-shadow:0 0 0 1.5px var(--navyLine)}
+.dc.bad{opacity:1;box-shadow:0 0 0 1.5px var(--red)}
+.dsum{font-size:11px;color:var(--sub)}
+.oplog.small{padding:0 12px 12px}
+.recs{height:100%;min-height:0}
+.recs .hd{flex:none;height:52px;padding:0 12px 0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--tileLine)}
+.recs .hd .bb{font-size:18px;letter-spacing:.12em}.recs .hd small{font-size:12px;color:var(--sub)}.recs .hd .n{margin-left:auto;font-size:12px;color:var(--sub)}
+.rl{list-style:none;margin:0;padding:12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0}
+.rl>li{border-radius:3px;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.rr{width:100%;padding:12px 14px;border:0;background:transparent;display:flex;align-items:center;gap:12px;text-align:left;color:var(--ink)}
+.rr .rop{font-size:15px;letter-spacing:.08em;color:var(--navyLine)}
+.rr .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rr .t small{font-size:11px;color:var(--sub)}
+.rr .rs{font-weight:800;font-size:13px}
+@media (max-width:999px){.ops{height:auto;padding:16px}.recs{height:auto}}
+
+/* 과거·변질 후보 카드 */
+.pasts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px}
+.traits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pick{padding:14px;border:0;border-radius:5px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--line2);text-align:left;display:flex;flex-direction:column;gap:10px;color:var(--ink)}
+.pick:hover:not(:disabled){box-shadow:inset 0 0 0 1px var(--navyLine)}
+.pick[aria-pressed=true]{background:var(--selBg);box-shadow:inset 0 0 0 2px var(--navyLine)}
+.pick .ph2{display:flex;align-items:center;justify-content:space-between;min-height:22px}
+.pick .ph2 .bb{font-size:15px;letter-spacing:.14em;color:var(--navyLine)}
+.pick .row{display:flex;gap:10px;align-items:flex-start}
+.pick .r{flex:none;width:30px;height:30px;border-radius:3px;display:grid;place-items:center;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);font-size:18px;padding-top:3px}
+.pick .v{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pick .v small{font-size:11px;color:var(--sub)}
+.pick .v b{font-size:13px;line-height:1.4;word-break:keep-all}
+.pick .age{margin-top:auto;padding-top:10px;border-top:1px dashed var(--tileLine);font-size:12px;color:var(--sub)}
+.pick .age b{font-size:18px;color:var(--ink)}
+.tcard .tno{display:flex;align-items:baseline;gap:8px}
+.tcard .tno .r{width:52px;height:52px;border-radius:6px;display:grid;place-items:center;font-size:32px;padding-top:4px;background:var(--faint);box-shadow:inset 0 0 0 2px var(--ink)}
+.tcard .dice{gap:8px}
+.tcard .die{width:40px;height:40px;font-size:24px;border-radius:6px}
+.tcard .tot{font-size:20px;color:var(--sub)}
+.tcard>b{font-size:20px}
+.tcard .look{font-size:13px;color:var(--sub);line-height:1.5}
+.tcard .chips{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.tcard .chips span{align-self:flex-start;padding:4px 8px;border-radius:3px;font-size:12px;font-weight:700;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.tcard .chips span.c{background:transparent;box-shadow:inset 0 0 0 1px var(--red);color:var(--red)}
+@media (max-width:999px){.pasts,.traits{grid-template-columns:1fr}}
+
+/* 사진 자르기 */
+.crop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px;backdrop-filter:blur(3px)}
+.cropbox{width:min(360px,100%);padding:22px;border-radius:6px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--line2),0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;color:var(--ink)}
+.cropbox .cv{position:relative;align-self:center;margin:6px 0;box-shadow:0 0 0 1px var(--navyLine)}
+.cropbox canvas{display:block;max-width:100%;cursor:grab;touch-action:none;background:var(--silBg)}
+.cropbox canvas:active{cursor:grabbing}
+.cropbox .cn{position:absolute;width:14px;height:14px;pointer-events:none}
+.cropbox .cn.a{left:6px;top:6px;border-left:2px solid var(--navyLine);border-top:2px solid var(--navyLine)}
+.cropbox .cn.b{right:6px;bottom:6px;border-right:2px solid var(--navyLine);border-bottom:2px solid var(--navyLine)}
+.cropbox .zoom{display:flex;align-items:center;gap:10px;color:var(--sub)}
+.cropbox .zoom input{flex:1;accent-color:var(--navyLine)}
+.cropbox .row{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 
 /* 주사위 굴림 */
 .rolling{color:var(--navyLine)}
@@ -533,6 +660,229 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
   .colR .chat{border-radius:0;height:100%;box-shadow:none}
   .sheet-close{display:grid;margin-left:4px}
 }
+
+/* 기지 · 개체 문서 */
+.base2,.arch{height:100%;min-height:0}
+.base2 .hd,.arch .hd{flex:none;height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--tileLine)}
+.base2 .hd .bb,.arch .hd .bb{font-size:18px;letter-spacing:.12em}.base2 .hd small,.arch .hd small{font-size:12px;color:var(--sub)}.base2 .hd .n,.arch .hd .n{margin-left:auto;font-size:12px;color:var(--sub)}
+.base2 .bd{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:20px}
+.sh{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}.sh b{font-size:14px}.sh small{font-size:12px;color:var(--sub)}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.cell{padding:14px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:8px;min-width:0}
+.cell .ch{display:flex;align-items:baseline;gap:8px}.cell .ch .bb{font-size:20px;letter-spacing:.06em;color:var(--navyLine)}.cell .ch b{font-size:14px}.cell .ch small{margin-left:auto;font-size:11px;color:var(--sub)}
+.cell .loc{font-size:12px;color:var(--sub)}
+.stab{display:flex;align-items:center;gap:10px}.stab .gb{flex:1}.stab .bb{font-size:24px;line-height:1;min-width:52px;text-align:right}
+.cell .stt{font-size:12px;font-weight:800;color:var(--navyLine)}
+.cell.al{box-shadow:inset 0 0 0 1px var(--red)}.cell.al .gb i{background:var(--red)}.cell.al .stt,.cell.al .stab .bb{color:var(--red)}
+.cell.un .ch .bb,.cell.un .stab .bb{color:var(--sub)}.cell.un .stt{color:var(--sub)}
+.cell .btn{align-self:flex-start}
+.sh b{white-space:nowrap}
+.task{padding:16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--navyLine);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.task .tl{display:flex;flex-direction:column;gap:6px;min-width:0}.task .tl>.bb{font-size:12px;letter-spacing:.08em;color:var(--navyLine)}.task .tl b{font-size:15px}
+.task .clock{font-family:var(--mono,monospace);font-size:40px;font-weight:800;letter-spacing:.04em;line-height:1;font-variant-numeric:tabular-nums}
+.task .gb{height:6px}.task .sub{font-size:12px}.task.done{box-shadow:inset 0 0 0 1px #C8A040}.task.done .tl>.bb{color:#C8A040}
+.ptsnote{font-size:12px;color:var(--navyLine);font-weight:700}.ptsnote b{font-size:14px}
+.detail .srow.up{grid-template-columns:44px minmax(0,1fr) 20px 22px}.srow .ib{width:22px;height:22px}
+.rank{display:grid;grid-template-columns:auto 120px auto;align-items:center;gap:8px;font-size:12px}.rank small{color:var(--sub)}.rank .xpb{height:4px;background:var(--faint);position:relative}.rank .xpb i{position:absolute;inset:0 auto 0 0;background:var(--navyLine)}
+.sklist{display:flex;flex-direction:column;gap:6px}
+.skr{display:grid;grid-template-columns:72px auto 44px 1fr 46px;align-items:center;gap:8px;font-size:13px}.skr.zero{opacity:.45}
+.skr .lvp{display:flex;gap:2px}.skr .lvp i{width:8px;height:8px;box-shadow:inset 0 0 0 1px var(--tileLine)}.skr .lvp i.on{background:var(--navyLine);box-shadow:none}
+.skr small{font-size:11px;color:var(--sub)}.skr .xpb{height:4px;background:var(--faint);position:relative}.skr .xpb i{position:absolute;inset:0 auto 0 0;background:var(--navyLine)}.skr .xpn{text-align:right;font-variant-numeric:tabular-nums}
+.lg.grow{color:var(--navyLine);font-weight:700}
+.task.bad{box-shadow:inset 0 0 0 1px var(--red)}.task.bad .tl>.bb{color:var(--red)}
+.rbx{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.rbx .tier{font-weight:800;font-size:13px}.rbx small{font-size:11px;color:var(--sub)}
+.escl{font-size:12px;font-weight:700;color:var(--sub)}.escl.hot{color:var(--red)}
+.btn.red{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.cell .cb{display:flex;flex-wrap:wrap;gap:6px}.cell .cb .btn{align-self:auto}
+.cell .wk{display:flex;flex-wrap:wrap;gap:4px}.cell .wk span{font-size:11px;font-weight:700;padding:2px 6px;box-shadow:inset 0 0 0 1px var(--navyLine);color:var(--navyLine)}
+.tpick{display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px dashed var(--tileLine)}.tpick .btn{justify-content:space-between;width:100%}.tpick .btn .cost{font-size:11px}
+@media (max-width:700px){.task{grid-template-columns:1fr}.task .clock{font-size:32px}}
+.tank{padding:16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--tileLine);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.tank .vat{width:64px;height:88px;border-radius:30px 30px 6px 6px;box-shadow:inset 0 0 0 2px var(--navyLine);position:relative;overflow:hidden}
+.tank .vat i{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--navyLine) 45%,transparent)}
+.tank .vat.on i{animation:vat 3s ease-in-out infinite alternate}
+@keyframes vat{from{transform:translateY(4px)}to{transform:translateY(-4px)}}
+.tank .tx{display:flex;flex-direction:column;gap:6px;min-width:0}.tank .tx b{font-size:15px}.tank .tx .sub{font-size:12px}
+.tank .acts{grid-column:span 2;display:flex;gap:8px;flex-wrap:wrap}
+.cost{font-size:12px;color:var(--sub);font-weight:500}
+.arch .bd{flex:1;min-height:0;display:grid;grid-template-columns:210px 1fr}
+.elist{border-right:1px solid var(--tileLine);overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:4px}
+.eb{padding:10px 12px;border:0;border-radius:3px;background:transparent;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+.eb:hover{background:var(--faint)}.eb[aria-current]{background:var(--faint);box-shadow:inset 3px 0 0 var(--navyLine)}
+.eb .bb{font-size:18px;letter-spacing:.06em;color:var(--navyLine)}.eb small{font-size:11px;color:var(--sub)}
+.doc{overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:22px;min-width:0}
+.doc .dh{display:flex;flex-direction:column;gap:4px;padding-bottom:16px;border-bottom:1px solid var(--tileLine)}
+.doc .dh .bb{font-size:40px;line-height:1;color:var(--navyLine)}.doc .dh h2{margin:0;font-size:22px}.doc .dh .sub{font-size:12px}
+.dsec{display:flex;flex-direction:column;gap:8px}.dsec h3{margin:0;font-size:13px;color:var(--sub);font-weight:800;display:flex;gap:8px;align-items:center}
+.dsec p,.dsec li{margin:0;font-size:14px;line-height:1.75}.dsec ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.dsec .by{font-size:11px;color:var(--sub)}
+.dsec.sealed p{padding:14px 16px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--red)}
+.lk{padding:14px 16px;border-radius:4px;border:1px dashed var(--tileLine);display:flex;align-items:center;gap:12px;font-size:13px;color:var(--sub);flex-wrap:wrap}
+.lk svg{flex:none}.lk span{flex:1;min-width:160px}
+.inc{list-style:none;padding:0!important}.inc li{display:flex;gap:10px;font-size:13px}.inc time{color:var(--sub);flex:none}
+.tile.base.al{box-shadow:inset 0 0 0 1px var(--red)}.tile.base.al .bsub{color:var(--red)!important}
+@media (max-width:999px){.base2,.arch{height:auto}.arch .bd{grid-template-columns:1fr}.elist{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--tileLine)}.eb{flex:none}.doc{padding:18px 16px}}
+@media (prefers-reduced-motion:reduce){.tank .vat.on i{animation:none}}
+.ei{flex:none;width:36px;height:36px;border-radius:4px;display:grid;place-items:center;color:var(--navyLine);background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.cell .ch{align-items:center}.cell.un .ei{color:var(--sub)}.cell.al .ei{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.eb{flex-direction:row!important;align-items:center;gap:10px!important}.eb .et{display:flex;flex-direction:column;gap:2px;min-width:0}
+.doc .dh{position:relative;padding-right:84px}.doc .dico{position:absolute;right:0;top:0;width:72px;height:72px;border-radius:6px;display:grid;place-items:center;color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--tileLine);background:var(--faint)}
+
+/* 대열 · 레이더 */
+.field2{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:stretch}
+.radar{width:176px;flex:none;padding:12px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;align-items:center;gap:8px}
+.radar .hh{align-self:stretch;display:flex;align-items:baseline;gap:6px}.radar .hh .bb{font-size:14px;letter-spacing:.14em;color:var(--navyLine)}.radar .hh small{font-size:11px;color:var(--sub)}
+.scope{position:relative;flex:none;width:150px;height:150px;border-radius:50%;overflow:hidden;background:color-mix(in srgb,var(--navy) 22%,transparent);box-shadow:inset 0 0 0 1px var(--navyLine)}
+.scope .sw{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 290deg,color-mix(in srgb,var(--navyLine) 45%,transparent) 360deg);animation:sweep 3.2s linear infinite}
+.scope svg{position:absolute;inset:0}
+.scope .glow{position:absolute;left:0;right:0;height:50%;opacity:.0}
+.scope .glow.front{top:0;background:radial-gradient(ellipse at 50% 100%,transparent 20%,color-mix(in srgb,var(--navyLine) 55%,transparent) 100%)}
+.scope .glow.rear{bottom:0;background:radial-gradient(ellipse at 50% 0%,transparent 20%,color-mix(in srgb,var(--navyLine) 55%,transparent) 100%)}
+.scope .glow.on{animation:ping 1.6s ease-in-out infinite}
+.scope .glow.near{background:radial-gradient(ellipse at 50% 100%,transparent 10%,color-mix(in srgb,var(--red) 65%,transparent) 100%)}
+.scope .glow.rear.near{background:radial-gradient(ellipse at 50% 0%,transparent 10%,color-mix(in srgb,var(--red) 65%,transparent) 100%)}
+.scope .glow.near.on{animation-duration:.8s}
+.blip{animation:ping 1.2s ease-in-out infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@keyframes ping{0%,100%{opacity:.25}50%{opacity:1}}
+.radar .rd{font-size:12px;text-align:center;line-height:1.5}.radar .rd b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:22px;letter-spacing:.04em}
+.radar .rd.near b{color:var(--red)}
+.form{padding:12px 14px;border-radius:4px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:10px;min-width:0}
+.form .hh{display:flex;align-items:baseline;gap:6px}.form .hh .bb{font-size:14px;letter-spacing:.14em;color:var(--navyLine)}.form .hh small{font-size:11px;color:var(--sub)}
+.line{display:flex;align-items:stretch;gap:6px}
+.line .ent{flex:none;width:44px;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--red);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 60%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.line .ent.hide{color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine);background:transparent}
+.line .ar{flex:none;align-self:center;color:var(--sub)}
+.fm{flex:1;min-width:0;padding:8px 9px;border-radius:3px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;gap:4px}
+.fm.me{box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.fm .ps{font-size:10px;font-weight:800;color:var(--navyLine);letter-spacing:.04em}
+.fm b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm .mini{display:flex;flex-direction:column;gap:2px}.fm .mini i{display:block;height:3px;background:var(--rule);position:relative}.fm .mini i span{position:absolute;inset:0 auto 0 0;background:var(--navyLine)}.fm .mini i.s span{background:#8F7BC8}
+.fm.broken{opacity:.75}.fm.broken .ps{color:#C8A040}
+.form .gone{font-size:11px;color:var(--sub)}
+.moves{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.moves+.sub{margin-top:-4px}
+.moves .btn{justify-content:flex-start;white-space:nowrap;padding:0 10px}
+.fm .nums{font-size:10px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.teams2.one{grid-template-columns:1fr}
+.moves .btn small{font-weight:500;opacity:.75;font-size:11px}
+.req{display:flex;gap:4px;flex-wrap:wrap}
+.req i{font-style:normal;font-size:10px;font-weight:800;padding:1px 6px;border-radius:2px;box-shadow:inset 0 0 0 1px var(--tileLine);color:var(--sub)}
+.req i.p{color:var(--navyLine);box-shadow:inset 0 0 0 1px var(--navyLine)}
+.req i.d{color:#C8A040;box-shadow:inset 0 0 0 1px #C8A040}
+.choice2:disabled .req i.p{color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.lg.move,.lg.miss{color:var(--sub);font-size:12px}
+.lg.miss{border-color:#C8A040}
+.lg.contact{border-color:var(--red);background:color-mix(in srgb,var(--red) 7%,transparent)}
+.lg.radio{border-color:var(--navyLine);color:var(--navyLine);font-weight:700}
+.lg .pz{font-size:10px;font-weight:800;color:var(--navyLine);padding:0 5px;box-shadow:inset 0 0 0 1px var(--navyLine)}
+@media (max-width:999px){.field2{grid-template-columns:1fr}.radar{width:auto;flex-direction:row;justify-content:center;gap:16px}.radar .hh{display:none}.scope{width:120px;height:120px}.line .ent{width:36px}.fm{padding:6px}.fm .ps{font-size:9px}.fm b{font-size:12px}}
+@media (prefers-reduced-motion:reduce){.scope .sw,.scope .glow.on,.blip{animation:none}.scope .glow.on{opacity:.8}}
+
+.fm.foe{flex:0 0 auto;width:78px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 60%,transparent);background:color-mix(in srgb,var(--red) 8%,transparent)}
+.fm.foe .ps{color:var(--red)}.fm.foe b{font-size:12px}.fm.foe .mini i span{background:var(--red)}
+.choice2.atk{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 55%,transparent)}
+.req i.a{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.lg.spawn{border-color:var(--red);color:var(--red)}
+.lg.kill{border-color:var(--navyLine);font-weight:700}
+@media (max-width:999px){.field2{grid-template-columns:1fr}.field2 .form{grid-column:auto}.line{flex-wrap:wrap}.line .fm{min-width:62px}.fm.foe{width:50px}.fm.foe b{font-size:10px;white-space:normal;line-height:1.2}}
+
+/* CCTV 장면 화면 */
+.cctv{position:relative;min-height:178px;padding-top:44px;border-radius:4px;overflow:hidden;color:#E8EEF0;background-color:#0E1416;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px var(--tileLine);display:flex;flex-direction:column;justify-content:flex-end}
+.cctv::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 30%,rgba(0,0,0,.55) 100%),linear-gradient(0deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.15) 55%,rgba(0,0,0,.35) 100%),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+.cctv.ph{background-image:radial-gradient(ellipse 55% 80% at 50% 40%,#2B3A3F 0%,#151D20 55%,#0B0F11 100%)}
+.cctv .crn{position:absolute;width:18px;height:18px;border:2px solid rgba(232,238,240,.8);pointer-events:none}
+.cctv .crn.a{left:10px;top:10px;border-right:0;border-bottom:0}.cctv .crn.b{right:10px;top:10px;border-left:0;border-bottom:0}
+.cctv .crn.c{left:10px;bottom:10px;border-right:0;border-top:0}.cctv .crn.d{right:10px;bottom:10px;border-left:0;border-top:0}
+.cctv .osd{position:absolute;top:14px;left:34px;right:34px;display:flex;justify-content:space-between;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.12em;line-height:1;text-shadow:0 1px 2px #000}
+.cctv .rec{display:flex;align-items:center;gap:6px}.cctv .rec i{width:8px;height:8px;border-radius:50%;background:#FF3B30;animation:ping 1.4s ease-in-out infinite}
+.cctv .cap2{position:relative;padding:0 34px 18px;display:flex;flex-direction:column;gap:4px}
+.cctv .cap2 b{font-size:19px}
+.cctv .cap2 p{margin:0;font-size:13px;line-height:1.6;color:rgba(232,238,240,.85);text-shadow:0 1px 2px #000}
+.cctv .cap2 .see{font-size:12px;color:#9FC6D1}.cctv .cap2 .see.near{color:#FF6A60}
+.cctv .cap2 .see b{font-size:12px;margin-right:4px}
+.mapt{align-self:flex-start;border:0;background:transparent;color:var(--navyLine);font:inherit;font-size:12px;font-weight:700;padding:2px 0;display:flex;align-items:center;gap:4px;cursor:pointer}
+/* 촘촘한 레이더 */
+.radar{width:150px;padding:10px;gap:6px}
+.scope{width:112px;height:112px}
+.radar .rd{font-size:11px}.radar .rd b{font-size:19px}
+.field2{align-items:stretch}
+.field2 .radar{justify-content:center}
+.form .line{flex:1}
+.form .line .fm{justify-content:center}
+@media (max-width:999px){.cctv{min-height:200px}.cctv .cap2{padding:0 22px 16px}.cctv .osd{left:22px;right:22px;font-size:13px}.scope{width:96px;height:96px}.radar{width:auto}}
+@media (prefers-reduced-motion:reduce){.cctv .rec i{animation:none}}
+
+/* RAVEN-3 · 섹터 사건 */
+.cell.rv{box-shadow:inset 0 0 0 1px #C8A040}.cell.rv .stt{color:#C8A040}.cell.rv .gb i{background:#C8A040}
+.rvtag{font-size:10px;font-weight:800;padding:1px 6px;color:#1a1a1a;background:#C8A040;letter-spacing:.04em}
+.evs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.evs li{padding:12px 14px;border-radius:4px;box-shadow:inset 0 0 0 1px #C8A040;background:color-mix(in srgb,#C8A040 7%,transparent);display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.6}
+.evs time{font-size:11px;color:var(--sub)}.evs .vo{font-weight:700;color:#C8A040}
+.evs.empty li{box-shadow:inset 0 0 0 1px var(--tileLine);background:transparent;color:var(--sub)}
+.home .op .pill.rv{background:#C8A040;color:#1a1a1a}
+
+/* 출입증 사진 누르기 */
+.phbtn{cursor:pointer}
+.phbtn:focus-visible{outline:2px solid var(--navyLine);outline-offset:2px}
+.phbtn .phhint{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:6px 8px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.65),transparent);opacity:0;transition:opacity .15s}
+.phbtn:hover .phhint,.phbtn:focus-visible .phhint{opacity:1}
+@media (hover:none){.phbtn .phhint{opacity:1}}
+.phbtn .phmenu{position:absolute;inset:0;z-index:4;background:rgba(10,14,16,.72);display:flex;flex-direction:column;justify-content:center;gap:6px;padding:10px}
+.phbtn .mi{height:34px;border:0;border-radius:4px;background:var(--tile);color:var(--ink);font:inherit;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--tileLine)}
+.phbtn .mi:hover{background:var(--tileHi)}
+.phbtn .mi svg,.phbtn .phhint svg{position:static;inset:auto;width:14px;height:14px;flex:none}
+.phbtn .mi input{position:absolute;inset:0;width:100%;height:100%}
+.phbtn .mi,.phbtn .phhint{white-space:nowrap}
+@media (max-width:999px){.phbtn .phmenu{padding:6px;gap:4px}.phbtn .mi{height:30px;font-size:11px;gap:4px}.phbtn .mi svg{display:none}}
+
+.choice2.rec{box-shadow:inset 0 0 0 1px #C8A040}
+.req i.r4{color:#C8A040;box-shadow:inset 0 0 0 1px #C8A040}
+
+.optabs{display:flex;gap:6px;flex-wrap:wrap}
+.optabs button{flex:1;min-width:150px;padding:9px 12px;border:0;border-radius:4px;background:var(--faint);box-shadow:inset 0 0 0 1px var(--tileLine);color:var(--ink);text-align:left;display:flex;flex-direction:column;gap:2px;cursor:pointer;font:inherit}
+.optabs button .bb{font-size:15px;letter-spacing:.1em;color:var(--navyLine)}.optabs button .t{font-size:13px;font-weight:700}.optabs button small{font-size:11px;color:var(--sub)}
+.optabs button[aria-selected="true"]{box-shadow:inset 0 0 0 1.5px var(--navyLine);background:color-mix(in srgb,var(--navyLine) 10%,transparent)}
+.ophead .opsub{font-size:12px;color:var(--navyLine)}
+
+/* 작전 모드 (PC) */
+.nav button.live::after,.bnav button.live::after{content:"LIVE";position:absolute;top:3px;right:3px;padding:1px 4px 0;background:var(--red);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.06em;line-height:1.2;border-radius:2px}
+.bnav button{position:relative}
+@media (min-width:1000px){
+  .opsmode .colL{display:none}
+  .opsmode .body3{grid-template-columns:minmax(0,1fr) 360px}
+  .opsmode .ops.live .opmain{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+  .opsmode .ops.live .oplog{position:sticky;top:0;max-height:calc(100vh - 260px);overflow-y:auto;padding-right:4px}
+}
+/* 휴대폰 채팅: 화면(주소창·키보드 포함) 높이에 맞춘다 */
+@media (max-width:999px){
+  .moves{grid-template-columns:1fr 1fr}
+  .colR{inset:auto;left:0;right:0;top:0;height:100vh;height:100dvh;height:var(--vvh,100dvh)}
+  .colR .chat form{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  /* 채팅을 열면 상단 바·하단 메뉴보다 위로 (body3가 z-index:1 쌓임 맥락이라 함께 올린다) */
+  .chatopen .body3{z-index:60}
+}
+
+/* 카메라 + 레이더 한 줄, 대열은 전체 폭 */
+.camrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:stretch}
+.camrow .radar{justify-content:center}
+.form .line{min-height:96px}
+.form .line .fm{min-width:0}
+@media (max-width:999px){.camrow{grid-template-columns:1fr}.form .line{min-height:0}}
+
+/* 난이도 표시 */
+.lvl{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--ink)}
+.lvl i{width:6px;height:10px;background:var(--navyLine)}.lvl i.off{background:var(--rule)}
+.lvl b{margin-left:5px;white-space:nowrap}
+.lvl{flex:none}
+.lvl.l3 i:not(.off){background:#C8A040}.lvl.l4 i:not(.off){background:var(--red)}
+.ophead .k .lvl{margin-left:10px}
+.optabs .meta{display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;font-size:11px;color:var(--sub)}
+.ophead .rec{font-size:12px;color:var(--sub)}
+
+.choice2.r1{box-shadow:inset 0 0 0 1px var(--red)}
+.choice2.r1[data-armed]{background:color-mix(in srgb,var(--red) 14%,transparent)}
+.lg.raven{border-color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent);font-weight:700}
 </style>
 </head>
 <body>
@@ -547,44 +897,96 @@ const DEMO = location.protocol === 'file:' || new URLSearchParams(location.searc
 
 /* ═════════════ 2. 게임 데이터 (설계서 기준) ═════════════ */
 const SN = ['근력', '체력', '민첩', '지능', '육감', '의지'];
-const DEPT = [['격리동 시설관리팀', ['장비 운용', '운반']], ['경비팀', ['사격', '격투']], ['연구실 조교', ['기록 해독', '관찰']], ['의무실', ['응급처치', '참기']], ['관제실 운영요원', ['통신', '장비 운용']], ['문서 보관실', ['기록 해독', '교섭']], ['청소·방역팀', ['은신', '관찰']], ['급식실', ['운반', '교섭']], ['개체 면담관', ['교섭', '오컬트']], ['소속 기록 없음', []]];
-const DEATH = ['격리 실패 사고에 휘말려 현장에서 사망', '정기 점검 중 실종, 나흘 뒤 발견', '동료를 구하다 사망', '개체 면담 도중 심장 정지', '섹터 봉쇄 때 문 밖에 남음', '사인 불명, 기록에는 ‘자연사’', '실험 참여 동의서에 서명한 다음 날', '연고가 있는 누군가의 실수로 사망', '스스로 격리실에 들어감', '사망 기록 없음, 하지만 재생 수조에 있었음'];
-const SECRET = ['사망 기록이 사망 전에 이미 작성돼 있었다', '외부에 정보를 빼돌리던 내부자였다', '한 개체의 첫 발견자였다', '이미 한 번 재생된 적이 있다', '섹터 밖에 기다리는 가족이 있었다', '인사 기록의 사진이 본인이 아니다', '어느 격리 절차를 직접 썼다', '다른 PC의 사망에 관여했다', '누군가에게 기억을 대신 지워 달라고 부탁했다', '사람이 아니었을지도 모른다'];
+const DEPT = [['격리동 시설관리팀', ['장비 운용', '운반']], ['경비팀', ['사격', '격투']], ['연구실 조교', ['기록 해독', '관찰']], ['의무실', ['응급처치', '인내']], ['관제실 운영요원', ['통신', '장비 운용']], ['문서 보관실', ['기록 해독', '운반']], ['청소·방역팀', ['은신', '관찰']], ['급식실', ['운반', '응급처치']], ['개체 면담관', ['관찰', '인내']], ['소속 기록 없음', []],
+  ['보안 감사실', ['관찰', '기록 해독']], ['개체 운송팀', ['운반', '장비 운용']], ['수조 관리팀', ['응급처치', '장비 운용']], ['소각·폐기팀', ['인내', '운반']], ['통신 중계실', ['통신', '관찰']],
+  ['외곽 경계대', ['사격', '은신']], ['심리 상담실', ['응급처치', '관찰']], ['피험자 관리팀', ['응급처치', '격투']], ['기록 말소반', ['기록 해독', '은신']], ['전력 설비팀', ['장비 운용', '인내']],
+  ['회수반', ['격투', '운반']], ['의례 연구실', ['기록 해독', '인내']], ['출입 통제소', ['통신', '사격']], ['지하 배수로 관리팀', ['은신', '인내']], ['감독관 부속실', ['통신', '기록 해독']]];
+const DEATH = ['격리 실패 사고에 휘말려 현장에서 사망', '정기 점검 중 실종, 나흘 뒤 발견', '동료를 구하다 사망', '개체 면담 도중 심장 정지', '섹터 봉쇄 때 문 밖에 남음', '사인 불명, 기록에는 ‘자연사’', '실험 참여 동의서에 서명한 다음 날', '연고가 있는 누군가의 실수로 사망', '스스로 격리실에 들어감', '사망 기록 없음, 하지만 재생 수조에 있었음',
+  '격리실 문이 열린 줄 모르고 들어감', '섹터 정전 중 계단에서 추락', '개체 운송 차량이 전복됨', '소각로 점검 중 문이 밖에서 잠김', '혼자 야간 순찰을 나갔다가 돌아오지 않음',
+  '자기 이름을 부르는 목소리에 대답함', '감염 의심으로 격리된 뒤 기록이 끊김', '수조 배관 폭발에 휘말림', '개체 실험의 대조군으로 배치됨', '동료의 총에 맞음, 오인 사격으로 처리됨',
+  '퇴근 직전 휴게실에서 잠든 채 발견', '자신이 쓴 보고서를 읽은 직후 쓰러짐', '승강기가 존재하지 않는 층에 멈춤', '탈출한 개체를 홀로 막아섬', '사망 일자가 세 번 수정되어 있음'];
+const SECRET = ['사망 기록이 사망 전에 이미 작성돼 있었다', '외부에 정보를 빼돌리던 내부자였다', '한 개체의 첫 발견자였다', '이미 한 번 재생된 적이 있다', '섹터 밖에 기다리는 가족이 있었다', '인사 기록의 사진이 본인이 아니다', '어느 격리 절차를 직접 썼다', '다른 PC의 사망에 관여했다', '누군가에게 기억을 대신 지워 달라고 부탁했다', '사람이 아니었을지도 모른다',
+  '섹터의 첫 재생 실험에 자원했다', '다른 요원의 넘버를 훔쳐 쓴 적이 있다', '관리하던 개체에게 이름을 지어 주었다', '섹터 감독관과 혈연이다', '죽기 직전 누군가에게 편지를 남겼다',
+  '격리 절차 하나를 일부러 틀리게 적었다', '재생 수조에 들어가기 전 스스로 기억을 지웠다', '외부 조직이 보낸 감시자였다', '개체와 거래를 한 적이 있다', '한 번 탈출에 성공했다가 스스로 돌아왔다',
+  '자신의 장례식을 직접 준비했다', '섹터 지도에 없는 방의 열쇠를 가지고 있었다', '같은 얼굴의 직원이 섹터에 한 명 더 있었다', '마지막 근무 기록이 사망 후에 작성됐다', '재생 수조 설계 도면에 본인의 서명이 남아 있다'];
 const TRAITS = {
-  2: ['제3의 맥박', '심장이 두 번씩 뛴다', '체력 +2', '진정제가 듣지 않음'],
-  3: ['결락된 기억', '입사일을 기억하지 못한다', '의지 +2', '기억 회복 판정 −1'],
+  1: ['두 번째 그림자', '빛과 반대 방향으로도 그림자가 진다', '은신 +1', '빛을 쫓는 개체에게 표적이 됨'],
+  2: ['제3의 맥박', '심장이 두 번씩 뛴다', '체력 +4', '진정제가 듣지 않음'],
+  3: ['결락된 기억', '입사일을 기억하지 못한다', '의지 +4', '기억 회복 판정 −1'],
   4: ['잔향 청각', '소리가 늘 하나 더 들린다', '소리 감지 +2', '소리형 개체에게 먼저 지목됨'],
-  5: ['늘어진 그림자', '거울에 반 박자 늦게 비친다', '민첩 +1', '카메라에 간헐적으로 안 찍힘'],
-  6: ['무감각 피부', '통증이 닿지 않는다', 'HP +3', '부상을 스스로 모름'],
+  5: ['늘어진 그림자', '거울에 반 박자 늦게 비친다', '민첩 +2', '카메라에 간헐적으로 안 찍힘'],
+  6: ['무감각 피부', '통증이 닿지 않는다', 'HP +25', '부상을 스스로 모름'],
   7: ['차가운 체온', '체온이 방 온도를 따라간다', '열원 감지에 안 잡힘', '관제팀도 위치를 놓침'],
   8: ['젖은 손끝', '손끝이 늘 축축하다', '물 관련 개체 판정 +1', '종이 기록을 만지면 번짐'],
   9: ['시간 어긋남', '시계가 그의 앞에서 느려진다', '행동 순서 +2', '회복 시간 ×1.5'],
-  10: ['타인의 말버릇', '모르는 사투리가 섞인다', '지능 +1', '통신에서 가끔 다른 사람으로 인식'],
-  11: ['개체의 시선', '눈동자가 빛을 되비춘다', '육감 +2', '개체와 눈이 마주치면 오염 +5%'],
-  12: ['빈자리', '가끔 아무도 그를 인식하지 못한다', '은신 자동 성공 1회', '보상 기록에서 가끔 빠짐']
+  10: ['타인의 말버릇', '모르는 사투리가 섞인다', '지능 +2', '통신에서 가끔 다른 사람으로 인식'],
+  11: ['개체의 시선', '눈동자가 빛을 되비춘다', '육감 +4', '개체와 눈이 마주치면 오염 +5%'],
+  12: ['빈자리', '가끔 아무도 그를 인식하지 못한다', '은신 자동 성공 1회', '보상 기록에서 가끔 빠짐'],
+  13: ['멎은 숨', '숨을 쉬지 않아도 버틴다', '질식·가스 판정 자동 성공', '응급처치로 회복되지 않음'],
+  14: ['수조의 잔향', '피부에서 약품 냄새가 난다', '체력 +2', '냄새를 쫓는 개체에게 먼저 감지됨'],
+  15: ['겹친 목소리', '말할 때 목소리가 두 겹으로 들린다', '통신 +1', '무전 기록에 낯선 목소리가 함께 남음'],
+  16: ['기억의 구멍', '하루 중 몇 분씩 기억이 비어 있다', '정신력 +30', '행동 기록에 공백이 생김'],
+  17: ['굳은 관절', '움직일 때마다 뼈 소리가 크게 난다', '근력 +2', '은신 판정 −1'],
+  18: ['낯선 손금', '손금이 매일 바뀐다', '육감 +2', '지문 인증이 가끔 실패함'],
+  19: ['무거운 몸', '몸이 물보다 무겁다', '밀려나거나 넘어지지 않음', '물속에서 움직일 수 없음'],
+  20: ['감기지 않는 눈', '눈을 감아도 앞이 보인다', '기습당하지 않음', '잠으로 정신력을 회복하지 못함'],
+  21: ['남의 꿈', '다른 사람의 꿈을 꾼다', '지능 +2', '가끔 다른 요원의 기억을 제 것으로 착각함'],
+  22: ['재생 흉터', '목덜미에 바코드 같은 흉터가 있다', '의지 +2', '섹터 장비가 그를 물건으로 인식함'],
+  23: ['식지 않는 피', '피가 늘 뜨겁다', '추위 판정 자동 성공', '열원 감지에 크게 잡힘'],
+  24: ['빈 거울', '거울에 아무것도 비치지 않는다', '거울형 개체의 효과 무시', '자기 얼굴을 확인할 수 없음'],
+  25: ['개체의 표식', '왼손등에 낯선 문양이 떠 있다', '은신 +2', '개체가 그를 동족으로 오인해 따라옴']
 };
-const SKILLS = [['격투', '근력'], ['사격', '민첩'], ['은신', '민첩'], ['응급처치', '지능'], ['장비 운용', '지능'], ['기록 해독', '지능'], ['통신', '지능'], ['관찰', '육감'], ['오컬트', '육감'], ['교섭', '의지'], ['참기', '의지'], ['운반', '체력']];
+const SKILLS = [['격투', '근력'], ['사격', '민첩'], ['은신', '민첩'], ['응급처치', '지능'], ['장비 운용', '지능'], ['기록 해독', '지능'], ['통신', '지능'], ['관찰', '육감'], ['인내', '의지'], ['운반', '체력']];
+// 기능의 쓰임새: 판정에 쓰이는 곳과 상시 효과
+const SKILL_USE = {
+  '격투': '선두·후미 근접 공격, 힘으로 제압',
+  '사격': '중열 사격, 섬광탄과 엄호',
+  '은신': '숨어서 접근. 하수인 공격을 등급당 15% 확률로 피함',
+  '응급처치': '작전 중 동료 체력 회복, 관제의 바이탈 안정',
+  '장비 운용': '장치 설치와 보안문, 격리실 유지 보수와 긴급 점검',
+  '기록 해독': '기록 해독과 위조. 관찰·연구 성공 시 연구 자료 +등급',
+  '통신': '관제 지원 주사위. 관리 판정 실패 시 탈출 확률 등급당 −15%',
+  '관찰': '개체 위치 파악과 길 찾기, 관찰·연구 작업',
+  '인내': '버티기와 시간 끌기. 정신력 피해를 등급당 15% 줄임',
+  '운반': '전력 이탈과 동료 회수, 무거운 문과 밸브'
+};
 const ROLES = [['현장팀', '탐사와 전투를 담당합니다'], ['관제팀', '바이탈 확인과 지시를 담당합니다']];
-const STEPS = ['신원', '외관', '스탯', '과거', '변질', '기능', '발급'];
+const SKILL_MAX = 5, XP_NEED = [10, 25, 45, 70, 100];
+const STAT_SUM = 60, STAT_MIN0 = 3, STAT_MAX0 = 15, STAT_CAP = 20;
+const STEPS = ['신원', '외관', '과거', '스탯', '변질', '기능', '발급'];
 const START_RES = { supply: 100, research: 0, pass: 1 };
 
 const d = n => 1 + Math.floor(Math.random() * n);
 const newNum = () => 'R8-' + String(10 + d(989)).padStart(3, '0');
-const statMods = (stats, trait) => {
-  const tr = trait ? TRAITS[trait] : null;
-  return stats.map((v, k) => {
-    if (!tr) return v;
-    const m = tr[2].match(/^(\S+) \+(\d)$/);
-    return m && m[1] === SN[k] ? v + Number(m[2]) : v;
-  });
-};
-const derived = (stats, trait) => {
-  const s = statMods(stats, trait), tr = trait ? TRAITS[trait] : null;
-  return { hp: s[0] + s[1] + 4 + (tr && tr[2] === 'HP +3' ? 3 : 0), san: s[5] + 3, mv: 2 + Math.ceil(s[2] / 3) };
-};
+// 변질 특성: 숫자 하나(재생 절차 중) 또는 [{id, lv}] 목록(발급 뒤)
+const traitList = t => Array.isArray(t) ? t : t ? [{ id: t, lv: 1 }] : [];
+const traitsOfA = a => traitList(a.traits && a.traits.length ? a.traits : a.trait);
+const LV = ['', '', ' Ⅱ', ' Ⅲ'];
+const traitName = t => TRAITS[t.id][0] + (LV[t.lv] || '');
+const bonus = (t, k) => traitList(t).reduce((sum, x) => { const m = TRAITS[x.id] && TRAITS[x.id][2].match(/^(\S+) \+(\d+)$/); return sum + (m && m[1] === k ? +m[2] : 0); }, 0);
+const statMods = (stats, t) => stats.map((v, k) => v + bonus(t, SN[k]));
+// 능력치 1~20, 평균 10일 때 HP 100, 정신력 100 (서버와 같은 계산: 예전 척도로 환산)
+const derived = (stats, t) => { const s = statMods(stats, t), o = s.map(v => (v - 2) / 2); return { lim: Math.max(30, Math.round((o[1] + o[5] + 4) * 100 / 12 / 5) * 5), hp: Math.round((o[0] + o[1] + 4) * 100 / 12 / 5) * 5 + bonus(t, 'HP'), san: Math.round((o[5] + 3) * 100 / 7 / 5) * 5 + bonus(t, '정신력'), mv: 2 + Math.ceil(o[2] / 3) }; };
 
 /* ═════════════ 3. 아이콘·두상 ═════════════ */
 const IC = {
+  radio: 'M16.247 7.761a6 6 0 0 1 0 8.478M19.075 4.933a10 10 0 0 1 0 14.134M4.925 19.067a10 10 0 0 1 0-14.134M7.753 16.239a6 6 0 0 1 0-8.478M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0',
+  chevR: 'm9 18 6-6-6-6',
+  chevL: 'm15 18-6-6 6-6',
+  pause: 'M15 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1ZM6 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1Z',
+  swap: 'M8 3 4 7l4 4M4 7h16m16 21 4-4-4-4M20 17H4',
+  // 개체 아이콘 (Lucide)
+  'e-hand': 'M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15',
+  'e-droplets': 'M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05zM12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97',
+  'e-door-open': 'M10 21H2M10 3H7a2 2 0 00-2 2v16M14 12h.01M19 21V5a2 2 0 00-1.675-1.974l-6.163-1.013A1 1 0 0010 3v18a1 1 0 001.124.992zM22 21h-3',
+  'e-frame': 'M22 6L2 6M22 18L2 18M6 2L6 22M18 2L18 22',
+  'e-footprints': 'M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0ZM20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0ZM16 17h4M4 13h4',
+  'e-phone-call': 'M13 2a9 9 0 0 1 9 9M13 6a5 5 0 0 1 5 5M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384',
+  'e-lamp': 'M12 12v6M4.077 10.615A1 1 0 0 0 5 12h14a1 1 0 0 0 .923-1.385l-3.077-7.384A2 2 0 0 0 15 2H9a2 2 0 0 0-1.846 1.23ZM8 20a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z',
+  'e-scroll-text': 'M15 12h-5M15 8h-5M19 17V5a2 2 0 0 0-2-2H4M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3',
+  'e-waves-horizontal': 'M2 12q2.5 2 5 0t5 0 5 0 5 0M2 19q2.5 2 5 0t5 0 5 0 5 0M2 5q2.5 2 5 0t5 0 5 0 5 0',
+  'e-sparkle': 'M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z',
+  'e-bed': 'M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9',
   home: 'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   ops: 'M2.0 12.0a10.0 10.0 0 1 0 20.0 0a10.0 10.0 0 1 0 -20.0 0M22 12L18 12M6 12L2 12M12 6L12 2M12 22L12 18',
   base: 'M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8zM6 13h12M6 17h12',
@@ -610,6 +1012,7 @@ const IC = {
   moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
   out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
 };
+const eico = (e, s = 20) => IC['e-' + e.icon] ? ico('e-' + e.icon, s, 1.6) : '';
 const ico = (k, s = 20, w = 1.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 const icoFill = (k, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 const SIL = `<svg viewBox="0 0 112 136" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><circle cx="56" cy="54" r="25" fill="var(--sil)"/><path d="M10 140 C10 106 30 88 56 88 C82 88 102 106 102 140 Z" fill="var(--sil)"/></svg>`;
@@ -617,7 +1020,7 @@ const portrait = a => a && a.photo ? `<img src="${esc(a.photo)}" alt="">` : SIL;
 const LOGO = s => `<svg width="${s}" height="${Math.round(s * 46 / 42)}" viewBox="0 0 42 46" aria-hidden="true"><path d="M21 2 L39 12.5 L39 33.5 L21 44 L3 33.5 L3 12.5 Z" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M21 9 L33 16 L33 30 L21 37 L9 30 L9 16 Z" fill="var(--ink)"/><circle cx="21" cy="23" r="7" fill="none" stroke="var(--navyLine)" stroke-width="2.5"/><circle cx="21" cy="23" r="2" fill="var(--red)"/></svg>`;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const bars = (v, big) => `<span class="bars${big ? ' big' : ''}">${Array.from({ length: 10 }, (_, i) => `<i${i < v ? ' class="on"' : ''}></i>`).join('')}</span>`;
+const bars = (v, big) => `<span class="bars${big ? ' big' : ''}">${Array.from({ length: 10 }, (_, i) => `<i${i < Math.floor(v / 2) ? ' class="on"' : i < v / 2 ? ' class="half"' : ''}></i>`).join('')}</span>`;
 const hhmm = ms => { if (!ms) return '--:--'; const t = new Date(ms); return String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0'); };
 const ymd = ms => { if (!ms) return '----.--.--'; const t = new Date(ms); return t.getFullYear() + '.' + String(t.getMonth() + 1).padStart(2, '0') + '.' + String(t.getDate()).padStart(2, '0'); };
 const isOnline = a => a && (typeof a.online === 'boolean' ? a.online : a.lastSeen && Date.now() - a.lastSeen < 3 * 60 * 1000);
@@ -628,7 +1031,8 @@ function serverBackend() {
   let token = (() => { try { return localStorage.getItem(TK); } catch { return null; } })();
   let authCb = () => {}, me = null, socket = null;
   const agents = new Map(); let chat = [];
-  const subs = { agents: new Set(), chat: new Set() };
+  const subs = { agents: new Set(), chat: new Set(), ops: new Set(), sector: new Set() }, ops = new Map(); let sector = null;
+  const emitO = () => { const o = Object.fromEntries(ops); subs.ops.forEach(f => f(o)); };
   const emitA = () => { const l = [...agents.values()]; subs.agents.forEach(f => f(l)); };
   const emitC = () => subs.chat.forEach(f => f(chat));
   const saveToken = t => { token = t; try { t ? localStorage.setItem(TK, t) : localStorage.removeItem(TK); } catch {} };
@@ -658,6 +1062,9 @@ function serverBackend() {
     socket.on('agent', a => { agents.set(a.uid, a); emitA(); });
     socket.on('chat:history', l => { chat = l; emitC(); });
     socket.on('chat', m => { chat = chat.concat(m).slice(-300); emitC(); });
+    socket.on('ops', l => { ops.clear(); l.forEach(r => ops.set(r.op.id, r)); emitO(); });
+    socket.on('op', r => { ops.set(r.op.id, r); emitO(); });
+    socket.on('sector', x => { sector = { ...x, at: Date.now() }; subs.sector.forEach(f => f(sector)); });
     return socket;
   }
   const done = async j => { saveToken(j.token); const u = await loadMe(); authCb(u); };
@@ -669,6 +1076,7 @@ function serverBackend() {
     async signOut() { try { await api('/api/logout', {}); } catch {} saveToken(null); if (socket) { socket.disconnect(); socket = null; } connecting = null; agents.clear(); chat = []; me = null; authCb(null); },
     async getAgent() { if (!me) await loadMe(); return me && me.agent; },
     async getPrivate() { if (!me || !me.sealed) await loadMe(); return me && me.sealed; },
+    async getDraft() { const j = await api('/api/draft'); return j.draft; },
     async createAgent(uid, pub, priv, payload) { const j = await api('/api/agent', payload); me = { ...(me || {}), agent: j.agent, sealed: j.sealed }; return j.agent; },
     watchAgents(cb) { subs.agents.add(cb); connect().catch(() => {}); if (agents.size) cb([...agents.values()]); return () => subs.agents.delete(cb); },
     watchChat(cb) { subs.chat.add(cb); connect().catch(() => {}); if (chat.length) cb(chat); return () => subs.chat.delete(cb); },
@@ -677,6 +1085,20 @@ function serverBackend() {
       await new Promise((ok, no) => s.timeout(5000).emit('chat', { channel: m.channel, text: m.text }, (err, r) => err ? no({ code: 'network' }) : r && r.error ? no({ code: r.error }) : ok()));
     },
     async setPhoto(photo) { const j = await api('/api/agent/photo', { photo }); if (me) me.agent = j.agent; agents.set(j.agent.uid, j.agent); emitA(); },
+    watchOps(cb) { subs.ops.add(cb); connect().catch(() => {}); if (ops.size) cb(Object.fromEntries(ops)); return () => subs.ops.delete(cb); },
+    async opCall(ev, m) {
+      const s = await connect();
+      await new Promise((ok, no) => s.timeout(8000).emit(ev, m, (err, r) => err ? no({ code: 'network' }) : r && r.error ? no({ code: r.error }) : ok()));
+    },
+    getRecords: () => api('/api/records').then(j => j.runs),
+    watchSector(cb) { subs.sector.add(cb); connect().catch(() => {}); if (sector) cb(sector); return () => subs.sector.delete(cb); },
+    baseAct: (kind, entity) => api('/api/base', { kind, entity }),
+    unlockDoc: (entity, section) => api('/api/archive/unlock', { entity, section }),
+    statUp: k => api('/api/stat', { k }),
+    taskStart: (entity, kind, mins) => api('/api/task', { entity, kind, mins }),
+    taskCancel: () => api('/api/task/cancel', {}),
+    taskAck: () => api('/api/task/ack', {}),
+    getRecordLog: id => api('/api/records/' + id).then(j => j.log),
     touch() {}
   };
 }
@@ -686,9 +1108,9 @@ function demoBackend() {
   const subs = { auth: [], agents: [], chat: [] }, fire = (k, v) => subs[k].forEach(f => f(v));
   const now = Date.now();
   if (!get('agents')) put('agents', {
-    npc1: { uid: 'npc1', num: 'R8-047', name: '서이안', role: 1, head: 3, age: 34, stats: [3, 4, 5, 6, 5, 5], trait: 10, skills: { '통신': 1, '장비 운용': 1, '관찰': 1 }, contamination: 12, res: START_RES, createdAt: now - 864e5 * 9, lastSeen: now },
-    npc2: { uid: 'npc2', num: 'R8-112', name: '윤해원', role: 0, head: 1, age: 29, stats: [5, 5, 4, 3, 4, 3], trait: 6, skills: { '사격': 1, '격투': 1, '은신': 1 }, contamination: 31, res: START_RES, createdAt: now - 864e5 * 4, lastSeen: now },
-    npc3: { uid: 'npc3', num: 'R8-205', name: '박도윤', role: 0, head: 2, age: 41, stats: [4, 6, 3, 4, 3, 4], trait: 2, skills: { '응급처치': 1, '참기': 1, '운반': 1 }, contamination: 6, res: START_RES, createdAt: now - 864e5, lastSeen: now - 36e5 }
+    npc1: { uid: 'npc1', num: 'R8-047', name: '서이안', role: 1, head: 3, age: 34, stats: [8, 10, 12, 14, 12, 12], trait: 10, skills: { '통신': 1, '장비 운용': 1, '관찰': 1 }, contamination: 12, res: START_RES, createdAt: now - 864e5 * 9, lastSeen: now },
+    npc2: { uid: 'npc2', num: 'R8-112', name: '윤해원', role: 0, head: 1, age: 29, stats: [12, 12, 10, 8, 10, 8], trait: 6, skills: { '사격': 1, '격투': 1, '은신': 1 }, contamination: 31, res: START_RES, createdAt: now - 864e5 * 4, lastSeen: now },
+    npc3: { uid: 'npc3', num: 'R8-205', name: '박도윤', role: 0, head: 2, age: 41, stats: [10, 14, 8, 10, 8, 10], trait: 2, skills: { '응급처치': 1, '인내': 1, '운반': 1 }, contamination: 6, res: START_RES, createdAt: now - 864e5, lastSeen: now - 36e5 }
   });
   if (!get('chat')) put('chat', [
     { id: 'c1', uid: 'npc1', num: 'R8-047', name: '서이안', role: 1, channel: 'all', text: '데모 섹터입니다. 여기 남긴 말은 이 브라우저에만 저장돼요.', ts: now - 6e5 },
@@ -703,7 +1125,18 @@ function demoBackend() {
     async signOut() { localStorage.removeItem(K + 'user'); fire('auth', null); },
     async getAgent(uid) { return (get('agents') || {})[uid] || null; },
     async getPrivate(uid) { return (get('private') || {})[uid] || null; },
+    async getDraft() {
+      const u = get('user'), dr = get('drafts') || {};
+      if (dr[u.uid]) return dr[u.uid];
+      const taken = new Set([...agents().map(a => a.num), ...Object.values(dr).map(x => x.num)]);
+      let num; do { num = 'R8-' + String(10 + d(989)).padStart(3, '0'); } while (taken.has(num));
+      const pasts = [], traits = [], sp = new Set(), st = new Set();
+      while (pasts.length < 3) { const p = { dept: d(25) - 1, death: d(25) - 1, secret: d(25) - 1 }, k = p.dept + '-' + p.death + '-' + p.secret; if (!sp.has(k)) { sp.add(k); pasts.push(p); } }
+      while (traits.length < 3) { const id = d(25); if (!st.has(id)) { st.add(id); traits.push({ id }); } }
+      dr[u.uid] = { num, pasts, traits }; put('drafts', dr); return dr[u.uid];
+    },
     async createAgent(uid, pub, priv) {
+      const dr = get('drafts') || {}; delete dr[uid]; put('drafts', dr);
       const all = get('agents') || {};
       if (Object.values(all).some(a => a.num === pub.num)) throw { code: 'number-taken' };
       all[uid] = { ...pub, uid, createdAt: Date.now(), lastSeen: Date.now() }; put('agents', all);
@@ -714,6 +1147,17 @@ function demoBackend() {
     watchChat(cb) { subs.chat.push(cb); cb(get('chat') || []); return () => {}; },
     async sendChat(m) { const c = get('chat') || []; c.push({ ...m, id: 'c' + Date.now(), ts: Date.now() }); put('chat', c.slice(-120)); fire('chat', get('chat')); },
     async setPhoto(photo) { const u = get('user'), all = get('agents') || {}; if (u && all[u.uid]) { all[u.uid].photo = photo; put('agents', all); fire('agents', agents()); } },
+    watchOps(cb) { cb({}); return () => {}; },
+    async opCall() { throw { code: 'demo' }; },
+    async getRecords() { return []; },
+    watchSector(cb) { cb({ demo: true, at: Date.now(), decay: 3, cost: { maintain: { supply: 10 }, purge: { research: 2 }, hasten: { supply: 30 }, observe: { research: 3 }, sealed: { pass: 1 } }, entities: [
+      { id: 'AO-212', name: '계수자', icon: 'hand', threat: 'Ⅲ', cell: '격리동 B-3', op: 'R8-14', captured: true, stability: 64, sections: ['info'], doc: { info: { summary: '인간형 개체. 손가락을 하나씩 접으며 수를 센다. 데모 모드에서는 기본 정보만 볼 수 있다.' } } },
+      { id: 'AO-118', name: '습도', icon: 'droplets', threat: 'Ⅳ', cell: '격리동 D-1', op: null, captured: false, stability: 0, sections: ['info'], doc: { info: { summary: '형체가 없는 개체로 추정된다.' } } },
+      { id: 'AO-047', name: '젖은 손님', icon: 'door-open', threat: 'Ⅱ', cell: '격리동 A-2', op: null, captured: false, stability: 0, sections: ['info'], doc: { info: { summary: '비 오는 밤에만 섹터 정문 앞에 나타나는 인간형 개체.' } } }] }); return () => {}; },
+    async baseAct() { throw { code: 'demo' }; },
+    async unlockDoc() { throw { code: 'demo' }; },
+    async statUp() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; },
+    async getRecordLog() { return []; },
     async touch(uid) { const all = get('agents') || {}; if (all[uid]) { all[uid].lastSeen = Date.now(); put('agents', all); } }
   };
 }
@@ -721,12 +1165,16 @@ function demoBackend() {
 /* ═════════════ 5. 상태 ═════════════ */
 const S = {
   phase: 'boot', user: null, me: null, priv: null, agents: [], chat: [],
-  view: 'home', chan: 'all', photoErr: '', afilter: 'all', chatOpen: false, unread: 0, sel: null, reveal: false,
+  view: 'home', chan: 'all', photoErr: '', afilter: 'all', ops: {}, opErr: '', records: null, sector: null, fileSel: 'AO-212', baseErr: '', fileErr: '', baseBusy: false, recOpen: null, recLog: null, ctlTarget: null, chatOpen: false, unread: 0, sel: null, reveal: false,
   loginMode: 'in', err: '', busy: false,
   theme: (() => { try { return localStorage.getItem('r8theme') || 'dark'; } catch { return 'dark'; } })(),
   c: null
 };
-const freshCreate = () => ({ step: 0, num: newNum(), name: '', role: 0, head: 0, age: 31, mode: 'pt', stats: [4, 4, 4, 4, 4, 4], pmode: 'roll', dept: d(10) - 1, death: d(10) - 1, secret: d(10) - 1, realName: '', story: '', cross: '', trait: 0, d1: 0, d2: 0, landed: null, free: -1, photo: null, photoErr: '', err: '' });
+const freshCreate = draft => ({ step: 0, num: draft.num, draft, name: '', role: 0, age: 31, photo: null, photoErr: '', realName: '', cross: '',
+  pastPick: -1, dept: 9, death: 0, secret: 0, stats: [10, 10, 10, 10, 10, 10], traitPick: -1, trait: 0, d1: 0, d2: 0, free: -1, seen: {}, landed: null, err: '' });
+function pickPast(c, i) { const p = c.draft.pasts[i]; c.pastPick = i; c.dept = p.dept; c.death = p.death; c.secret = p.secret; c.free = fixFree(c); }
+const traitId = t => t.id || (t.d1 + t.d2);
+function pickTrait(c, i) { c.traitPick = i; c.trait = traitId(c.draft.traits[i]); }
 let B, unsub = [], touchT;
 const app = document.getElementById('app');
 const setTheme = t => { S.theme = t; document.documentElement.dataset.theme = t; try { localStorage.setItem('r8theme', t); } catch {} };
@@ -746,9 +1194,28 @@ const AUTH_MSG = {
   'agent/bad-name': '호출명을 입력하십시오.',
   'agent/bad-stats': '스탯 배분이 규칙에 맞지 않습니다.',
   'agent/bad-past': '과거 항목을 확인하십시오.',
+  'agent/bad-realname': '본명을 입력하십시오.',
+  'agent/no-draft': '재생 절차 정보가 없습니다. 새로고침한 뒤 다시 진행하십시오.',
   'agent/bad-skill': '기능 선택을 확인하십시오.',
   'agent/bad-field': '입력값을 확인하십시오.',
   'chat/too-fast': '전송 간격이 너무 짧습니다.',
+  'op/regen': '재생 수조에서 회복 중이라 참가할 수 없습니다.', 'op/started': '이미 시작된 작전입니다.', 'op/busy': '다른 작전에 참가 중입니다.', 'op/full': '해당 팀의 자리가 모두 찼습니다.',
+  'op/no-field': '현장팀이 1명 이상 있어야 합니다.', 'op/not-member': '작전 참가자만 할 수 있습니다.', 'op/not-live': '진행 중인 작전이 아닙니다.', 'op/dead': '생체 신호가 끊긴 상태입니다.',
+  'op/not-there': '아직 구역 끝 문에 닿지 않았습니다. 도면을 보고 전진하십시오.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.',
+  'op/no-target': '대상이 아닙니다.', 'op/no-skill': '응급처치 기능이 있어야 할 수 있습니다.',
+  'op/quarantine': '오염 한계를 넘어 격리 관찰 중입니다. 관찰이 끝난 뒤 참가할 수 있습니다.',
+  'op/raven1-used': '이번 작전에서는 이미 RAVEN-1을 불렀습니다.',
+  'op/sealed': 'RAVEN-3이 현장을 관리하고 있습니다. 봉쇄가 풀린 뒤 참가할 수 있습니다.', 'base/raven': 'RAVEN-3이 관리 중인 격리실입니다. 봉쇄가 풀린 뒤 점검할 수 있습니다.',
+  'op/pos': '대열 위치가 맞지 않는 행동입니다.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.', 'op/map-start': '이 구역의 시작 지점입니다. 더 물러날 수 없습니다.', 'op/no-foe': '그쪽에는 싸울 상대가 없습니다.',
+  'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제팀만 할 수 있습니다.', 'op/bad-choice': '할 수 없는 행동입니다.',
+  'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
+  'demo': '데모 모드에서는 이 기능을 쓸 수 없습니다.',
+  'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
+  'stat/no-points': '배분할 능력치 포인트가 없습니다.', 'stat/cap': '훈련으로 올릴 수 있는 상한입니다.',
+  'task/busy': '이미 진행 중인 작업이 있습니다. 끝나거나 중단한 뒤 시작하십시오.', 'task/in-op': '작전에 참가 중이라 작업을 시작할 수 없습니다.', 'task/bad': '작업 설정을 확인하십시오.',
+  'base/not-captured': '아직 확보하지 못한 개체입니다.', 'base/full': '격리 안정도가 이미 최대입니다.',
+  'base/clean': '정화할 오염이 없습니다.', 'base/not-regen': '재생 수조에 있는 상태가 아닙니다.', 'base/bad': '요청을 처리할 수 없습니다.',
+  'archive/open': '이미 열람된 항목입니다.', 'archive/bad': '열람할 수 없는 항목입니다.', 'agent/none': '요원 정보가 없습니다.',
   'photo/type': '이미지 파일만 등록할 수 있습니다.',
   'photo/big': '이미지가 너무 큽니다. 다른 사진을 고르십시오.',
   'agent/bad-photo': '사진 형식이 올바르지 않습니다.',
@@ -768,14 +1235,14 @@ function viewLogin() {
   return `<div class="login">
   <i class="bandbg" aria-hidden="true"></i><span class="giant" aria-hidden="true">R-8</span>
   <section class="hero">
-    <span class="logo">${LOGO(36)}<span style="display:flex;flex-direction:column;gap:4px"><span class="bb w">SECTOR <span>R-8</span></span><span class="sub" style="font-size:12px;letter-spacing:.1em">격리 대응 단말</span></span></span>
+    <span class="logo">${LOGO(36)}<span style="display:flex;flex-direction:column;gap:4px"><span class="bb w">SECTOR <span>R-8</span></span><span class="sub" style="font-size:12px;letter-spacing:.1em">제9 격리 전진기지 격리 대응 단말</span></span></span>
     <div style="display:flex;flex-direction:column;gap:18px">
       <span class="locked bb"><i></i>SECTOR LOCKED</span>
       <h1>당신은 이미<br>한 번 사망하였습니다.</h1>
-      <p class="lede">이 섹터에서 일하다 죽은 직원은 재생 수조에서 깨어나 넘버를 받습니다. 기억은 온전하지 않지만, 업무는 계속됩니다.</p>
+      <p class="lede">이 섹터에서 일하다 죽은 직원은 재생 수조에서 깨어나 넘버를 받고 RAVEN-5에 배속됩니다. 기억은 온전하지 않지만, 업무는 계속됩니다.</p>
     </div>
     <div class="tlog"><span class="bb sub" style="font-size:14px;letter-spacing:.16em">TERMINAL LOG</span>
-      ${[[0, '신규 요원 재생 절차 대기'], [7, '재생 수조 TANK-02 가동 중'], [19, '격리동 B 정기 점검 대기']].map(([m, t]) => `<div><b class="bb">${new Date(Date.now() - m * 6e4 - 37e3).toTimeString().slice(0, 8)}</b>${t}</div>`).join('')}
+      ${[[0, '신규 요원 재생 절차 대기'], [7, '재생 수조 TANK-02 가동 중'], [12, 'RAVEN-5 보충 인원 요청 1건'], [19, '격리동 B 정기 점검 대기']].map(([m, t]) => `<div><b class="bb">${new Date(Date.now() - m * 6e4 - 37e3).toTimeString().slice(0, 8)}</b>${t}</div>`).join('')}
     </div>
   </section>
   <section class="side" aria-label="${up ? '요원 등록' : '출입 인증'}">
@@ -797,14 +1264,25 @@ function viewLogin() {
 
 /* ═════════════ 7. 화면: 재생 절차 ═════════════ */
 const roleTitle = r => r === 1 ? '관제 요원' : '현장 요원';
-const statusOf = a => isOnline(a) ? '출동 가능' : '오프라인';
+const leftTime = ms => { const m = Math.max(1, Math.ceil(ms / 6e4)); return m >= 60 ? Math.floor(m / 60) + '시간 ' + (m % 60) + '분' : m + '분'; };
+// 오염도와 한계치
+const contLim = a => a.contLimit || derived(a.stats || [4, 4, 4, 4, 4, 4], traitsOfA(a)).lim;
+const contHot = a => (a.contamination || 0) >= contLim(a) * 0.7;
+const contTxt = a => `${a.contamination || 0} / ${contLim(a)}`;
+function stateOf(a) {
+  if (a.quarUntil && a.quarUntil > Date.now() && !(a.regenUntil && a.regenUntil > a.quarUntil)) return { k: 'regen', t: '격리 관찰 중, ' + leftTime(a.quarUntil - Date.now()) + ' 남음' };
+  if (a.regenUntil && a.regenUntil > Date.now()) return { k: 'regen', t: '재생 중, ' + leftTime(a.regenUntil - Date.now()) + ' 남음' };
+  const r = Object.values(S.ops || {}).find(x => x.status === 'live' && x.members.some(m => m.uid === a.uid));
+  if (r) return { k: 'op', t: '작전 중' };
+  return { k: 'ready', t: '출동 가능' };
+}
 const photoBox = (a, deco) => `${a && a.photo ? '' : `<i class="dots" aria-hidden="true"></i>`}${portrait(a)}${deco ? '<i class="cn a" aria-hidden="true"></i><i class="cn b" aria-hidden="true"></i>' : ''}`;
 const addYear = ms => ms ? ms + 365 * 864e5 : 0;
 function badgeHTML(a, { preview = false } = {}) {
-  const tr = a.trait ? TRAITS[a.trait] : null, mods = statMods(a.stats, a.trait);
+  const tl = traitsOfA(a), tr = tl[0] ? TRAITS[tl[0].id] : null, mods = statMods(a.stats, tl);
   const stats = SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('');
   if (preview) {
-    const sealed = [['실명', '███'], ['소속', '███ ███'], ['사망 경위', '███ ██'], ['실제 나이', '██']];
+    const sealed = [['본명', '███'], ['소속', '███ ███'], ['사망 경위', '███ ██'], ['실제 나이', '██']];
     return `<article class="badge pv" aria-label="출입증 미리보기">
   <div class="bt"><span class="bb">ACCESS PASS</span><small>${ROLES[a.role][0]}</small></div>
   <div class="id"><div class="ph">${photoBox(a, false)}</div>
@@ -816,19 +1294,19 @@ function badgeHTML(a, { preview = false } = {}) {
   }
   const cont = a.contamination || 0;
   return `<article class="badge pc-only" aria-label="요원 출입증">
-  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>섹터 R-8 출입증</small></span><span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span></div>
+  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>RAVEN-5, 섹터 R-8 출입증</small></span><span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span></div>
   <div class="id"><div class="ph">${photoBox(a, true)}</div>
     <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b><span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
-      <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${cont >= 50 ? 'var(--red)' : 'var(--ink)'}">${cont}%</dd><dt>상태</dt><dd class="ok">출동 가능</dd></dl></div></div>
+      <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</dd><dt>상태</dt><dd class="ok" style="${stateOf(a).k === 'regen' ? 'color:var(--red)' : ''}">${stateOf(a).t}</dd></dl></div></div>
   <div class="stats">${stats}</div>
-  <dl class="info"><dt>소속</dt><dd>${ROLES[a.role][0]}</dd><dt>변질</dt><dd>${tr ? esc(tr[0]) : '없음'}</dd><dt>기능</dt><dd>${esc(Object.keys(a.skills || {}).join(', ') || '없음')}</dd></dl>
+  <dl class="info"><dt>소속</dt><dd>${ROLES[a.role][0]}</dd><dt>변질</dt><dd>${tl.length ? esc(tl.map(traitName).join(', ')) + ` <span class="sub">(${tl.length}/5)</span>` : '없음'}</dd><dt>기능</dt><dd>${esc(Object.entries(a.skills || {}).sort((p, q) => q[1] - p[1]).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</dd><dt>출동 기록</dt><dd>출동 ${a.opsDone || 0}회${a.career ? `, 계급 ${a.career.rank}` : ''}</dd></dl>
   <span style="flex:1"></span>
   <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>만료 ${ymd(addYear(a.createdAt))}</span></div>
 </article>
 <article class="badge mb mb-only" aria-label="요원 출입증">
-  <div class="bt"><span class="bb">ACCESS PASS</span><small>섹터 R-8 출입증, ${ROLES[a.role][0]}</small></div>
+  <div class="bt"><span class="bb">ACCESS PASS</span><small>RAVEN-5 ${ROLES[a.role][0]}</small></div>
   <div class="id"><div class="ph">${photoBox(a, false)}</div>
-    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b><span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:var(--ink)">${cont}%</b></span>
+    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b><span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b>${stateOf(a).k === 'regen' ? `, <b style="color:var(--red)">${stateOf(a).t}</b>` : ''}</span>
       <div class="mstats">${SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('')}</div></div></div>
 </article>`;
 }
@@ -839,50 +1317,52 @@ function barcode(s) {
 }
 
 function viewCreate() {
-  const c = S.c, step = c.step, used = c.stats.reduce((a, b) => a + b, 0), left = 24 - used;
+  const c = S.c, step = c.step, used = c.stats.reduce((a, b) => a + b, 0), left = STAT_SUM - used;
   const dv = derived(c.stats, c.trait), deptSk = DEPT[c.dept][1], tr = c.trait ? TRAITS[c.trait] : null;
-  const realAge = realAgeOf(c);
-  const can = [!!c.name.trim(), true, c.mode === 'roll' || left === 0, c.pmode === 'roll' || !!c.story.trim(), !!c.trait, c.free >= 0, true];
-  const why = ['호출명을 입력하십시오.', '', '남은 점수를 모두 배분하십시오.', '과거 이야기를 작성하십시오.', '변질 특성을 굴리십시오.', '자유 기능 1개를 선택하십시오.', ''][step];
+  const can = [!!c.name.trim(), true, !!c.realName.trim() && c.pastPick >= 0, left === 0 && c.stats.every(v => v >= 1), c.traitPick >= 0, c.free >= 0, true];
+  const why = ['호출명을 입력하십시오.', '', !c.realName.trim() ? '본명을 입력하십시오.' : '과거 하나를 고르십시오.', left !== 0 ? '남은 점수를 모두 배분하십시오.' : '모든 능력치는 1 이상이어야 합니다.', '변질 특성 하나를 고르십시오.', '자유 기능 1개를 선택하십시오.', ''][step];
+  const L = c.landed ? ' landed' : '';
   let body = '';
   if (step === 0) body = `
-    <div class="lab"><span>넘버</span><span style="display:flex;align-items:center;gap:12px"><b class="bb bignum">${c.num}</b><button class="btn g s" data-act="reNum">${ico('refresh', 14, 2)}다시 부여</button></span><span class="sub">섹터가 부여하는 식별 번호입니다. 공식 기록에는 이 번호만 남습니다.</span></div>
-    <label class="lab"><span>호출명</span><input class="inp" data-in="name" value="${esc(c.name)}" maxlength="12" placeholder="동료들이 부를 이름"><span class="sub">실명은 기억나지 않습니다. 과거를 되찾으면 출입증에 함께 기재됩니다.</span></label>
+    <div class="lab"><span>넘버</span><b class="bb bignum">${c.num}</b><span class="sub">섹터가 부여한 식별 번호입니다. 다른 요원과 겹치지 않으며, 공식 기록에는 이 번호만 남습니다.</span></div>
+    <label class="lab"><span>호출명</span><input class="inp" data-in="name" value="${esc(c.name)}" maxlength="12" placeholder="동료들이 부를 이름"><span class="sub">동료와 단말이 부르는 이름입니다. 본명은 과거 단계에서 따로 적습니다.</span></label>
     <div class="lab"><span>주로 맡을 역할</span><span class="roles">${ROLES.map(([n, s], i) => `<button class="choice" data-act="role" data-v="${i}" aria-pressed="${c.role === i}"><b>${n}</b><span class="sub">${s}</span></button>`).join('')}</span><span class="sub">작전마다 변경할 수 있습니다.</span></div>`;
   if (step === 1) body = `
     <div class="lab"><span>외관 이미지</span><div class="photo"><div class="ph">${portrait(c)}</div>
       <div class="ctl"><span class="row">${photoButtons(!!c.photo)}</span>
-        <span class="sub">출입증 사진 비율(5:6)에 맞춰 가운데를 기준으로 잘립니다. 등록하지 않으면 회색 실루엣이 표시됩니다.</span>
+        <span class="sub">사진을 고르면 출입증 비율에 맞춰 직접 자를 수 있습니다. 등록하지 않으면 회색 실루엣이 표시됩니다.</span>
         <p class="err" role="alert" data-bind="photoErr">${esc(c.photoErr || '')}</p></div></div></div>
     <div class="lab"><span>외관 나이</span><span class="stepper"><button class="ib f" data-act="age" data-v="-1" aria-label="한 살 줄이기">${ico('minus', 18, 2)}</button><b class="bb">${c.age}</b><button class="ib f" data-act="age" data-v="1" aria-label="한 살 늘리기">${ico('plus', 18, 2)}</button><span class="sub">사망 시점의 나이입니다. 이후로 나이를 먹지 않습니다.</span></span></div>
     <div class="note">${ico('lock', 18)}<span>실제 나이는 과거 단계에서 정해지며 봉인됩니다. 캐릭터는 자신의 실제 나이를 알 수 없습니다.</span></div>`;
   if (step === 2) body = `
-    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="seg"><button data-act="mode" data-v="pt" aria-pressed="${c.mode === 'pt'}">점수 배분</button><button data-act="mode" data-v="roll" aria-pressed="${c.mode === 'roll'}">굴림</button></span>
-      ${c.mode === 'pt' ? `<span class="sub" style="margin-left:auto">남은 점수 <b class="bb" style="font-size:24px;color:${left === 0 ? 'var(--navyLine)' : 'var(--ink)'}">${left}</b> / 24</span>` : `<button class="btn s" data-act="rollStats" style="margin-left:auto">${ico('dice', 14, 2)}1d6+1 굴리기</button>`}</span>
-    <div style="display:flex;flex-direction:column;gap:8px">${SN.map((n, k) => `<span class="statrow"><b>${n}</b>${bars(c.stats[k], true)}<span class="ctl">${c.mode === 'pt' ? `<button class="ib" data-act="stat" data-k="${k}" data-v="-1" aria-label="${n} 내리기" ${c.stats[k] <= 2 ? 'disabled' : ''}>${ico('minus', 14, 2)}</button>` : ''}<b class="bb${c.landed ? ' landed' : ''}" data-roll="7">${c.stats[k]}</b>${c.mode === 'pt' ? `<button class="ib" data-act="stat" data-k="${k}" data-v="1" aria-label="${n} 올리기" ${c.stats[k] >= 7 || left <= 0 ? 'disabled' : ''}>${ico('plus', 14, 2)}</button>` : ''}</span></span>`).join('')}</div>
-    <span class="sub">점수 배분은 능력치마다 2~7 사이에서 합계 24를 맞춥니다. 굴림은 각 1d6+1이며 합계가 20 미만이면 다시 굴립니다.</span>
-    <span class="derived"><span class="pan"><span class="sub">HP</span><b class="bb">${dv.hp}</b></span><span class="pan"><span class="sub">정신력</span><b class="bb">${dv.san}</b></span><span class="pan"><span class="sub">이동</span><b class="bb">${dv.mv}칸</b></span></span>`;
-  if (step === 3) body = `
-    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="seg"><button data-act="pmode" data-v="roll" aria-pressed="${c.pmode === 'roll'}">무작위</button><button data-act="pmode" data-v="write" aria-pressed="${c.pmode === 'write'}">직접 작성</button></span>${c.pmode === 'roll' ? `<button class="btn s" data-act="rollPast" style="margin-left:auto">${ico('dice', 14, 2)}전부 굴리기</button>` : ''}</span>
-    ${c.pmode === 'roll' ? `<div style="display:flex;flex-direction:column;gap:8px">${[['소속 부서', DEPT[c.dept][0] + (deptSk.length ? ' (' + deptSk.join(', ') + ')' : ''), c.dept, 'dept'], ['사망 경위', DEATH[c.death], c.death, 'death'], ['비밀', SECRET[c.secret], c.secret, 'secret']].map(([n, v, r, k]) => `<div class="pcard"><span class="r bb${c.landed === k || c.landed === 'all' ? ' landed' : ''}" data-roll="10" data-k="${k}">${r + 1}</span><span class="v"><span class="sub">${n}</span><b>${esc(v)}</b></span><button class="ib f" data-act="rollOne" data-v="${k}" aria-label="${n} 다시 굴리기">${ico('refresh', 16)}</button></div>`).join('')}</div>`
-    : `<label class="lab"><span>소속 부서</span><select class="inp" data-in="dept">${DEPT.map(([n, sk], i) => `<option value="${i}" ${c.dept === i ? 'selected' : ''}>${n}${sk.length ? ' (' + sk.join(', ') + ')' : ''}</option>`).join('')}</select></label>
-       <label class="lab"><span>실명</span><input class="inp" data-in="realName" value="${esc(c.realName)}" maxlength="20" placeholder="예: 김도하"></label>
-       <label class="lab"><span>과거 이야기</span><textarea class="inp" data-in="story" maxlength="1500" placeholder="사망 경위, 숨긴 일 등을 자유롭게 작성하십시오">${esc(c.story)}</textarea></label>`}
+    <label class="lab"><span>본명</span><input class="inp" data-in="realName" value="${esc(c.realName)}" maxlength="20" placeholder="예: 김도하"><span class="sub">살아 있을 때의 이름입니다. 플레이어만 알고, 캐릭터는 기억하지 못합니다.</span></label>
+    <div class="lab"><span>과거</span><span class="sub" style="margin-top:-2px">재생 기록에서 무작위로 추출한 과거 세 건입니다. 하나를 고르십시오. 다시 굴릴 수 없습니다.</span>
+      <div class="pasts">${c.draft.pasts.map((p, i) => { const sk = DEPT[p.dept][1]; return `<button class="pick" data-act="pickPast" data-v="${i}" aria-pressed="${c.pastPick === i}">
+        <span class="ph2"><span class="bb">CASE ${i + 1}</span>${c.pastPick === i ? `<span class="tag">선택됨</span>` : ''}</span>
+        <span class="row"><span class="r bb${L}" data-roll="25">${p.dept + 1}</span><span class="v"><small>소속 부서</small><b>${esc(DEPT[p.dept][0])}</b>${sk.length ? `<small>${sk.join(', ')}</small>` : ''}</span></span>
+        <span class="row"><span class="r bb${L}" data-roll="25">${p.death + 1}</span><span class="v"><small>사망 경위</small><b>${esc(DEATH[p.death])}</b></span></span>
+        <span class="row"><span class="r bb${L}" data-roll="25">${p.secret + 1}</span><span class="v"><small>비밀</small><b>${esc(SECRET[p.secret])}</b></span></span>
+        <span class="age">실제 나이 <b class="bb">${realAgeOf(c, p)}</b>세</span></button>`; }).join('')}</div></div>
     <label class="lab"><span>교차 과거 (선택)</span><input class="inp" data-in="cross" value="${esc(c.cross)}" maxlength="8" placeholder="과거를 함께 엮을 요원의 넘버, 예: R8-047"></label>
-    <div class="note">${ico('lock', 18)}<span>이 내용은 전부 봉인됩니다. 플레이어는 알지만 캐릭터는 기억하지 못합니다. 실제 나이는 <b>${realAge}세</b>로 기록됩니다.</span></div>`;
-  if (step === 4) {
-    const a = c.trait ? (c.d1 || Math.min(6, Math.max(1, Math.ceil(c.trait / 2)))) : '?', b = c.trait ? (c.d2 || c.trait - a) : '?';
-    body = `
-    <p style="margin:0;font-size:15px;line-height:1.7">재생 수조에서 처음 깨어날 때 몸에 남은 흔적입니다. 2d6을 굴려 변질 특성 하나를 받습니다.</p>
-    <span class="dice"><span class="die bb${c.landed ? ' landed' : ''}" data-roll="6">${a}</span><span class="die bb${c.landed ? ' landed' : ''}" data-roll="6">${b}</span><button class="btn" data-act="rollTrait" style="margin-left:8px">${ico('dice', 16, 2)}${c.trait ? '다시 굴리기' : '2d6 굴리기'}</button></span>
-    ${tr ? `<div class="trait${c.landed ? ' reveal' : ''}"><span class="bb k">MUTATION ${c.trait}</span><b>${tr[0]}</b><span style="font-size:14px;opacity:.85">${tr[1]}</span><span class="chips"><span>장점: ${tr[2]}</span><span class="c">대가: ${tr[3]}</span></span></div>` : `<div class="pan" style="padding:20px;color:var(--sub);font-size:14px">아직 굴리지 않았습니다.</div>`}`;
-  }
+    <div class="note">${ico('lock', 18)}<span>이 내용은 전부 봉인됩니다. 플레이어는 알지만 캐릭터는 기억하지 못합니다.</span></div>`;
+  if (step === 3) body = `
+    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="sub">능력치 6개에 60점을 배분하십시오. 평균은 10이고, 각 능력치는 3~15입니다. 판정 주사위는 능력치 10에 4개이고, 2 오를 때마다 하나씩 늘어납니다.</span>
+      <span class="sub" style="margin-left:auto">남은 점수 <b class="bb" style="font-size:24px;color:${left === 0 ? 'var(--navyLine)' : 'var(--ink)'}">${left}</b> / ${STAT_SUM}</span></span>
+    <div style="display:flex;flex-direction:column;gap:8px">${SN.map((n, k) => `<span class="statrow"><b>${n}</b>${bars(c.stats[k], true)}<span class="ctl"><button class="ib" data-act="stat" data-k="${k}" data-v="-1" aria-label="${n} 내리기" ${c.stats[k] <= STAT_MIN0 ? 'disabled' : ''}>${ico('minus', 14, 2)}</button><b class="bb">${c.stats[k]}</b><button class="ib" data-act="stat" data-k="${k}" data-v="1" aria-label="${n} 올리기" ${c.stats[k] >= 7 || left <= 0 ? 'disabled' : ''}>${ico('plus', 14, 2)}</button></span></span>`).join('')}</div>
+    <span class="derived"><span class="pan"><span class="sub">HP</span><b class="bb">${dv.hp}</b></span><span class="pan"><span class="sub">정신력</span><b class="bb">${dv.san}</b></span><span class="pan"><span class="sub">오염 한계</span><b class="bb">${dv.lim}</b></span></span>`;
+  if (step === 4) body = `
+    <p style="margin:0;font-size:15px;line-height:1.7">재생 수조에서 깨어날 때 몸에 남은 흔적입니다. 변질 표 25가지 중 무작위로 나온 세 가지 가운데 하나를 고르십시오. 다시 굴릴 수 없습니다.</p>
+    <div class="traits">${c.draft.traits.map((t, i) => { const id = traitId(t), T = TRAITS[id], on = c.traitPick === i; return `<button class="pick tcard" data-act="pickTrait" data-v="${i}" aria-pressed="${on}">
+      <span class="ph2"><span class="bb">MUTATION</span>${on ? '<span class="tag">선택됨</span>' : ''}</span>
+      <span class="tno"><span class="r bb${L}" data-roll="25">${id}</span><span class="sub">/ 25</span></span>
+      <b>${T[0]}</b><span class="look">${T[1]}</span>
+      <span class="chips"><span>장점: ${T[2]}</span><span class="c">대가: ${T[3]}</span></span></button>`; }).join('')}</div>`;
   if (step === 5) body = `
     <span class="sub" style="font-size:14px">${deptSk.length ? '부서 기능 ' + deptSk.length + '개는 등급 1로 정해져 있습니다. ' : '소속 기록이 없어 부서 기능이 없습니다. '}자유 기능 1개를 더 선택하십시오. <b style="color:var(--ink)">남은 선택 ${c.free < 0 ? 1 : 0}</b></span>
-    <div class="skills">${SKILLS.map(([n, s], i) => { const isD = deptSk.includes(n), isF = c.free === i; return `<button class="${isD ? 'dept' : ''}" ${isD ? 'aria-disabled="true"' : `data-act="free" data-v="${i}"`} aria-pressed="${isD || isF}"><b>${n}</b><span class="sub" style="font-size:12px">${s}</span>${isD ? '<span class="tag">부서</span>' : isF ? '<span class="tag o">선택</span>' : ''}<b class="bb lv">LV ${isD || isF ? 1 : 0}</b></button>`; }).join('')}</div>`;
+    <div class="skills">${SKILLS.map(([n, s], i) => { const isD = deptSk.includes(n), isF = c.free === i; return `<button class="${isD ? 'dept' : ''}" ${isD ? 'aria-disabled="true"' : `data-act="free" data-v="${i}"`} aria-pressed="${isD || isF}"><span class="skt"><b>${n}<span class="sub" style="font-size:11px;font-weight:500">${s}</span></b><span class="sub" style="font-size:12px">${SKILL_USE[n] || ''}</span></span>${isD ? '<span class="tag">부서</span>' : isF ? '<span class="tag o">선택</span>' : ''}<b class="bb lv">LV ${isD || isF ? 1 : 0}</b></button>`; }).join('')}</div>`;
   if (step === 6) body = `
-    <p style="margin:0;font-size:15px;line-height:1.7">출입증을 발급하면 섹터 R-8에 귀속됩니다. 넘버와 호출명은 이후 변경할 수 없습니다.</p>
-    <div class="summary">${[['넘버', `<b class="bb" style="font-size:22px">${c.num}</b>`], ['호출명', `<b>${esc(c.name)}</b>`], ['역할', `<b>${ROLES[c.role][0]}</b>`], ['변질 특성', `<b>${tr ? tr[0] : '-'}</b>`], ['HP · 정신력 · 이동', `<b>${dv.hp} · ${dv.san} · ${dv.mv}칸</b>`], ['기능', `<b>${esc(skillList(c).join(', '))}</b>`]].map(([k, v]) => `<span class="pan"><span class="sub">${k}</span>${v}</span>`).join('')}</div>
+    <p style="margin:0;font-size:15px;line-height:1.7">출입증을 발급하면 섹터 R-8에 귀속되고 RAVEN-5에 배속됩니다. 넘버와 호출명은 이후 변경할 수 없습니다.</p>
+    <div class="summary">${[['넘버', `<b class="bb" style="font-size:22px">${c.num}</b>`], ['호출명', `<b>${esc(c.name)}</b>`], ['역할', `<b>${ROLES[c.role][0]}</b>`], ['변질 특성', `<b>${tr ? tr[0] : '-'}</b>`], ['HP · 정신력 · 오염 한계', `<b>${dv.hp} · ${dv.san} · ${dv.lim}</b>`], ['기능', `<b>${esc(skillList(c).join(', '))}</b>`]].map(([k, v]) => `<span class="pan"><span class="sub">${k}</span>${v}</span>`).join('')}</div>
     <p class="err" role="alert">${esc(c.err)}</p>
     <button class="btn lg" data-act="issue" ${S.busy ? 'disabled' : ''}>${ico('check', 18, 2.5)}출입증 발급</button>`;
 
@@ -906,8 +1386,8 @@ function viewCreate() {
   </main>
 </div>`;
 }
-const photoButtons = has => `<label class="btn s filebtn">${ico('plus', 14, 2)}${has ? '다른 사진으로 변경' : '사진 올리기'}<input type="file" accept="image/*" data-file="photo" aria-label="외관 사진 고르기"></label>${has ? `<button class="btn g s" data-act="clearPhoto">기본 실루엣으로</button>` : ''}`;
-const realAgeOf = c => c.age + 5 * (1 + (c.dept + (c.pmode === 'write' ? 0 : c.death + c.secret)) % 10);
+const photoButtons = has => `<label class="btn s filebtn">${ico(has ? 'refresh' : 'plus', 14, 2)}${has ? '사진 변경' : '사진 올리기'}<input type="file" accept="image/*" data-file="photo" aria-label="외관 사진 고르기"></label>${has ? `<button class="btn g s" data-act="clearPhoto">${ico('x', 14, 2)}사진 삭제</button>` : ''}`;
+const realAgeOf = (c, p = c) => c.age + 5 * (1 + (p.dept + p.death + p.secret) % 10);
 const skillList = c => { const l = DEPT[c.dept][1].slice(); if (c.free >= 0 && !l.includes(SKILLS[c.free][0])) l.push(SKILLS[c.free][0]); return l; };
 
 function viewIssued() {
@@ -916,7 +1396,7 @@ function viewIssued() {
   <span class="bb" style="font-size:16px;letter-spacing:.2em;color:var(--navyLine)">ISSUING ACCESS PASS</span>
   <span class="slot" aria-hidden="true"></span>
   <div class="feed"><div class="paper thud">${badgeHTML(a)}<span class="stamp" aria-hidden="true"><span class="bb">R-8</span><small>귀속 완료</small></span></div></div>
-  <div class="msg2" role="status"><b>${esc(a.num)} ${esc(a.name)}, 섹터 R-8에 귀속되었습니다.</b><span class="sub" style="font-size:14px">출입증이 발급되었습니다. 기억은 돌아오지 않았지만, 업무는 오늘부터 시작됩니다.</span>
+  <div class="msg2" role="status"><b>${esc(a.num)} ${esc(a.name)}, 섹터 R-8에 귀속되었습니다. RAVEN-5 배속.</b><span class="sub" style="font-size:14px">출입증이 발급되었습니다. 기억은 돌아오지 않았지만, 업무는 오늘부터 시작됩니다.</span>
     <button class="btn lg" data-act="enter">섹터로 입장${ico('arrowR', 18, 2)}</button></div>
 </section>`;
 }
@@ -925,13 +1405,13 @@ function viewIssued() {
 const MENU = [['home', '홈', 'home'], ['ops', '작전', 'ops'], ['base', '기지', 'base'], ['agents', '요원', 'agent'], ['files', '개체 문서', 'files'], ['log', '작전 기록', 'log']];
 function viewShell() {
   const me = S.me, r = me.res || START_RES;
-  return `<div class="shell">
+  return `<div class="shell${S.chatOpen ? ' chatopen' : ''}">
   <i class="bandbg" aria-hidden="true"></i><span class="giant" aria-hidden="true">R-8</span>
   <header class="top">
     <span class="logo">${LOGO(30)}<span class="bb w" style="font-size:26px">SECTOR<span>R-8</span></span></span>
     <span class="sep"></span>
     <nav class="nav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 22)}<span>${l}</span></button>`).join('')}</nav>
-    <span class="res"><span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply.toLocaleString()}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research.toLocaleString()}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span></span>
+    <span class="res" id="resBar">${resHTML(r)}</span>
     <span class="tools"><button class="ib" data-act="theme" aria-label="${S.theme === 'dark' ? '밝은 화면' : '어두운 화면'}으로 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span>
   </header>
   <div class="body3">
@@ -944,38 +1424,225 @@ function viewShell() {
   <button class="fab" data-act="chat" aria-label="통신 채널 열기">${ico('msg', 24)}${S.unread ? `<i>${S.unread > 9 ? '9+' : S.unread}</i>` : ''}</button>
 </div>`;
 }
+function resHTML(r) { return `<span title="보급품">${ico('box', 18, 2)}<em>보급품</em><b>${r.supply.toLocaleString()}</b></span><span title="연구 자료">${ico('flask', 18, 2)}<em>연구 자료</em><b>${r.research.toLocaleString()}</b></span><span title="기록 열람권">${ico('pass', 18, 2)}<em>기록 열람권</em><b>${r.pass}</b></span>`; }
+// 보고 있는 작전: 직접 고른 것 → 내가 참가한 것 → 진행 중인 것 → 기본(R8-14)
+function curOp() {
+  const L = Object.values(S.ops || {});
+  if (S.opSel && S.ops[S.opSel]) return S.ops[S.opSel];
+  return L.find(r => r.status !== 'done' && r.members.some(m => m.uid === S.user.uid)) || L.find(r => r.status === 'live') || S.ops['R8-14'] || L[0];
+}
 function notices() {
   const n = S.agents.length;
-  return [`섹터 R-8에 귀속된 요원 ${n}명.`, '작전 및 기지 관리 기능은 다음 개방 단계에서 가동됩니다.', '봉인된 기록은 섹터의 허가 없이 열람할 수 없습니다.'];
+  const r = curOp();
+  return [`섹터 R-8에 귀속된 요원 ${n}명.`, r ? `작전 ${r.op.id} 「${r.op.title.replace(/^.*「|」.*$/g, '')}」 ${({ lobby: '대기실이 열려 있습니다.', live: '진행 중입니다.', done: '종료되었습니다.' })[r.status]}` : '작전 정보를 수신하는 중입니다.', sectorNotice(), '봉인된 기록은 섹터의 허가 없이 열람할 수 없습니다.', recentBreach() || '제9 격리 전진기지 통제실과 연결되어 있습니다.'];
 }
 function viewLeft() { return S.view === 'agents' ? viewRoster() : badgeHTML(S.me); }
 
 function viewCenter() {
   if (S.view === 'home') return viewHome();
+  if (S.view === 'ops') return viewOps();
+  if (S.view === 'log') return viewRecords();
   if (S.view === 'agents') return viewAgentDetail();
+  if (S.view === 'base') return viewBase();
+  if (S.view === 'files') return viewArchive();
   const m = MENU.find(x => x[0] === S.view);
   return `<section class="pnl wip"><span class="bb">${({ ops: 'OPERATIONS', base: 'BASE', files: 'ARCHIVE', log: 'RECORDS' })[S.view]}</span><h2>${m[1]}</h2><p class="sub" style="font-size:14px;margin:0">이 구역은 아직 개방되지 않았습니다. 다음 단계에서 가동됩니다.</p></section>`;
 }
 
-function viewHome() {
-  const on = S.agents.filter(isOnline), field = on.filter(a => a.role === 0).length, ctrl = on.filter(a => a.role === 1).length;
-  const slots = (n, max) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  const log = S.agents.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  return `<div class="home">
-  <section class="op" aria-label="작전">
-    <span class="ghost" aria-hidden="true">OPERATION</span>
-    <span class="k">${ico('ops', 20, 2)}<span class="bb">OPERATION STANDBY</span><span class="pill"><i></i>작전 대기</span></span>
-    <h2>대기 중인 작전이 없습니다</h2>
-    <p>작전 배정은 다음 개방 단계에서 시작됩니다.</p>
-    <span class="bot"><span class="teams"><span>현장팀 접속 ${field}<span class="sl">${slots(Math.min(field, 4), 4)}</span></span><span>관제팀 접속 ${ctrl}<span class="sl">${slots(Math.min(ctrl, 2), 2)}</span></span></span>
-      <button class="go" disabled>${icoFill('play', 14)}대기실 입장</button></span>
-  </section>
-  <button class="pnl tile base" data-act="view" data-v="base">
+
+/* ─── 기지 ─── */
+const COST_NAME = { supply: '보급품', research: '연구 자료', pass: '기록 열람권' };
+const costTxt = c => Object.entries(c || {}).map(([k, n]) => COST_NAME[k] + ' ' + n).join(', ');
+const canPay = c => { const r = (S.me && S.me.res) || START_RES; return Object.entries(c || {}).every(([k, n]) => (r[k] || 0) >= n); };
+function stabOf(e) { if (!e.captured || !S.sector) return 0; return Math.max(0, e.stability - (e.decay != null ? e.decay : S.sector.decay || 0) * (Date.now() - S.sector.at) / 36e5); }
+/* 관리 작업 (뽀모도로) */
+const TASK_NAME = { maintain: '유지 보수', observe: '관찰·연구' };
+const mmss = ms => { ms = Math.max(0, ms); const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), x = t % 60; return (m >= 60 ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(x).padStart(2, '0'); };
+const myTask = () => S.me && S.me.task;
+const taskGain = (kind, mins) => { const L = S.sector && S.sector.tasks && S.sector.tasks[kind] && S.sector.tasks[kind].len[mins]; if (!L) return ''; return kind === 'maintain' ? `안정도 +${L.stab}%, 보급품 +${L.supply}` : `연구 자료 +${L.research}, 관찰 진척 +${L.obs}`; };
+const pct = p => Math.round(p * 100) + '%';
+function checkLine(e, kind) {
+  const c = S.sector.check && S.sector.check[kind]; if (!c) return '';
+  return `${c.stat} + ${c.skill} 판정, 난이도 ${e.diff}. 실패하면 안정도가 떨어지고 탈출 위험 ${pct(e.escBase)}${stabOf(e) < 45 ? ' 이상' : ''}.`;
+}
+function rollBox(r) {
+  if (!r) return '';
+  return `<span class="rbx"><span class="tier" style="color:${TIER_C[r.tier]}">${r.tierName}</span><small>${esc(r.stat)} ${r.statVal} + ${esc(r.skill)} ${r.skillLv}</small>${diceHTML(r, true)}</span>`;
+}
+const careerLine = c => !c || !c.ups ? '' : `<span class="escl"><b style="color:var(--navyLine)">계급 ${c.rank} 승급. 능력치 포인트 +${c.ups * 2}</b></span>`;
+const xpLine = x => !x || !x.n ? '' : `<span class="escl">${esc(x.skill)} 경험치 +${x.n}${x.ups && x.ups.length ? `. <b style="color:var(--navyLine)">${esc(x.skill)} ${x.lv}등급 달성</b>` : ''}</span>`;
+function escLine(x) {
+  if (!x) return '';
+  const cm = x.comms ? ` (통신 보고로 낮아짐)` : '';
+  return x.escaped ? `<span class="escl hot">탈출 판정 ${pct(x.p)}${cm}. 개체가 격리실을 벗어났습니다. RAVEN-3이 투입되었습니다.</span>` : `<span class="escl">탈출 판정 ${pct(x.p)}${cm}. 개체는 격리실 안에 머물렀습니다.</span>`;
+}
+function baseRollCard() {
+  const r = S.baseRoll; if (!r) return '';
+  const g = [r.stab ? `안정도 ${r.stab > 0 ? '+' : ''}${r.stab}%` : '', r.cont ? `오염도 +${r.cont}` : ''].filter(Boolean).join(', ');
+  return `<div class="task ${r.roll.tier === 'fail' ? 'bad' : 'done'}"><span class="tl"><span class="bb">긴급 점검</span><b>${esc(r.entity)} ${esc(r.entityName)}</b>${rollBox(r.roll)}<span class="sub">${g}</span>${escLine(r.escape)}${xpLine(r.xp)}${careerLine(r.career)}</span>
+    <span class="acts"><button class="btn s" data-act="baseRollOk">확인</button></span></div>`;
+}
+function taskPanel() {
+  const t = myTask(); if (!t) return '';
+  const e = S.sector.entities.find(x => x.id === t.entity) || { name: '', id: t.entity };
+  if (t.status === 'done') {
+    const r = t.result || {}, g = [r.stab ? `안정도 ${r.stab > 0 ? '+' : ''}${r.stab}%` : '', r.cont ? `오염도 +${r.cont}` : '', r.supply ? `보급품 +${r.supply}` : '', r.research ? `연구 자료 +${r.research}${r.decode ? ` (기록 해독 +${r.decode} 포함)` : ''}` : '', r.obs ? `관찰 진척 +${r.obs}` : ''].filter(Boolean).join(', ');
+    const bad = r.roll && r.roll.tier === 'fail';
+    return `<div class="task ${bad ? 'bad' : 'done'}"><span class="tl"><span class="bb">${bad ? '작업 실패' : '작업 완료'}</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins}분</b>
+      ${rollBox(r.roll)}${escLine(r.escape)}${xpLine(r.xp)}${careerLine(r.career)}
+      <span class="sub">${g || '얻은 것이 없습니다.'}${r.together ? `. 함께 작업한 요원 ${r.together}명, 성과 ×${r.mul}` : ''}${r.newLine ? '. 관찰 기록에 새 항목이 추가되었습니다.' : ''}</span></span>
+      <span class="acts"><button class="btn s" data-act="taskAck">확인</button></span></div>`;
+  }
+  const tot = t.ends - t.started, left = t.ends - Date.now(), pc = Math.min(100, Math.max(0, (1 - left / tot) * 100));
+  const mates = (e.workers || []).filter(w => w.uid !== S.user.uid);
+  return `<div class="task run"><span class="tl"><span class="bb">작업 중</span><b>${esc(e.id)} ${esc(e.name)}, ${TASK_NAME[t.kind]} ${t.mins}분</b>
+      <span class="clock" data-ends="${t.ends}">${mmss(left)}</span>
+      <span class="gb"><i data-ends="${t.ends}" data-tot="${tot}" style="width:${pc}%"></i></span>
+      <span class="sub">${mates.length ? `같은 격리실에서 ${mates.map(w => esc(w.name)).join(', ')} 요원이 작업 중입니다. 성과가 늘어나고 판정에 지원 주사위가 붙습니다.` : '창을 닫아도 작업은 계속됩니다. 끝나면 판정을 굴려 결과가 반영됩니다.'} 성공 시 성과: ${taskGain(t.kind, t.mins)}.</span>
+      <span class="sub">${checkLine(e, t.kind)}</span></span>
+    <span class="acts"><button class="btn s g${S.taskCancelAsk ? ' red' : ''}" data-act="taskCancel" ${S.baseBusy ? 'disabled' : ''}>${S.taskCancelAsk ? '중단 확인 (성과 없음)' : '작업 중단'}</button></span></div>`;
+}
+function taskPicker(e) {
+  const k = S.taskPick && S.taskPick.id === e.id && S.taskPick.kind; if (!k) return '';
+  return `<div class="tpick"><span class="sub">${TASK_NAME[k]} 시간을 고르십시오. 끝나면 ${checkLine(e, k)}</span>${[15, 25, 50].map(m => `<button class="btn s g" data-act="taskGo" data-v="${m}" data-t="${esc(e.id)}" ${S.baseBusy ? 'disabled' : ''}><b>${m}분</b><span class="cost">${taskGain(k, m)}</span></button>`).join('')}<button class="btn s g" data-act="taskPick" data-v="" data-t="">취소</button></div>`;
+}
+setInterval(() => {
+  document.querySelectorAll('.clock[data-ends]').forEach(el => { el.textContent = mmss(+el.dataset.ends - Date.now()); });
+  document.querySelectorAll('i[data-ends]').forEach(el => { el.style.width = Math.min(100, Math.max(0, (1 - (+el.dataset.ends - Date.now()) / +el.dataset.tot) * 100)) + '%'; });
+}, 1000);
+function sectorSum() {
+  const l = S.sector ? S.sector.entities.filter(e => e.captured) : [];
+  const avg = l.length ? l.reduce((n, e) => n + stabOf(e), 0) / l.length : 0;
+  const low = l.filter(e => stabOf(e) < 30);
+  return { n: l.length, avg, low };
+}
+function stabState(e) {
+  if (!e.captured) return e.op ? '미확보. 확보 작전이 편성되어 있습니다.' : '미확보. 확보 작전이 아직 편성되지 않았습니다.';
+  if (e.lockUntil > Date.now()) return `RAVEN-3 관리 중. 봉쇄 해제까지 ${leftTime(e.lockUntil - Date.now())}.`;
+  const v = stabOf(e);
+  if (v <= 0) return '격리 실패. RAVEN-3 투입을 기다리는 중입니다.';
+  if (v < 30) return '안정도가 낮습니다. 0%가 되면 RAVEN-3이 투입됩니다.';
+  if (v < 70) return '격리 상태가 유지되고 있습니다.';
+  return '격리 상태가 안정적입니다.';
+}
+function recentBreach() {
+  const ev = S.sector && (S.sector.events || []).find(x => (x.kind === 'breach' || x.kind === 'escape') && Date.now() - x.at < 864e5);
+  return ev ? `${ev.text} ${ev.voice || ''}` : '';
+}
+function sectorNotice() {
+  if (!S.sector) return '기지 상태를 수신하는 중입니다.';
+  const { n, avg, low } = sectorSum();
+  if (!n) return '수용 중인 개체가 없습니다. 작전에 성공하면 개체를 확보할 수 있습니다.';
+  if (low.length) return `${low.map(e => e.id).join(', ')} 격리 안정도가 30% 아래로 떨어졌습니다. 0%가 되면 RAVEN-3이 투입됩니다. 기지에서 점검하십시오.`;
+  return `수용 개체 ${n}종, 평균 격리 안정도 ${Math.round(avg)}%.`;
+}
+function baseTile() {
+  const { n, avg, low } = sectorSum();
+  const t = myTask(), te = t && S.sector && S.sector.entities.find(x => x.id === t.entity);
+  const sub = !S.sector ? '기지 상태를 불러오는 중입니다.' : t && t.status === 'run' ? `${esc(t.entity)} ${TASK_NAME[t.kind]} 중, <span class="clock" data-ends="${t.ends}">${mmss(t.ends - Date.now())}</span> 남음.` : t && t.status === 'done' ? `${esc(t.entity)} ${TASK_NAME[t.kind]} 작업이 끝났습니다. 결과를 확인하십시오.` : low.length ? `${low.map(e => e.id).join(', ')} 안정도 저하. 점검이 필요합니다.` : n ? '모든 격리실이 정상 가동 중입니다.' : '수용 중인 개체가 없습니다.';
+  return `<button class="pnl tile base${low.length ? ' al' : ''}" data-act="view" data-v="base">
     <span class="hh"><span class="bb">BASE</span><small>기지</small></span>
     <span class="sp"></span>
-    <span class="sub bsub" style="font-size:12px">기지 관리 구역은 아직 개방되지 않았습니다.</span>
-    <span class="kv">수용 개체<b>0</b><span class="pc-only">평균 안정도</span><b class="pc-only">-</b></span>
-  </button>
+    <span class="sub bsub" style="font-size:12px">${sub}</span>
+    <span class="kv">수용 개체<b>${n}</b><span class="pc-only">평균 안정도</span><b class="pc-only">${n ? Math.round(avg) + '%' : '-'}</b></span>
+  </button>`;
+}
+function viewBase() {
+  if (!S.sector) return `<section class="pnl wip"><span class="bb">BASE</span><h2>기지</h2><p class="sub" style="font-size:14px;margin:0">기지 상태를 불러오는 중입니다.</p></section>`;
+  const C = S.sector.cost, me = S.me, st = stateOf(me), cont = me.contamination || 0, regen = st.k === 'regen', dis = S.baseBusy ? 'disabled' : '';
+  const mt = myTask(), busyT = (mt && mt.status === 'run') || regen || (me.quarUntil && me.quarUntil > Date.now());
+  const cells = S.sector.entities.map(e => {
+    const v = stabOf(e), rv = e.lockUntil > Date.now(), al = e.captured && v < 30 && !rv;
+    return `<div class="cell${al ? ' al' : ''}${rv ? ' rv' : ''}${e.captured ? '' : ' un'}">
+      <span class="ch"><span class="ei">${eico(e, 22)}</span><span class="bb">${esc(e.id)}</span><b>${esc(e.name)}</b><small>위협 등급 ${e.threat}</small></span>
+      <span class="loc">${esc(e.cell)}${rv ? ' <span class="rvtag">RAVEN-3</span>' : ''}</span>
+      <span class="stab"><span class="gb"><i style="width:${v}%"></i></span><span class="bb">${e.captured ? Math.floor(v) + '%' : '--'}</span></span>
+      <span class="stt">${stabState(e)}</span>
+      ${(e.workers || []).length ? `<span class="wk">${e.workers.map(w => `<span>${esc(w.name)}, ${TASK_NAME[w.kind]}</span>`).join('')}</span>` : ''}
+      ${e.captured ? `<span class="cb"><button class="btn s g" data-act="taskPick" data-v="observe" data-t="${esc(e.id)}" ${dis} ${rv || busyT ? 'disabled' : ''}>관찰</button><button class="btn s g" data-act="taskPick" data-v="maintain" data-t="${esc(e.id)}" ${dis} ${rv || busyT ? 'disabled' : ''}>유지 보수</button><button class="btn s${al ? '' : ' g'}" data-act="baseAct" data-v="maintain" data-t="${esc(e.id)}" ${dis} ${v >= 99.5 || rv || !canPay(C.maintain) ? 'disabled' : ''}>${ico('refresh', 14, 2)}긴급 점검 <span class="cost">${costTxt(C.maintain)}</span></button></span>${taskPicker(e)}` : ''}
+    </div>`;
+  }).join('');
+  const tank = `<div class="tank">
+      <span class="vat${regen ? ' on' : ''}" aria-hidden="true"><i style="height:${regen ? 78 : 18}%"></i></span>
+      <span class="tx"><b>${regen ? '재생 수조에서 회복 중입니다' : '재생 수조 대기 중'}</b>
+        <span class="sub">${regen ? esc(st.t) + '. 단축하면 남은 시간이 1시간 줄어듭니다.' : '사망한 요원은 이곳에서 재생됩니다.'}</span>
+        <span class="sub">현재 오염도 <b style="color:${contHot(me) ? 'var(--red)' : 'var(--ink)'}">${contTxt(me)}</b>. 정화하면 오염도가 5 내려갑니다. 한계를 넘으면 RAVEN-3이 회수해 격리 관찰합니다.</span></span>
+      <span class="acts"><button class="btn s g" data-act="baseAct" data-v="purge" ${dis} ${!cont || !canPay(C.purge) ? 'disabled' : ''}>${ico('flask', 14, 2)}오염 정화 <span class="cost">${costTxt(C.purge)}</span></button>
+        <button class="btn s g" data-act="baseAct" data-v="hasten" ${dis} ${!regen || !canPay(C.hasten) ? 'disabled' : ''}>${ico('plus', 14, 2)}재생 단축 <span class="cost">${costTxt(C.hasten)}</span></button></span>
+    </div>`;
+  const evList = (S.sector.events || []).slice(0, 4).map(x => `<li><time>${ymd(x.at)} ${hhmm(x.at)}</time><span>${esc(x.text)}</span>${x.voice ? `<span class="vo">${esc(x.voice)}</span>` : ''}</li>`).join('');
+  const evBlock = `<div><p class="sh"><b>섹터 사건</b><small>안정도가 0%가 되거나 개체가 탈출하면 RAVEN-3이 투입됩니다. 섹터 전 요원 보급품 −${S.sector.raven ? S.sector.raven.cost : 20}, 해당 격리실 봉쇄.</small></p>${evList ? `<ul class="evs">${evList}</ul>` : '<ul class="evs empty"><li>기록된 격리 실패가 없습니다.</li></ul>'}</div>`;
+  const { n } = sectorSum();
+  return `<section class="pnl base2"><div class="hd"><span class="bb">BASE</span><small>기지</small><span class="n">수용 개체 ${n}종, 안정도는 위협 등급이 높을수록 빨리 떨어집니다</span></div>
+    <div class="bd">
+      ${S.baseRoll ? `<div><p class="sh"><b>점검 결과</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${baseRollCard()}</div>` : ''}
+      ${mt ? `<div><p class="sh"><b>내 작업</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${taskPanel()}</div>` : ''}
+      ${recentBreach() ? evBlock : ''}
+      <div><p class="sh"><b>격리 구역</b><small>관리는 모두 주사위 판정입니다. 실패하면 안정도가 떨어지고 개체가 탈출할 수 있습니다. 함께 하면 지원 주사위가 붙습니다.</small></p><div class="cells">${cells}</div></div>
+      ${recentBreach() ? '' : evBlock}
+      <div><p class="sh"><b>재생 수조</b><small>${esc(me.num)} ${esc(me.name)}</small></p>${tank}</div>
+      ${S.baseErr ? `<p class="err" role="alert" style="margin:0">${esc(S.baseErr)}</p>` : ''}
+    </div></section>`;
+}
+
+/* ─── 개체 문서 ─── */
+const SEC_NAME = { info: '기본 정보', procedure: '격리 절차', observe: '관찰 기록', incidents: '사고 기록', sealed: '봉인 항목' };
+function viewArchive() {
+  if (!S.sector) return `<section class="pnl wip"><span class="bb">ARCHIVE</span><h2>개체 문서</h2><p class="sub" style="font-size:14px;margin:0">문서를 불러오는 중입니다.</p></section>`;
+  const L = S.sector.entities, e = L.find(x => x.id === S.fileSel) || L[0], C = S.sector.cost, dis = S.baseBusy ? 'disabled' : '';
+  const by = o => o && o.by ? `<span class="by">${esc(o.by.name)} 열람, ${ymd(o.by.at)}</span>` : '';
+  const lock = (k, txt, buy) => `<div class="lk">${ico('lock', 18)}<span>${txt}</span>${buy ? `<button class="btn s" data-act="unlockDoc" data-v="${k}" data-t="${esc(e.id)}" ${dis} ${canPay(C[k]) ? '' : 'disabled'}>${ico('unlock', 14, 2)}열람 <span class="cost" style="color:inherit;opacity:.8">${costTxt(C[k])}</span></button>` : ''}</div>`;
+  const R = { success: '성공', fail: '실패', abort: '중단' };
+  const sec = k => {
+    const d = e.doc[k];
+    let body;
+    if (k === 'info') body = `<p>${esc(d.summary)}</p>`;
+    else if (k === 'procedure') body = d ? `<ol>${d.lines.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${by(d)}` : lock(k, '확보 작전에 성공하면 기록됩니다.');
+    else if (k === 'observe') {
+      const o = e.doc.obs || { pts: 0, per: 3, total: 0 }, full = d && d.lines.length >= o.total;
+      const prog = !e.op && o.total ? `<span class="by">관찰 진척 ${Math.min(o.pts, o.per * o.total)}/${o.per * o.total}${full ? ', 모든 기록 확보' : `, 다음 기록까지 ${o.per - (o.pts % o.per)}`}</span>` : '';
+      body = d ? `<ol>${d.lines.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${e.op ? by(d) : prog}` : e.op ? lock(k, '연구 자료를 써서 열람할 수 있습니다. 한 번 열람하면 섹터 전체에 공개됩니다.', true) : `${lock(k, '기지에서 관찰·연구 작업을 하면 기록이 하나씩 쌓입니다.')}${prog}`;
+    }
+    else if (k === 'incidents') {
+      const all = (d || []).map(x => ({ at: x.ended, t: `${esc(e.op)} 작전 ${R[x.result]}. 참가 ${x.members.map(m => esc(m.name) + (m.dead ? '†' : '')).join(', ')}.` }))
+        .concat((e.doc.breaches || []).map(x => ({ at: x.at, t: x.kind === 'escape' ? '개체 탈출. RAVEN-3 투입.' : '격리 실패. RAVEN-3 투입.' }))).sort((a, b) => b.at - a.at);
+      body = all.length ? `<ol class="inc">${all.map(x => `<li><time>${ymd(x.at)}</time><span>${x.t}</span></li>`).join('')}</ol>` : '<p class="sub">기록된 사고가 없다.</p>';
+    }
+    else if (k === 'sealed') body = d ? `<p>${esc(d.text)}</p>${by(d)}` : lock(k, '봉인된 기록입니다. 기록 열람권이 필요합니다. 한 번 열람하면 섹터 전체에 공개됩니다.', true);
+    return `<div class="dsec${k === 'sealed' && d ? ' sealed' : ''}"><h3>${d || k === 'info' || k === 'incidents' ? '' : ico('lock', 13, 2)}${SEC_NAME[k]}</h3>${body}</div>`;
+  };
+  return `<section class="pnl arch"><div class="hd"><span class="bb">ARCHIVE</span><small>개체 문서</small><span class="n">${L.length}건</span></div>
+    <div class="bd">
+      <nav class="elist" aria-label="개체 목록">${L.map(x => `<button class="eb" data-act="fileSel" data-v="${esc(x.id)}" ${x.id === e.id ? 'aria-current="true"' : ''}><span class="ei">${eico(x, 22)}</span><span class="et"><span class="bb">${esc(x.id)}</span><b>${esc(x.name)}</b><small>위협 등급 ${x.threat}, ${x.captured ? '수용 중' : '미확보'}</small></span></button>`).join('')}</nav>
+      <article class="doc"><div class="dh"><span class="dico">${eico(e, 56)}</span><span class="bb">${esc(e.id)}</span><h2>${esc(e.name)}</h2><span class="sub">위협 등급 ${e.threat}, ${esc(e.cell)}, ${e.captured ? '수용 중' : '미확보'}${e.op ? `, 확보 작전 ${esc(e.op)}` : ''}</span></div>
+        ${e.sections.map(sec).join('')}
+        ${e.sections.length === 1 ? '<p class="sub" style="margin:0;font-size:12px">확보 작전이 편성되면 세부 문서가 작성됩니다.</p>' : ''}
+        ${S.fileErr ? `<p class="err" role="alert" style="margin:0">${esc(S.fileErr)}</p>` : ''}
+      </article>
+    </div></section>`;
+}
+
+function viewHome() {
+  const on = S.agents.filter(isOnline), r = curOp();
+  const slots = (n, max) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+  const field = r ? r.members.filter(m => m.role === 'field').length : 0, ctrl = r ? r.members.filter(m => m.role === 'ctrl').length : 0;
+  const log = S.agents.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return `<div class="home">
+  ${r ? `<section class="op" aria-label="작전">
+    <span class="ghost" aria-hidden="true">OPERATION</span>
+    <span class="k">${ico('ops', 20, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${r.sealedUntil > Date.now() && r.status === 'lobby' ? '<span class="pill rv"><i></i>RAVEN-3 관리 중</span>' : `<span class="pill"><i style="opacity:${r.status === 'lobby' ? 1 : .5}"></i>${({ lobby: '대기실 열림', live: '작전 진행 중', done: '작전 종료' })[r.status]}</span>`}</span>
+    <h2>${esc(r.op.title)}</h2>
+    <p>${r.sealedUntil > Date.now() && r.status === 'lobby' ? `격리 실패로 RAVEN-3이 현장을 인수했습니다. 봉쇄 해제까지 ${leftTime(r.sealedUntil - Date.now())}.` : `위협 등급 ${r.op.threat}, 난이도 ${LEVEL[r.op.level || 2]}, 권장 ${recTxt(r.op)}, 예상 소요 ${r.op.mins}분`}</p>
+    <span class="bot"><span class="teams"><span>현장팀 ${field}/${r.op.field}<span class="sl">${slots(field, r.op.field)}</span></span><span>관제팀 ${ctrl}/${r.op.ctrl}<span class="sl">${slots(ctrl, r.op.ctrl)}</span></span></span>
+      <button class="go" data-act="view" data-v="ops">${icoFill('play', 14)}${r.status === 'live' ? '작전 보기' : '대기실 입장'}</button></span>
+  </section>` : `<section class="op" aria-label="작전">
+    <span class="ghost" aria-hidden="true">OPERATION</span>
+    <span class="k">${ico('ops', 20, 2)}<span class="bb">OPERATION STANDBY</span><span class="pill"><i></i>작전 대기</span></span>
+    <h2>${B && B.demo ? '데모 모드에서는 작전을 진행할 수 없습니다' : '작전 정보를 불러오는 중입니다'}</h2>
+    <p>작전은 게임 서버에 접속했을 때 열립니다.</p>
+    <span class="bot"><span></span><button class="go" disabled>${icoFill('play', 14)}대기실 입장</button></span>
+  </section>`}
+  ${baseTile()}
   <button class="pnl tile agt" data-act="view" data-v="agents">
     <span class="hh"><span class="bb">AGENTS</span><small>요원</small></span>
     <span class="sp"></span>
@@ -989,6 +1656,187 @@ function viewHome() {
 </div>`;
 }
 
+const TIER_C = { crit: 'var(--navyLine)', ok: 'var(--navyLine)', cost: '#C8A040', fail: 'var(--red)' };
+function diceHTML(L, show) {
+  if (!show) return `<span class="dsum">성공 ${L.succ} / 필요 ${L.diff}</span>`;
+  const one = (v, k) => `<i class="dc ${k}${(k === 'b' ? v >= 5 : v >= 5) ? ' hit' : ''}${k === 'b' && v === 1 ? ' bad' : ''}">${v}</i>`;
+  return `<span class="dice2">${L.dice.w.map(v => one(v, 'w')).join('')}${L.dice.b.map(v => one(v, 'b')).join('')}${L.dice.s.map(v => one(v, 's')).join('')}</span><span class="dsum">성공 ${L.succ} / 필요 ${L.diff}</span>`;
+}
+const fxHTML = fx => fx ? `<span class="fx">${[fx.hp ? 'HP ' + fx.hp : '', fx.san ? '정신력 ' + fx.san : '', fx.cont ? '오염도 +' + fx.cont + '%' : '', fx.count ? '셈 ' + (fx.count > 0 ? '+' : '') + fx.count : '', fx.sup ? '지원 주사위 +' + fx.sup : '', fx.push ? '개체를 밀어냄' : '', fx.foe ? '세어진 것에 피해 ' + fx.foe : ''].filter(Boolean).join(', ')}</span>` : '';
+const POSN = { front: '선두', mid: '중열', rear: '후미', solo: '단독' };
+// 장면 화면: 감시 카메라 프레임. 사진은 public/img/<작전>-<장면>.jpg (예: img/R8-14-1.jpg). 없으면 어두운 화면.
+const CAM_IMG = {};
+// 위치 묘사: 도면 대신 문장으로. 가까운 지형지물과 목적지까지 남은 거리.
+const jo2 = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return w + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? a : b); };
+function whereLine(r) {
+  const M = r.map; if (!M || !M.marks || !M.marks.length) return '';
+  const end = M.marks[M.marks.length - 1], left = Math.max(0, M.len - M.pos);
+  const near = M.marks.filter(k => k !== end && k.at !== 0 && Math.abs(k.at - M.pos) <= 6).sort((a, b) => Math.abs(a.at - M.pos) - Math.abs(b.at - M.pos))[0];
+  const ahead = M.marks.filter(k => k !== end && k.at > M.pos + 6).sort((a, b) => a.at - b.at)[0];
+  const parts = [];
+  if (near) parts.push(`곁에 ${jo2(near.label, '이', '가')} 있다.`);
+  else if (ahead) parts.push(`앞쪽 어둠 속에 ${jo2(ahead.label, '이', '가')} 보인다.`);
+  parts.push(left <= 6 ? `${jo2(end.label, '이', '가')} 바로 앞이다.` : `${end.label}까지 약 ${Math.round(left / 5) * 5}m 남았다.`);
+  return `<span class="see"><b>위치</b>${esc(parts.join(' '))}</span>`;
+}
+function cctvHTML(r) {
+  const sc = r.scene, src = `img/${r.op.id}-${sc.idx + 1}.jpg`, S2 = r.sight;
+  if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
+  const t = new Date(), hh = n => String(n).padStart(2, '0');
+  const cam = `CAM B3-${hh(sc.idx + 1)}${S2 && S2.from === 'rear' ? ' REAR' : ''}`;
+  return `<div class="cctv${CAM_IMG[src] ? '' : ' ph'}"${CAM_IMG[src] ? ` style="background-image:url('${src}')"` : ''} aria-label="감시 카메라 화면">
+    <i class="crn a"></i><i class="crn b"></i><i class="crn c"></i><i class="crn d"></i>
+    <span class="osd"><span class="rec"><i></i>REC ${cam}</span><span>${t.getFullYear()}.${hh(t.getMonth() + 1)}.${hh(t.getDate())} ${hh(t.getHours())}:${hh(t.getMinutes())}</span></span>
+    <span class="cap2"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p>${whereLine(r)}${S2 ? `<span class="see${S2.stage >= 2 ? ' near' : ''}"><b>시야</b>${esc(S2.text)}</span>` : ''}</span>
+  </div>`;
+}
+function radarHTML(r) {
+  const R = r.radar; if (!R) return '';
+  const C = 75, RAD = 66, ring = [10, 20, 30, 40, 50].map(d => `<circle cx="${C}" cy="${C}" r="${RAD * d / 50}" fill="none" stroke="var(--navyLine)" stroke-opacity="${d === 50 ? .7 : .25}" stroke-width="1"/>`).join('');
+  const team = `<path d="M${C} ${C - 6} L${C + 5} ${C + 5} L${C} ${C + 2} L${C - 5} ${C + 5}Z" fill="var(--ink)"/>`;
+  const axis = `<line x1="${C}" y1="${C - RAD}" x2="${C}" y2="${C + RAD}" stroke="var(--navyLine)" stroke-opacity=".2"/><line x1="${C - RAD}" y1="${C}" x2="${C + RAD}" y2="${C}" stroke="var(--navyLine)" stroke-opacity=".2"/>
+    <text x="${C}" y="12" text-anchor="middle" font-size="9" fill="var(--sub)">앞</text><text x="${C}" y="146" text-anchor="middle" font-size="9" fill="var(--sub)">뒤</text>`;
+  let blip = '', rd;
+  if (R.exact) {
+    if (R.detected) {
+      const y = C + (R.from === 'rear' ? 1 : -1) * RAD * Math.min(R.dist, 50) / 50, x = C + (r.scene ? (r.scene.idx % 2 ? 7 : -6) : 0) * Math.min(1, R.dist / 20);
+      const near = R.dist <= 10;
+      blip = `<circle class="blip" cx="${x}" cy="${y}" r="9" fill="${near ? 'var(--red)' : 'var(--navyLine)'}" fill-opacity=".25"/><circle cx="${x}" cy="${y}" r="4" fill="${near ? 'var(--red)' : 'var(--navyLine)'}"/>`;
+      rd = `<span class="rd${near ? ' near' : ''}">개체, 대열 ${R.from === 'rear' ? '뒤' : '앞'}<br><b>${R.dist}m</b><br><span class="sub">한 턴에 약 ${R.speed}m 접근</span></span>`;
+    } else rd = `<span class="rd"><b>--</b><br><span class="sub">레이더 범위(${R.range}m) 밖</span></span>`;
+  } else {
+    rd = R.detected ? `<span class="rd${R.near ? ' near' : ''}"><b>${R.near ? '근접 신호' : '신호 감지'}</b><br><span class="sub">대열 ${R.from === 'rear' ? '뒤쪽' : '앞쪽'}. 정확한 거리는 관제팀이 봅니다.</span></span>`
+      : `<span class="rd"><b>신호 없음</b><br><span class="sub">감지 범위 밖입니다.</span></span>`;
+  }
+  const glow = R.exact ? '' : `<i class="glow ${R.from}${R.near ? ' near' : ''}${R.detected ? ' on' : ''}"></i>`;
+  return `<div class="radar" aria-label="레이더"><span class="hh"><span class="bb">RADAR</span><small>${R.exact ? '관제 화면' : '현장 감지기'}</small></span>
+    <span class="scope"><i class="sw"></i>${glow}<svg viewBox="0 0 150 150" aria-hidden="true">${ring}${axis}${team}${blip}</svg></span>${rd}</div>`;
+}
+function formationHTML(r, me) {
+  const field = r.members.filter(m => m.role === 'field');
+  const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
+  const gone = field.filter(m => m.dead);
+  const R = r.radar, from = r.scene ? r.scene.from : 'front';
+  const show = R && R.exact && R.detected;
+  const ent = `<span class="ent${R && R.detected ? '' : ' hide'}" title="개체">${ico('alert', 16, 2)}<span>${show ? R.dist + 'm' : R && R.detected ? '?' : '없음'}</span></span>`;
+  const card = m => `<span class="fm${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}"><span class="ps">${m.broken ? '붕괴' : POSN[m.pos] || ''}</span><b>${esc(m.name)}</b><span class="mini"><i><span style="width:${m.hp / m.hpMax * 100}%"></span></i><i class="s"><span style="width:${m.san / m.sanMax * 100}%"></span></i></span><small class="nums" title="HP ${m.hp}/${m.hpMax}, 정신력 ${m.san}/${m.sanMax}">${m.hp} · ${m.san}</small></span>`;
+  // 왼쪽이 후미, 오른쪽이 선두. 개체는 오는 쪽 끝에 표시한다.
+  const foe = sd => (r.minions || []).filter(x => x.side === sd).map(x => `<span class="fm foe"><span class="ps">${sd === 'front' ? '앞' : '뒤'}</span><b>${esc(x.name)}</b><span class="mini"><i><span style="width:${x.hp / x.hpMax * 100}%"></span></i></span><small class="nums">${x.hp}/${x.hpMax}</small></span>`).join('');
+  const cards = foe('rear') + line.slice().reverse().map(card).join('') + foe('front');
+  const arrow = `<span class="ar">${ico('chevR', 14, 2)}</span>`;
+  return `<div class="form"><span class="hh"><span class="bb">FORMATION</span><small>대열, 오른쪽이 진행 방향</small></span>
+    <span class="line">${from === 'rear' ? ent : ''}${cards}${arrow}${from === 'front' ? ent : ''}</span>
+    ${gone.length ? `<span class="gone">이탈: ${gone.map(m => esc(m.name) + (m.recovered ? ' (회수됨)' : ' (미회수)')).join(', ')}</span>` : ''}</div>`;
+}
+function logHTML(r, viewer) {
+  const isCtl = viewer && viewer.role === 'ctrl';
+  return r.log.map(L => {
+    if (L.kind === 'roll') return `<li class="lg roll"><span class="who"><b>${esc(L.name)}</b>${L.pos ? ` <span class="pz">${L.pos}</span>` : ''} ${esc(L.label)} <small>${esc(L.stat)} ${L.statVal} + ${esc(L.skill)} ${L.skillLv}</small><span class="tier" style="color:${TIER_C[L.tier]}">${L.tierName}</span></span>${diceHTML(L, isCtl)}<span class="tx">${esc(L.text)}</span>${fxHTML(L.fx)}</li>`;
+    if (L.kind === 'scene') return `<li class="lg scene"><b>${esc(L.title)}</b><span>${esc(L.text)}</span></li>`;
+    if (L.kind === 'grow') return `<li class="lg grow"><span>${ico('plus', 13, 2)} ${esc(L.text)}</span></li>`;
+    if (L.kind === 'radio') return `<li class="lg radio"><span>${ico('radio', 13, 2)} ${esc(L.text)}</span></li>`;
+    return `<li class="lg ${L.kind}"><span>${esc(L.text)}</span>${fxHTML(L.fx)}</li>`;
+  }).join('');
+}
+function posFits(r, me, need) {
+  if (!need) return true;
+  if (me.pos === 'solo') return true;
+  if (need === 'mid' && !r.members.some(m => m.pos === 'mid')) return true;
+  return me.pos === need;
+}
+function choiceHTML(c, me, r) {
+  const there = !c.reach || (r.map && r.map.pos >= r.map.len - 6);
+  const ok = posFits(r, me, c.pos) && there;
+  const tags = [c.reach ? `<i class="d">${there ? '구역 끝 도착' : '구역 끝 문 앞에서'}</i>` : '',c.pos ? `<i class="p">${POSN[c.pos]}${r.members.some(m => m.pos === 'mid') || c.pos !== 'mid' ? '' : '(누구나)'}</i>` : '<i>누구나</i>', c.max ? `<i class="d">${c.max}m 이내</i>` : '', c.min ? `<i class="d">${c.min}m 이상</i>` : '', c.adv ? '' : '<i>장면 유지</i>'].join('');
+  return `<button class="choice2" data-act="opAct" data-v="${c.id}" ${ok ? '' : 'disabled'}><b>${esc(c.label)}</b><small>${esc(c.stat)} + ${esc(c.skill)} · ${c.diffName}(${c.diff})</small><span class="req">${tags}</span></button>`;
+}
+function attackHTML(a, me, r) {
+  const L = r.members.filter(m => m.role === 'field' && !m.dead).length, p = me.pos;
+  const melee = p === 'solo' || p === a.side, ranged = p === 'mid' || (L === 2 && p !== a.side);
+  const ok = melee || ranged;
+  const how = melee ? '근력 + 격투 · 근접' : ranged ? '민첩 + 사격 · 사격' : (a.side === 'front' ? '선두 근접, 중열 사격' : '후미 근접, 중열 사격');
+  return `<button class="choice2 atk" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i><i>장면 유지</i></span></button>`;
+}
+function movesHTML(r, me) {
+  const p = me.pos, bf = (r.minions || []).some(x => x.side === 'front'), br = (r.minions || []).some(x => x.side === 'rear');
+  const lead = (p === 'front' || p === 'solo') && !bf, tail = (p === 'rear' || p === 'solo') && !br;
+  return `<div class="moves">
+    <button class="btn s${lead ? '' : ' g'}" data-act="opMove" data-v="fwd" ${lead ? '' : 'disabled'}>전진 <small>${bf ? '앞이 막힘' : '선두'}</small></button>
+    <button class="btn s g" data-act="opMove" data-v="wait">대기 <small>누구나</small></button>
+    <button class="btn s${tail ? '' : ' g'}" data-act="opMove" data-v="back" ${tail ? '' : 'disabled'}>후퇴 <small>${br ? '뒤가 막힘' : '후미'}</small></button>
+    <button class="btn s g" data-act="opMove" data-v="swap" ${p === 'front' || p === 'solo' ? 'disabled' : ''}>자리 바꾸기 <small>앞으로</small></button>
+  </div><span class="sub" style="font-size:11px;line-height:1.5">행동 하나가 한 턴입니다. 턴마다 개체가 다가오고, 시간이 지나면 「${esc(r.op.countLabel || '')}」 수치가 줄어듭니다.</span>`;
+}
+// 난이도(1~4)와 권장 인원
+const LEVEL = ['', '쉬움', '보통', '어려움', '극한'];
+const levelHTML = op => `<span class="lvl l${op.level}" title="난이도 ${LEVEL[op.level]}">${'<i></i>'.repeat(op.level)}${'<i class="off"></i>'.repeat(4 - op.level)}<b>${LEVEL[op.level]}</b></span>`;
+const recTxt = op => { if (!op.rec) return ''; const f = op.rec.field, c = op.rec.ctrl, rg = a => a[0] === a[1] ? a[0] : a[0] + '~' + a[1]; return `현장 ${rg(f)}명, 관제 ${rg(c)}명`; };
+function recNote(r) {
+  if (!r.op.rec || r.status !== 'lobby') return '';
+  const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
+  const lack = [];
+  if (f < r.op.rec.field[0]) lack.push(`현장팀 ${r.op.rec.field[0] - f}명`);
+  if (c < r.op.rec.ctrl[0]) lack.push(`관제팀 ${r.op.rec.ctrl[0] - c}명`);
+  return lack.length ? `<div class="note" style="box-shadow:inset 0 0 0 1px #C8A040">${ico('alert', 18)}<span>권장 인원보다 ${lack.join(', ')}이 부족합니다. 이대로도 개시할 수 있지만 위험이 커집니다.</span></div>` : '';
+}
+function opTabs(r) {
+  const L = Object.values(S.ops || {}); if (L.length < 2) return '';
+  const ST = { lobby: '대기실', live: '진행 중', done: '종료' };
+  return `<div class="optabs" role="tablist">${L.map(x => `<button role="tab" data-act="opSel" data-v="${esc(x.op.id)}" aria-selected="${x.op.id === r.op.id}"><span class="bb">${esc(x.op.id)}</span><span class="t">${esc(x.op.patrol ? '하층 정기 순찰' : x.op.title)}</span><span class="meta">${levelHTML(x.op)}<span>권장 ${recTxt(x.op)}</span></span><small>${x.sealedUntil > Date.now() && x.status === 'lobby' ? 'RAVEN-3 관리 중' : ST[x.status]}${x.members.length ? `, ${x.members.length}명` : ''}</small></button>`).join('')}</div>`;
+}
+function viewOps() {
+  const r = curOp();
+  if (!r) return `<section class="pnl wip"><span class="bb">OPERATIONS</span><h2>작전</h2><p class="sub" style="font-size:14px;margin:0">${B && B.demo ? '데모 모드에서는 작전을 진행할 수 없습니다. 게임 서버에 접속하십시오.' : '작전 정보를 불러오는 중입니다.'}</p></section>`;
+  const me = r.members.find(m => m.uid === S.user.uid), st = stateOf(S.me);
+  const team = role => r.members.filter(m => m.role === role);
+  const err = S.opErr ? `<p class="err" role="alert" style="margin:0">${esc(S.opErr)}</p>` : '';
+  const head = opTabs(r) + `<div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span><span class="tg">위협 등급 ${r.op.threat}</span>${levelHTML(r.op)}${me && r.status === 'live' ? `<button class="btn g s" data-act="opAbort">${ico('x', 14, 2)}철수</button>` : ''}</span><h2>${esc(r.op.title)}</h2>${r.status === 'lobby' ? `<p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}<p class="rec">권장 인원: ${recTxt(r.op)} · 정원: 현장 ${r.op.field}명, 관제 ${r.op.ctrl}명 · 예상 소요 ${r.op.mins}분</p>` : ''}</div>`;
+  const member = m => `<span class="mem${m.dead ? ' dead' : ''}${m.uid === S.user.uid ? ' me' : ''}"><span class="nm"><b>${esc(m.name)}</b><small>${esc(m.num)}</small>${m.dead ? '<span class="tagx r">사망</span>' : m.broken ? '<span class="tagx y">붕괴</span>' : ''}</span>
+    ${r.status === 'lobby' ? '' : `<span class="gg"><small>HP</small><span class="gb"><i style="width:${m.hp / m.hpMax * 100}%"></i></span><b>${m.hp}/${m.hpMax}</b></span><span class="gg s"><small>정신력</small><span class="gb"><i style="width:${m.san / m.sanMax * 100}%"></i></span><b>${m.san}/${m.sanMax}</b></span>`}</span>`;
+  const teams = `<div class="teams2">${[['field', '현장팀', r.op.field], ['ctrl', '관제팀', r.op.ctrl]].map(([k, l, cap]) => `<div class="tm"><span class="th"><b>${l}</b><small>${team(k).length}/${cap}</small></span>${team(k).map(member).join('')}${r.status === 'lobby' ? Array.from({ length: cap - team(k).length }, () => '<span class="mem empty">빈 자리</span>').join('') : team(k).length ? '' : '<span class="mem empty">없음</span>'}</div>`).join('')}</div>`;
+  if (r.status === 'lobby') {
+    const sealed = r.sealedUntil > Date.now(), busy = st.k === 'regen' || sealed;
+    return `<section class="pnl ops">${head}
+      ${teams}
+      ${recNote(r)}
+      ${sealed ? `<div class="note" style="box-shadow:inset 0 0 0 1px #C8A040">${ico('alert', 18)}<span>격리 실패로 RAVEN-3이 현장을 인수했습니다. 봉쇄 해제까지 ${leftTime(r.sealedUntil - Date.now())} 남았습니다.</span></div>` : ''}
+      ${st.k === 'regen' ? `<div class="note">${ico('alert', 18)}<span>재생 수조에서 회복 중입니다. ${esc(st.t.replace('재생 중, ', ''))} 뒤에 참가할 수 있습니다.</span></div>` : ''}
+      <div class="acts">${me ? `<button class="btn g" data-act="opLeave">대기실 나가기</button><button class="btn" data-act="opStart" ${team('field').length && !sealed ? '' : 'disabled'}>${icoFill('play', 14)}작전 개시</button>`
+        : `<button class="btn" data-act="opJoin" data-v="field" ${busy ? 'disabled' : ''}>현장팀으로 참가</button><button class="btn g" data-act="opJoin" data-v="ctrl" ${busy ? 'disabled' : ''}>관제팀으로 참가</button>`}</div>
+      ${me && !team('field').length ? '<span class="sub">현장팀이 1명 이상 있어야 작전을 개시할 수 있습니다.</span>' : ''}${err}
+    </section>`;
+  }
+  const ctlTeam = `<div class="teams2 one"><div class="tm"><span class="th"><b>관제팀</b><small>${team('ctrl').length}/${r.op.ctrl}</small></span>${team('ctrl').map(member).join('') || '<span class="mem empty">없음</span>'}</div></div>`;
+  const sc = r.scene, cnt = Array.from({ length: r.op.count }, (_, i) => `<i class="${i < r.count ? 'on' : ''}"></i>`).join('');
+  const canAct = me && me.role === 'field' && !me.dead && !me.broken && r.status === 'live';
+  const ctl = me && me.role === 'ctrl' && r.status === 'live';
+  const stage = r.status === 'live' ? `<div class="stage">
+      <span class="prog"><span class="bb">SCENE ${sc.idx + 1} / ${r.op.scenes}</span><span class="cnt"><small>${esc(r.op.countLabel || '')}</small><span class="cbar">${cnt}</span><b>${r.count}</b></span></span>
+      <div class="camrow">${cctvHTML(r)}${radarHTML(r)}</div>
+      ${formationHTML(r, me)}
+      ${me && me.role === 'field' && !me.dead && !me.broken ? movesHTML(r, me) : ''}
+      ${me && me.role === 'field' ? (canAct ? `<div class="choices">${(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`).join('')}${me.sk && me.sk['응급처치'] ? (r.heal || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${x.uid === me.uid ? '자가 응급 처치' : esc(x.name) + ' 응급 처치'}</b><small>지능 + 응급처치 · 보통(2) · HP ${x.hp}/${x.hpMax}</small><span class="req"><i class="r4">치료</i><i>응급처치 보유</i><i>장면 유지</i></span></button>`).join('') : ''}${(r.attacks || []).map(a => attackHTML(a, me, r)).join('')}${sc.choices.map(c => choiceHTML(c, me, r)).join('')}</div>${r.support ? `<span class="sup">${ico('plus', 14, 2)}관제 지원 주사위 ${r.support}개가 다음 판정에 더해집니다.</span>` : ''}`
+        : `<div class="note">${ico('alert', 18)}<span>${me.dead ? '생체 신호가 끊겼습니다. 작전이 끝나면 재생 수조로 이송됩니다.' : '정신이 붕괴했습니다. 관제팀의 바이탈 안정을 기다리십시오.'}</span></div>`) : ''}
+      ${ctl ? `<div class="ctl"><span class="sub">관제 행동은 현장 판정 한 번마다 한 번씩 할 수 있습니다.${me.acted ? ' <b style="color:var(--ink)">다음 현장 판정을 기다리는 중입니다.</b>' : ''}</span>
+        <div class="choices"><button class="choice2 r1" data-act="opCtl" data-v="raven1" ${r.r1 ? 'disabled' : ''}><b>${r.r1 ? `RAVEN-1 지원 완료 (${esc(r.r1.by)} 요청)` : 'RAVEN-1 지원 요청'}</b><small>작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button><button class="choice2" data-act="opCtl" data-v="radio" ${me.radioed ? 'disabled' : ''}><b>현장에 거리 알리기</b><small>판정 없음 · 턴마다 한 번 · 관제 행동과 별개</small></button><button class="choice2" data-act="opCtl" data-v="support" ${me.acted ? 'disabled' : ''}><b>지원 주사위 보내기</b><small>지능 + 통신 · 쉬움(1) · 현재 ${r.support}개</small></button>
+        ${team('field').filter(m => !m.dead).map(m => `<button class="choice2" data-act="opCtl" data-v="stabilize" data-t="${m.uid}" ${me.acted || m.san >= m.sanMax ? 'disabled' : ''}><b>${esc(m.name)} 바이탈 안정</b><small>의지 + 응급처치 · 보통(2) · 정신력 ${m.san}/${m.sanMax}</small></button>`).join('')}</div></div>` : ''}
+      ${!me ? '<span class="sub">참가하지 않은 작전입니다. 진행 상황만 볼 수 있습니다.</span>' : ''}${err}
+    </div>` : `<div class="stage done"><span class="bb res ${r.result}">${({ success: 'MISSION COMPLETE', fail: 'MISSION FAILED', abort: 'MISSION ABORTED' })[r.result]}</span>
+      <b class="st">${({ success: '작전 성공', fail: '작전 실패', abort: '작전 중단' })[r.result]}</b>
+      <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
+      ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
+  return `<section class="pnl ops live">${head}
+    <div class="opgrid"><div class="opmain">${stage}<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol></div>
+      <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>
+  </section>`;
+}
+function viewRecords() {
+  if (!S.records) { B.getRecords().then(l => { S.records = l; renderCenter(); }).catch(() => { S.records = []; renderCenter(); }); return `<section class="pnl wip"><span class="bb">RECORDS</span><h2>작전 기록</h2><p class="sub" style="margin:0">기록을 불러오는 중입니다.</p></section>`; }
+  const RES = { success: ['성공', 'var(--navyLine)'], fail: ['실패', 'var(--red)'], abort: ['중단', 'var(--sub)'] };
+  return `<section class="pnl recs"><div class="hd"><span class="bb">RECORDS</span><small>작전 기록</small><span class="n">${S.records.length}건</span><button class="ib" data-act="recReload" aria-label="새로 불러오기">${ico('refresh', 16)}</button></div>
+    <ul class="rl">${S.records.map(x => `<li><button class="rr" data-act="recOpen" data-v="${x.id}" aria-expanded="${S.recOpen === x.id}"><span class="bb rop">${esc(x.op)}</span><span class="t"><b>${esc(x.title)}</b><small>${ymd(x.ended)} ${hhmm(x.ended)} · ${x.members.map(m => esc(m.name) + (m.dead ? '†' : '')).join(', ')}</small></span><span class="rs" style="color:${RES[x.result][1]}">${RES[x.result][0]}</span></button>
+      ${S.recOpen === x.id ? `<ol class="oplog small">${S.recLog ? logHTML({ log: S.recLog }, null) : '<li class="lg"><span>불러오는 중입니다.</span></li>'}</ol>` : ''}</li>`).join('') || '<li class="empty" style="padding:16px">아직 기록된 작전이 없다.</li>'}</ul></section>`;
+}
 function agentsSorted() {
   const f = S.afilter || 'all';
   return S.agents.slice().sort((a, b) => (isOnline(b) - isOnline(a)) || (a.num > b.num ? 1 : -1))
@@ -1003,30 +1851,44 @@ function viewRoster() {
   <div class="alist">${list.map(a => { const c = a.contamination || 0; return `<button class="arow" data-act="sel" data-v="${esc(a.uid)}" aria-pressed="${a.uid === sel}">
     <span class="ph">${portrait(a)}</span>
     <span class="t"><span class="top1"><b>${esc(a.name)}</b><small>${roleTitle(a.role)}${a.uid === S.user.uid ? ', 나' : ''}</small><span class="st${isOnline(a) ? '' : ' off'}">${isOnline(a) ? '접속 중' : '오프라인'}</span></span>
-      <span class="cb">오염도${bars(Math.round(c / 10))}<b style="color:${c >= 30 ? 'var(--red)' : 'var(--ink)'}">${c}%</b></span></span></button>`; }).join('') || '<span class="empty">해당하는 요원이 없습니다.</span>'}</div>
+      <span class="cb">오염도${bars(Math.round(c / contLim(a) * 10))}<b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b></span></span></button>`; }).join('') || '<span class="empty">해당하는 요원이 없습니다.</span>'}</div>
 </div>`;
+}
+// 기능 10개 전부: 등급, 경험치 막대, 쓰임새. 익히지 않은 기능은 흐리게.
+function skillRows(a) {
+  const sk = a.skills || {}, xp = a.skillXp || {};
+  const order = SKILLS.map(x => x[0]).sort((p, q) => (sk[q] || 0) - (sk[p] || 0) || (xp[q] || 0) - (xp[p] || 0));
+  return order.map(k => {
+    const lv = sk[k] || 0, max = lv >= SKILL_MAX, need = max ? 1 : XP_NEED[lv], cur = max ? 1 : (xp[k] || 0);
+    return `<span class="skr${lv ? '' : ' zero'}" title="${esc(SKILL_USE[k] || '')}"><b>${esc(k)}</b><span class="lvp">${Array.from({ length: SKILL_MAX }, (_, i) => `<i${i < lv ? ' class="on"' : ''}></i>`).join('')}</span><small>${max ? 'MAX' : `LV ${lv}`}</small>
+      <span class="xpb"><i style="width:${Math.round(cur / need * 100)}%"></i></span><small class="xpn">${max ? '' : `${cur}/${need}`}</small></span>`;
+  }).join('');
 }
 function viewAgentDetail() {
   const sel = S.agents.find(a => a.uid === (S.sel || S.user.uid)) || S.me;
   if (!sel) return '';
-  const mine = sel.uid === S.user.uid, tr = sel.trait ? TRAITS[sel.trait] : null, mods = statMods(sel.stats, sel.trait), dv = derived(sel.stats, sel.trait), c = sel.contamination || 0;
+  const tl = traitsOfA(sel), mine = sel.uid === S.user.uid, tr = tl[0] ? TRAITS[tl[0].id] : null, mods = statMods(sel.stats, tl), dv = derived(sel.stats, tl), c = sel.contamination || 0, st = stateOf(sel);
   const skills = Object.entries(sel.skills || {});
   return `<section class="pnl detail" aria-label="요원 상세">
-  <div class="hero"><div class="ph">${photoBox(sel, true)}</div>
-    <div class="t"><span class="chips"><span class="c1">${esc(sel.num)}</span><span class="c2${isOnline(sel) ? '' : ' off'}">${isOnline(sel) ? '접속 중' : '오프라인'}</span><span class="lv">${sel.role === 1 ? 'CONTROL' : 'FIELD'}</span></span>
-      <b class="nm">${esc(sel.name)}</b><span class="role">${roleTitle(sel.role)}, ${ROLES[sel.role][0]}${tr ? ', ' + esc(tr[0]) : ''}</span>
-      <span class="cont">오염도<span class="bars">${Array.from({ length: 20 }, (_, i) => `<i${i < Math.round(c / 5) ? ' class="on"' : ''}></i>`).join('')}</span><b>${c}%</b></span>
-      ${mine ? `<span class="acts">${photoButtons(!!sel.photo)}</span><p class="err" role="alert" style="margin:0">${esc(S.photoErr || '')}</p>` : ''}
+  <div class="hero">${mine ? `<div class="ph phbtn${S.photoMenu ? ' open' : ''}" role="button" tabindex="0" data-act="photoMenu" aria-label="외관 사진 바꾸기" aria-expanded="${S.photoMenu ? 'true' : 'false'}">${photoBox(sel, true)}
+      <input type="file" accept="image/*" data-file="photo" data-act="noop" id="phIn" hidden>
+      ${S.photoMenu ? `<span class="phmenu"><label class="mi filebtn" data-act="noop">${ico('refresh', 14, 2)}사진 변경<input type="file" accept="image/*" data-file="photo" aria-label="다른 사진 고르기"></label><button class="mi" data-act="clearPhoto">${ico('user', 14, 2)}기본 실루엣</button></span>` : `<span class="phhint">${ico(sel.photo ? 'refresh' : 'plus', 13, 2)}${sel.photo ? '사진 변경' : '사진 등록'}</span>`}</div>` : `<div class="ph">${photoBox(sel, true)}</div>`}
+    <div class="t"><span class="chips"><span class="c1">${esc(sel.num)}</span><span class="c2${isOnline(sel) ? '' : ' off'}">${isOnline(sel) ? '접속 중' : '오프라인'}</span>${st.k !== 'ready' ? `<span class="c2" style="background:${st.k === 'regen' ? 'var(--red)' : 'var(--navy)'}">${st.t}</span>` : ''}<span class="lv">${sel.role === 1 ? 'CONTROL' : 'FIELD'}</span></span>
+      <b class="nm">${esc(sel.name)}</b><span class="role">${roleTitle(sel.role)}, ${ROLES[sel.role][0]}, 출동 ${sel.opsDone || 0}회</span>
+      ${sel.career ? `<span class="rank"><b>계급 ${sel.career.rank}</b><span class="xpb"><i style="width:${Math.round(sel.career.cur / sel.career.need * 100)}%"></i></span><small>경력 ${sel.career.cur}/${sel.career.need}</small></span>` : ''}
+      <span class="cont">오염도<span class="bars">${Array.from({ length: 20 }, (_, i) => `<i${i < Math.round(c / contLim(sel) * 20) ? ' class="on"' : ''}></i>`).join('')}</span><b style="${contHot(sel) ? 'color:var(--red)' : ''}">${c}<small class="sub" style="font-size:.5em"> / ${contLim(sel)}</small></b></span>
+      ${mine && S.photoErr ? `<p class="err" role="alert" style="margin:0">${esc(S.photoErr)}</p>` : ''}
     </div></div>
   <div class="grid2">
     <div class="sec"><span class="sh"><span class="bb">STATUS</span><small>능력치</small></span>
-      ${SN.map((n, k) => `<span class="srow">${n}${bars(mods[k], true)}<b>${mods[k]}</b></span>`).join('')}
-      <span class="srow" style="margin-top:4px">HP<span></span><b>${dv.hp}</b></span><span class="srow">정신력<span></span><b>${dv.san}</b></span><span class="srow">이동<span></span><b>${dv.mv}</b></span>
+      ${mine && sel.statPts ? `<span class="ptsnote">능력치 포인트 <b>${sel.statPts}</b>. 올릴 능력치를 누르십시오. 훈련 상한은 ${STAT_CAP}입니다.</span>` : ''}
+      ${SN.map((n, k) => `<span class="srow${mine && sel.statPts ? ' up' : ''}">${n}${bars(mods[k], true)}<b>${mods[k]}</b>${mine && sel.statPts ? `<button class="ib" data-act="statUp" data-v="${k}" aria-label="${n} 올리기" ${sel.stats[k] >= STAT_CAP || S.statBusy ? 'disabled' : ''}>${ico('plus', 14, 2)}</button>` : ''}</span>`).join('')}
+      <span class="srow" style="margin-top:4px">HP<span></span><b>${dv.hp}</b></span><span class="srow">정신력<span></span><b>${dv.san}</b></span><span class="srow">오염 한계<span></span><b>${dv.lim}</b></span>
     </div>
     <div class="sec"><span class="sh"><span class="bb">SKILL</span><small>기능</small></span>
-      <span class="cards">${skills.map(([k, v]) => `<span>${esc(k)}<small>LV ${v}</small></span>`).join('')}${skills.length % 2 ? '<span class="em">빈 칸</span>' : ''}</span>
-      ${tr ? `<span class="sh" style="margin-top:8px"><span class="bb">MUTATION</span><small>변질 특성</small></span>
-      <span class="cards"><span>${tr[0]}<small>장점: ${tr[2]}</small></span><span>${tr[1]}<small style="color:var(--red)">대가: ${tr[3]}</small></span></span>` : ''}
+      <span class="sklist">${skillRows(sel)}</span>
+      ${tl.length ? `<span class="sh" style="margin-top:8px"><span class="bb">MUTATION</span><small>변질 특성 ${tl.length}/5</small></span>
+      <span class="cards">${tl.map(t => { const T = TRAITS[t.id]; return `<span>${esc(traitName(t))}<small style="color:var(--sub)">${esc(T[1])}</small><small>장점: ${esc(T[2])}</small><small style="color:var(--red)">대가: ${esc(T[3])}</small></span>`; }).join('')}</span>` : ''}
     </div>
   </div>
   <div class="lower">${mine ? sealBox() : `<div class="note">${ico('lock', 18)}<span>이 요원의 과거 기록은 봉인되어 있습니다.</span></div>`}</div>
@@ -1037,7 +1899,7 @@ function sealBox() {
   if (!p) return `<div class="note">${ico('lock', 18)}<span>봉인 기록을 불러오는 중입니다.</span></div>`;
   const rows = p.mode === 'write'
     ? [['소속 부서', DEPT[p.dept][0]], ['실명', p.realName || '(공란)'], ['과거', p.story], ['실제 나이', p.realAge + '세'], ['교차 과거', p.cross || '없음']]
-    : [['소속 부서', DEPT[p.dept][0]], ['사망 경위', DEATH[p.death]], ['비밀', SECRET[p.secret]], ['실제 나이', p.realAge + '세'], ['교차 과거', p.cross || '없음']];
+    : [['본명', p.realName || '(기록 없음)'], ['소속 부서', DEPT[p.dept][0]], ['사망 경위', DEATH[p.death]], ['비밀', SECRET[p.secret]], ['실제 나이', p.realAge + '세'], ['교차 과거', p.cross || '없음']];
   return `<div class="sealbox"><div class="hd">${ico(S.reveal ? 'unlock' : 'lock', 18)}<b style="font-size:14px">봉인 기록</b><span class="sub" style="font-size:12px">플레이어만 열람할 수 있다. 캐릭터는 이 내용을 기억하지 못한다.</span><button class="btn g s" data-act="reveal" style="margin-left:auto">${S.reveal ? '닫기' : '열람'}</button></div>
     ${S.reveal ? `<dl class="bd">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}</div>`;
 }
@@ -1068,11 +1930,12 @@ function play(cls) {
 // 같은 내용이면 다시 그리지 않는다(등장 애니메이션이 두 번 재생되는 것 방지)
 function setHTML(id, html) { const el = document.getElementById(id); if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }
 // 실시간 데이터로 인한 갱신은 등장 애니메이션이 끝난 뒤에 반영한다
+function refreshTicker() { const t = app.querySelector('.ticker .tr span'); const s = notices().join(' '.repeat(6)); if (t && t.textContent !== s) t.textContent = s; }
 function refreshLobby() {
   if (S.phase !== 'lobby') return;
   const wait = animUntil - Date.now();
   if (wait > 0) { if (!refreshT) refreshT = setTimeout(() => { refreshT = null; refreshLobby(); }, wait + 30); return; }
-  setHTML('center', viewCenter()); setHTML('colL', viewLeft());
+  setHTML('center', viewCenter()); setHTML('colL', viewLeft()); if (S.me) setHTML('resBar', resHTML(S.me.res || START_RES)); syncMode();
   const o = app.querySelector('[data-bind=online]'); if (o) o.textContent = S.agents.filter(isOnline).length;
 }
 function render() {
@@ -1081,9 +1944,20 @@ function render() {
   else if (S.phase === 'login') app.innerHTML = viewLogin();
   else if (S.phase === 'create') app.innerHTML = viewCreate();
   else if (S.phase === 'issued') { app.innerHTML = viewIssued(); setTimeout(() => app.querySelector('[data-act=enter]')?.focus({ preventScroll: true }), calm() ? 0 : 2700); }
-  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
+  else if (S.phase === 'lobby') { app.innerHTML = viewShell(); setTimeout(syncMode, 0); ['center', 'colL'].forEach(id => { const el = document.getElementById(id); if (el) el._h = id === 'center' ? viewCenter() : viewLeft(); }); scrollChat(); }
 }
-function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); }
+function renderCenter() { setHTML('center', viewCenter()); if (S.view === 'agents') setHTML('colL', viewLeft()); syncMode(); }
+// 작전 모드: 작전 화면에서 작전이 진행 중이면 왼쪽 출입증 칸을 접고 작전 화면을 넓힌다. 메뉴의 작전 버튼에는 LIVE 표시.
+function syncMode() {
+  const sh = app.querySelector('.shell'); if (!sh) return;
+  const r = curOp(), live = !!(r && r.status === 'live');
+  const mine = Object.values(S.ops || {}).some(x => x.status === 'live' && x.members.some(m => m.uid === S.user.uid));
+  sh.classList.toggle('opsmode', S.view === 'ops' && live);
+  app.querySelectorAll('[data-act=view][data-v=ops]').forEach(b => b.classList.toggle('live', mine));
+  // 작전 기록은 위에서 아래로 쌓인다: 새 기록이 보이도록 맨 아래로
+  const lg = app.querySelector('.ops.live .oplog');
+  if (lg && !lg._seen) { lg._seen = true; lg.scrollTop = lg.scrollHeight; }
+}
 function renderChatList() {
   const el = document.getElementById('chatList'); if (!el) return;
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
@@ -1102,7 +1976,10 @@ async function onUser(u) {
   if (!u) { S.phase = 'login'; return render(); }
   S.phase = 'boot'; render();
   try { S.me = await B.getAgent(u.uid); } catch (e) { S.phase = 'login'; S.err = errMsg(e); return render(); }
-  if (!S.me) { S.c = freshCreate(); S.phase = 'create'; return render(); }
+  if (!S.me) {
+    try { S.c = freshCreate(await B.getDraft()); } catch (e) { S.phase = 'login'; S.err = errMsg(e); return render(); }
+    S.phase = 'create'; return render();
+  }
   enterLobby();
 }
 function enterLobby() {
@@ -1117,6 +1994,8 @@ function enterLobby() {
     if (!shown) return show();
     refreshLobby();
   }));
+  unsub.push(B.watchOps(o => { S.ops = o; refreshLobby(); }));
+  unsub.push(B.watchSector(x => { S.sector = x; refreshLobby(); refreshTicker(); }));
   unsub.push(B.watchChat(list => {
     const prev = S.chat.length; S.chat = list;
     if (seen >= 0 && mobile() && !S.chatOpen) { S.unread += Math.max(0, list.filter(m => m.uid !== S.user.uid).length - seen); refreshFab(); }
@@ -1124,27 +2003,28 @@ function enterLobby() {
     renderChatList(); if (prev === 0) scrollChat();
   }));
   B.getPrivate(S.user.uid).then(p => { S.priv = p; if (S.view === 'agents') refreshLobby(); }).catch(() => {});
-  B.touch(S.user.uid); touchT = setInterval(() => B.touch(S.user.uid), 60000);
+  B.touch(S.user.uid); touchT = setInterval(() => { B.touch(S.user.uid); refreshLobby(); }, 30000);
 }
 
 async function issue() {
   const c = S.c; S.busy = true; c.err = ''; render();
-  const realAge = realAgeOf(c);
   const skills = {}; skillList(c).forEach(k => skills[k] = 1);
   const pub = { num: c.num, name: c.name.trim(), role: c.role, head: 0, photo: c.photo || null, age: c.age, stats: c.stats, trait: c.trait, skills, contamination: 0, res: START_RES };
-  const priv = c.pmode === 'write'
-    ? { mode: 'write', dept: c.dept, realName: c.realName.trim(), story: c.story.trim(), cross: c.cross.trim().toUpperCase(), realAge }
-    : { mode: 'roll', dept: c.dept, death: c.death, secret: c.secret, cross: c.cross.trim().toUpperCase(), realAge };
+  const priv = { mode: 'roll', realName: c.realName.trim(), dept: c.dept, death: c.death, secret: c.secret, cross: c.cross.trim().toUpperCase(), realAge: realAgeOf(c) };
+  const payload = { name: pub.name, realName: priv.realName, role: c.role, age: c.age, photo: c.photo || null, stats: c.stats, pastPick: c.pastPick, traitPick: c.traitPick, free: c.free, cross: c.cross };
   try {
-    const payload = { num: pub.num, name: pub.name, role: c.role, head: 0, photo: c.photo || null, age: c.age, stats: c.stats, mode: c.mode, trait: c.trait, free: c.free,
-      past: c.pmode === 'write' ? { mode: 'write', dept: c.dept, realName: c.realName, story: c.story, cross: c.cross } : { mode: 'roll', dept: c.dept, death: c.death, secret: c.secret, cross: c.cross } };
     await B.createAgent(S.user.uid, pub, priv, payload);
     S.me = await B.getAgent(S.user.uid); S.busy = false; S.phase = 'issued'; render(); window.scrollTo(0, 0);
   } catch (e) { S.busy = false; c.err = errMsg(e); render(); }
 }
 
 /* ═════════════ 11. 입력 처리 ═════════════ */
+if (window.visualViewport) {
+  const vv = window.visualViewport, setVV = () => { document.documentElement.style.setProperty('--vvh', vv.height + 'px'); const c = document.getElementById('colR'); if (c && matchMedia('(max-width:999px)').matches) c.style.top = vv.offsetTop + 'px'; };
+  vv.addEventListener('resize', setVV); vv.addEventListener('scroll', setVV); setVV();
+}
 app.addEventListener('click', e => {
+  if (S.photoMenu && !e.target.closest('.phbtn')) { S.photoMenu = false; renderCenter(); }
   const t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
   const a = t.dataset.act, v = t.dataset.v, c = S.c;
   const re = () => render();
@@ -1153,30 +2033,72 @@ app.addEventListener('click', e => {
     case 'signOut': return B.signOut();
     case 'theme': setTheme(S.theme === 'dark' ? 'light' : 'dark'); return re();
     // 재생 절차
-    case 'reNum': c.num = newNum(); c.err = ''; return re();
     case 'role': c.role = +v; return re();
+    case 'noop': return;
+    case 'photoMenu': {
+      if (!(S.me && S.me.photo)) { document.getElementById('phIn')?.click(); return; }
+      S.photoMenu = !S.photoMenu; return renderCenter();
+    }
     case 'clearPhoto':
       if (S.phase === 'create') { c.photo = null; c.photoErr = ''; return re(); }
+      S.photoMenu = false;
       return B.setPhoto(null).then(() => { S.photoErr = ''; }).catch(err => { S.photoErr = errMsg(err); renderCenter(); });
     case 'age': c.age = Math.max(18, Math.min(70, c.age + +v)); return re();
-    case 'mode': c.mode = v; if (v === 'pt') { c.stats = [4, 4, 4, 4, 4, 4]; return re(); } re(); return roll('[data-roll="7"]', () => rollStats(), true);
-    case 'rollStats': return roll('[data-roll="7"]', () => rollStats(), true);
-    case 'stat': { const k = +t.dataset.k, s = c.stats.slice(), left = 24 - s.reduce((x, y) => x + y, 0); s[k] += +v; if (s[k] < 2 || s[k] > 7 || (+v > 0 && left <= 0)) return; c.stats = s; return re(); }
-    case 'pmode': c.pmode = v; return re();
-    case 'rollPast': return roll('[data-roll="10"]', () => { c.dept = d(10) - 1; c.death = d(10) - 1; c.secret = d(10) - 1; c.free = fixFree(c); }, 'all');
-    case 'rollOne': return roll(`[data-roll="10"][data-k="${v}"]`, () => { c[v] = d(10) - 1; if (v === 'dept') c.free = fixFree(c); }, v);
-    case 'rollTrait': return roll('[data-roll="6"]', () => { c.d1 = d(6); c.d2 = d(6); c.trait = c.d1 + c.d2; }, true);
+    case 'stat': { const k = +t.dataset.k, s = c.stats.slice(), left = STAT_SUM - s.reduce((x, y) => x + y, 0); s[k] += +v; if (s[k] < STAT_MIN0 || s[k] > STAT_MAX0 || (+v > 0 && left <= 0)) return; c.stats = s; return re(); }
+    case 'pickPast': if (rollBusy) return; pickPast(c, +v); return re();
+    case 'pickTrait': if (rollBusy) return; pickTrait(c, +v); return re();
     case 'free': c.free = c.free === +v ? -1 : +v; return re();
-    case 'goStep': c.step = +v; window.scrollTo(0, 0); re(); return play('in-step');
+    case 'goStep': {
+      c.step = +v; window.scrollTo(0, 0); re(); play('in-step');
+      // 과거·변질 후보는 처음 볼 때 한 번만 굴리는 연출을 보여 준다
+      const k = c.step === 2 ? 'past' : c.step === 4 ? 'trait' : null;
+      if (k && !c.seen[k]) { c.seen[k] = true; setTimeout(() => roll('[data-roll="25"]', () => {}, true), 250); }
+      return;
+    }
     case 'issue': return issue();
     case 'enter': return enterLobby();
     // 로비
     case 'view': S.view = v; S.reveal = false; if (mobile()) S.chatOpen = false; render(); window.scrollTo(0, 0); return play('in-view');
     case 'sel': S.sel = v; S.reveal = false; renderCenter(); if (mobile()) document.getElementById('center')?.scrollIntoView({ behavior: 'smooth' }); return;
     case 'afilter': S.afilter = v; return renderCenter();
+    case 'opJoin': case 'opLeave': case 'opStart': case 'opAct': case 'opMove': case 'opCtl': case 'opAbort': case 'opClose': {
+      const r = curOp(); if (!r) return;
+      if (a === 'opAbort' && !confirmAbort(t)) return;
+      if (a === 'opCtl' && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
+      const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close' }[a];
+      const m = { op: r.op.id }; if (a === 'opJoin') m.role = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
+      S.opErr = ''; app.querySelectorAll('[data-act^="op"]').forEach(b => b.disabled = true);
+      B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); renderCenter(); });
+      return;
+    }
+    case 'recReload': S.records = null; return renderCenter();
+    case 'opSel': S.opSel = v; S.opErr = ''; return renderCenter();
+    case 'fileSel': S.fileSel = v; S.fileErr = ''; return renderCenter();
+    case 'statUp': S.statBusy = true; renderCenter(); B.statUp(+v).then(j => { if (j && j.agent) S.me = j.agent; }).catch(() => {}).finally(() => { S.statBusy = false; refreshLobby(); }); return;
+    case 'baseRollOk': S.baseRoll = null; return renderCenter();
+    case 'taskPick': S.taskPick = v ? { id: t.dataset.t, kind: v } : null; S.baseErr = ''; return renderCenter();
+    case 'taskGo': case 'taskCancel': case 'taskAck': {
+      if (a === 'taskCancel' && !S.taskCancelAsk) { S.taskCancelAsk = true; renderCenter(); setTimeout(() => { S.taskCancelAsk = false; renderCenter(); }, 4000); return; }
+      S.baseErr = ''; S.baseBusy = true; S.taskCancelAsk = false; renderCenter();
+      const pr = a === 'taskGo' ? B.taskStart(t.dataset.t, S.taskPick.kind, +v) : a === 'taskCancel' ? B.taskCancel() : B.taskAck();
+      pr.then(j => { if (j && j.agent) S.me = j.agent; S.taskPick = null; })
+        .catch(err => { S.baseErr = errMsg(err); })
+        .finally(() => { S.baseBusy = false; refreshLobby(); });
+      return;
+    }
+    case 'baseAct': case 'unlockDoc': {
+      const k = a === 'baseAct' ? 'baseErr' : 'fileErr';
+      S[k] = ''; S.baseBusy = true; renderCenter();
+      (a === 'baseAct' ? B.baseAct(v, t.dataset.t) : B.unlockDoc(t.dataset.t, v))
+        .then(j => { if (j && j.agent) { S.me = j.agent; } if (j && j.roll) S.baseRoll = j.roll; })
+        .catch(err => { S[k] = errMsg(err); })
+        .finally(() => { S.baseBusy = false; refreshLobby(); });
+      return;
+    }
+    case 'recOpen': { const id = +v; if (S.recOpen === id) { S.recOpen = null; return renderCenter(); } S.recOpen = id; S.recLog = null; renderCenter(); B.getRecordLog(id).then(l => { if (S.recOpen === id) { S.recLog = l; renderCenter(); } }); return; }
     case 'reveal': S.reveal = !S.reveal; return renderCenter();
     case 'chan': S.chan = v; { const col = document.getElementById('colR'); col.innerHTML = viewChat(); scrollChat(); } return;
-    case 'chat': S.chatOpen = !S.chatOpen; S.unread = 0; document.getElementById('colR').classList.toggle('open', S.chatOpen); refreshFab(); if (S.chatOpen) { scrollChat(); document.getElementById('chatIn')?.focus(); } return;
+    case 'chat': S.chatOpen = !S.chatOpen; S.unread = 0; app.querySelector('.shell')?.classList.toggle('chatopen', S.chatOpen); document.getElementById('colR').classList.toggle('open', S.chatOpen); refreshFab(); if (S.chatOpen) { scrollChat(); document.getElementById('chatIn')?.focus(); } return;
   }
 });
 // 주사위 굴림 연출: 숫자가 잠깐 돌다가 결과에 멈춘다
@@ -1188,42 +2110,81 @@ function roll(sel, commit, landed) {
   const finish = () => { commit(); c.landed = landed; render(); c.landed = null; rollBusy = false; };
   if (calm() || !els.length) return finish();
   rollBusy = true;
-  app.querySelectorAll('[data-act^="roll"],[data-act="mode"]').forEach(b => b.disabled = true);
+  app.querySelectorAll('[data-act^="pick"]').forEach(b => b.disabled = true);
   els.forEach(el => el.classList.add('rolling'));
-  const faces = el => { const n = +el.dataset.roll; return n === 7 ? 2 + d(6) - 1 : d(n); };
+  const faces = el => d(+el.dataset.roll);
   const t = setInterval(() => els.forEach(el => { el.textContent = faces(el); }), 55);
   setTimeout(() => { clearInterval(t); finish(); }, 620);
+}
+// 철수는 두 번 눌러야 실행된다 (실수 방지)
+function confirmAbort(btn) {
+  if (btn.dataset.armed) return true;
+  btn.dataset.armed = '1'; btn.innerHTML = ico('x', 14, 2) + '한 번 더 누르면 철수합니다';
+  setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.innerHTML = ico('x', 14, 2) + '철수'; } }, 3000);
+  return false;
 }
 function rollStats() { let s; do { s = SN.map(() => d(6) + 1); } while (s.reduce((a, b) => a + b, 0) < 20); S.c.stats = s; }
 function fixFree(c) { return c.free >= 0 && DEPT[c.dept][1].includes(SKILLS[c.free][0]) ? -1 : c.free; }
 
-// 사진: 출입증 비율(112:136)로 가운데를 잘라 224×272로 줄인다
-async function shrinkPhoto(file) {
-  if (!file || !/^image\//.test(file.type)) throw { code: 'photo/type' };
-  if (file.size > 20 * 1024 * 1024) throw { code: 'photo/big' };
+// 사진 자르기: 출입증 비율(112:136)의 틀 안에서 끌어서 위치를, 막대로 크기를 맞춘 뒤 224×272로 저장한다
+const CW = 280, CH = 340;
+function openCrop(file) {
+  if (!file || !/^image\//.test(file.type)) return Promise.reject({ code: 'photo/type' });
+  if (file.size > 20 * 1024 * 1024) return Promise.reject({ code: 'photo/big' });
   const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no({ code: 'photo/type' }); i.src = url; });
-    const W = 224, H = 272, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    const g = cv.getContext('2d'), r = Math.max(W / img.naturalWidth, H / img.naturalHeight);
-    const w = img.naturalWidth * r, h = img.naturalHeight * r;
-    g.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
-    for (const q of [0.86, 0.75, 0.6]) {
-      let out = cv.toDataURL('image/webp', q);
-      if (!out.startsWith('data:image/webp')) out = cv.toDataURL('image/jpeg', q);
-      if (out.length < 180000) return out;
-    }
-    throw { code: 'photo/big' };
-  } finally { URL.revokeObjectURL(url); }
+  return new Promise((done, fail) => {
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); fail({ code: 'photo/type' }); };
+    img.onload = () => {
+      const iw = img.naturalWidth, ih = img.naturalHeight, min = Math.max(CW / iw, CH / ih);
+      let sc = min, x = (CW - iw * sc) / 2, y = (CH - ih * sc) / 2;
+      const back = document.activeElement;
+      const ov = document.createElement('div'); ov.className = 'crop';
+      ov.innerHTML = `<div class="cropbox" role="dialog" aria-modal="true" aria-labelledby="cropT">
+        <span class="bb" style="font-size:16px;letter-spacing:.16em;color:var(--navyLine)">PHOTO</span><b id="cropT" style="font-size:20px">사진 자르기</b>
+        <span class="sub">사진을 끌어서 위치를 맞추고, 아래 막대로 크기를 조절하십시오.</span>
+        <div class="cv"><canvas width="${CW * 2}" height="${CH * 2}" style="width:${CW}px;height:${CH}px" aria-label="자를 영역, 화살표 키로 이동"  tabindex="0"></canvas><i class="cn a"></i><i class="cn b"></i></div>
+        <label class="zoom">${ico('minus', 14, 2)}<input type="range" min="0" max="100" value="0" aria-label="확대">${ico('plus', 14, 2)}</label>
+        <span class="row"><button class="btn g" data-c="cancel">취소</button><button class="btn" data-c="ok">${ico('check', 16, 2.5)}적용</button></span></div>`;
+      document.body.appendChild(ov);
+      const cv = ov.querySelector('canvas'), g = cv.getContext('2d'), rg = ov.querySelector('input');
+      const clamp = () => { x = Math.min(0, Math.max(CW - iw * sc, x)); y = Math.min(0, Math.max(CH - ih * sc, y)); };
+      const draw = () => { clamp(); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH); g.drawImage(img, x, y, iw * sc, ih * sc); };
+      const zoomTo = (ns, cx = CW / 2, cy = CH / 2) => { ns = Math.max(min, Math.min(min * 4, ns)); x = cx - (cx - x) * ns / sc; y = cy - (cy - y) * ns / sc; sc = ns; rg.value = Math.round((sc / min - 1) / 3 * 100); draw(); };
+      draw();
+      let drag = null;
+      cv.addEventListener('pointerdown', e => { drag = { px: e.clientX, py: e.clientY, x, y }; cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener('pointermove', e => { if (!drag) return; x = drag.x + e.clientX - drag.px; y = drag.y + e.clientY - drag.py; draw(); });
+      cv.addEventListener('pointerup', () => { drag = null; });
+      cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoomTo(sc * (e.deltaY < 0 ? 1.08 : 1 / 1.08), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+      cv.addEventListener('keydown', e => { const m = { ArrowLeft: [8, 0], ArrowRight: [-8, 0], ArrowUp: [0, 8], ArrowDown: [0, -8] }[e.key]; if (m) { e.preventDefault(); x += m[0]; y += m[1]; draw(); } });
+      rg.addEventListener('input', () => zoomTo(min * (1 + 3 * rg.value / 100)));
+      const close = () => { ov.remove(); URL.revokeObjectURL(url); document.removeEventListener('keydown', onKey); back && back.focus && back.focus(); };
+      const onKey = e => { if (e.key === 'Escape') { close(); fail({ code: 'photo/cancel' }); } };
+      document.addEventListener('keydown', onKey);
+      ov.addEventListener('click', e => {
+        const b = e.target.closest('[data-c]'); if (!b && e.target !== ov) return;
+        if (!b || b.dataset.c === 'cancel') { close(); return fail({ code: 'photo/cancel' }); }
+        const out = document.createElement('canvas'); out.width = 224; out.height = 272;
+        const k = 224 / CW; out.getContext('2d').drawImage(img, x * k, y * k, iw * sc * k, ih * sc * k);
+        let data = null;
+        for (const q of [0.86, 0.75, 0.6]) { let o = out.toDataURL('image/webp', q); if (!o.startsWith('data:image/webp')) o = out.toDataURL('image/jpeg', q); if (o.length < 180000) { data = o; break; } }
+        close(); data ? done(data) : fail({ code: 'photo/big' });
+      });
+      ov.querySelector('[data-c=ok]').focus();
+    };
+    img.src = url;
+  });
 }
 app.addEventListener('change', async e => {
   const inp = e.target; if (!inp.dataset || inp.dataset.file !== 'photo') return;
   const file = inp.files && inp.files[0]; inp.value = ''; if (!file) return;
   try {
-    const data = await shrinkPhoto(file);
+    const data = await openCrop(file);
     if (S.phase === 'create') { S.c.photo = data; S.c.photoErr = ''; render(); }
-    else { S.photoErr = ''; await B.setPhoto(data); }
+    else { S.photoErr = ''; S.photoMenu = false; await B.setPhoto(data); }
   } catch (err) {
+    if (err && err.code === 'photo/cancel') return;
     if (S.phase === 'create') { S.c.photoErr = errMsg(err); render(); } else { S.photoErr = errMsg(err); renderCenter(); }
   }
 });
@@ -1238,7 +2199,7 @@ app.addEventListener('input', e => {
     const n = app.querySelector('[data-need="0"]'), w = app.querySelector('[data-bind=why]');
     if (n) n.disabled = !c.name.trim(); if (w) w.textContent = c.name.trim() ? '' : '호출명을 입력하십시오.';
   }
-  if (k === 'story') { const n = app.querySelector('[data-need="3"]'), w = app.querySelector('[data-bind=why]'); if (n) n.disabled = !c.story.trim(); if (w) w.textContent = c.story.trim() ? '' : '과거 이야기를 작성하십시오.'; }
+  if (k === 'realName') { const ok = !!c.realName.trim() && c.pastPick >= 0, n = app.querySelector('[data-need="2"]'), w = app.querySelector('[data-bind=why]'); if (n) n.disabled = !ok; if (w) w.textContent = ok ? '' : !c.realName.trim() ? '본명을 입력하십시오.' : '과거 하나를 고르십시오.'; }
 });
 
 app.addEventListener('submit', async e => {
