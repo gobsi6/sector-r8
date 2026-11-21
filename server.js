@@ -979,13 +979,13 @@ function canField(r, uid) {
    하수인은 현장 인원으로 정한다 — hp: 하수인 체력 + · spawn: 장면·시간 경과 때 더 나오는 수 · cap: 시간 경과로 나올 때 상한
    R8_SCALE 환경 변수(JSON, {"time":{…},"foe":{…}})로 덮어쓸 수 있다. */
 const SCALE_ENV = (() => { try { return JSON.parse(process.env.R8_SCALE || '{}'); } catch { return {}; } })();
-const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.05, speed: 0.9 }, 3: { every: 1.05, speed: 0.95 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
+const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.1, speed: 0.9 }, 3: { every: 1.15, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
 const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 0, spawn: 0, cap: 2 }, 4: { hp: 1, spawn: 0, cap: 3 } }, SCALE_ENV.foe || {});
 const scaleOf = r => ({ ...SCALE_T[Math.min(4, Math.max(1, r.nt || 1))], ...SCALE_F[Math.min(4, Math.max(1, r.nf || 1))] });
 function spawnMinion(r, side, n) {
   const o = D(r);
   for (let i = 0; i < n && r.minions.length < MINION_CAP; i++) {
-    const hp = o.minion.hp + scaleOf(r).hp;
+    const hp = o.minion.hp + MINION_HP + scaleOf(r).hp;
     r.minions.push({ id: ++r.mseq, side, hp, hpMax: hp, intent: pickIntent(r) });
     say(r, o.minion.spawn[side], { kind: 'spawn' });
   }
@@ -1073,6 +1073,8 @@ function pickIntent(r) {
   const x = Math.random(), full = r.minions.length >= MINION_CAP;
   return x < 0.5 ? 'bite' : x < 0.7 ? 'scream' : x < 0.85 && !full ? 'call' : 'brace';
 }
+// 하수인 세기: 관제실 하달로 피할 수 있게 된 뒤로 정면으로 붙으면 더 아프게 했다
+const MINION_POW = Number(process.env.R8_MPOW ?? 1.5), MINION_HP = Number(process.env.R8_MHP ?? 1);
 function minionsAttack(r) {
   const o = D(r), L = lineOf(r); if (!L.length) return;
   const nm = o.minion.name;
@@ -1088,11 +1090,11 @@ function minionsAttack(r) {
     else if (act === 'call') { say(r, `${jo(nm, '이', '가')} 길게 울었다. 어둠 속에서 무언가 대답한다.`, { kind: 'contact' }); spawnMinion(r, sd, 1); }
     else if (Math.random() < STEALTH_DODGE * (lvOf(t, '은신') + (t.cls === 'detector' ? 2 : 0))) { say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었지만, 요원은 이미 그 자리에 없었다. (은신)`.replace('  ', ' '), { kind: 'contact', uid: t.uid }); }
     else if (act === 'scream') {
-      let d = grit(t, sanD(-1)); if (t.guard) d = Math.min(-1, Math.round(d / 2));
+      let d = grit(t, sanD(-MINION_POW)); if (t.guard) d = Math.min(-1, Math.round(d / 2));
       say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원의 귀에 대고 비명을 질렀다.${t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { san: d } });
       t.san = Math.max(0, t.san + d);
     } else {
-      let d = hpD(-1); if (t.guard) d = Math.min(-1, Math.round(d / 2));
+      let d = hpD(-MINION_POW); if (t.guard) d = Math.min(-1, Math.round(d / 2));
       say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었다.${t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { hp: d } });
       t.hp = Math.max(0, t.hp + d);
     }

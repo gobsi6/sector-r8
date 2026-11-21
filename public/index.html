@@ -1659,6 +1659,12 @@ body.modal-open{overflow:hidden}
 
 /* 단계 줄이 좁으면 셈 막대를 다음 줄로 */
 .opm-left .prog{flex-wrap:wrap;row-gap:6px}.opm-left .prog .steps{flex:1 1 420px;min-width:0}.opm-left .prog .cnt{margin-left:auto}
+/* 대기실 아랫줄: 경고가 길면 다음 줄로(글자가 세로로 쪼개지지 않게) */
+.lbar{flex-wrap:wrap}.lwarn{flex:1 1 260px;min-width:220px}
+/* 출발 장비 고르기: 좁으면 2×2, 글자는 한 줄 */
+.clsp{grid-template-columns:repeat(auto-fit,minmax(64px,1fr))}.clsp button{white-space:nowrap;min-width:0;padding:0 4px}
+.seat.me .si{white-space:normal}
+@media (max-width:640px){.sgrid{grid-template-columns:minmax(0,1fr)!important}}
 /* 포지션 꼬리표: 테두리 + 옅은 채움 */
 .clsb{display:inline-block;font-style:normal;font-size:10.5px;font-weight:800;padding:1px 6px;line-height:1.5;white-space:nowrap;--c:#8FC3D3;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);box-shadow:inset 0 0 0 1px var(--c)}
 .c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
@@ -2615,7 +2621,7 @@ function opRowHTML(r, act, sel) {
   const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
   return `<button class="oprow ${thC(r.op.threat)}${r.status === 'live' ? ' live' : ''}" data-act="${act}" data-v="${esc(r.op.id)}" ${sel != null ? `role="tab" aria-selected="${sel}"` : ''}>
     <span class="bb">${esc(r.op.id)}</span>${thChip(r.op.threat)}<b>${esc(r.op.patrol ? '하층 정기 순찰' : r.op.title)}</b>
-    <span class="st">${OP_ST(r)}${opMine(r) && r.status !== 'done' ? ', 참가 중' : ''}</span><span class="ppl">현장 ${f}/${r.op.field} · 관제 ${c}/${r.op.ctrl}</span>${act === 'opGo' ? `<span class="go2">${r.status === 'live' ? '보기' : '입장'}</span>` : ''}</button>`;
+    <span class="st">${OP_ST(r)}${opMine(r) && r.status !== 'done' ? ', 참가 중' : ''}</span><span class="ppl">현장팀 ${f}/${r.op.field}</span>${act === 'opGo' ? `<span class="go2">${r.status === 'live' ? '보기' : '입장'}</span>` : ''}</button>`;
 }
 function viewHome() {
   const on = S.agents.filter(isOnline), sorted = opsSorted(), r = sorted[0], rest = sorted.slice(1);
@@ -2900,7 +2906,7 @@ function foeTarget(r, sd) {
   const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
   return line.length ? (sd === 'front' ? line[0] : line[line.length - 1]) : null;
 }
-const INT_FX = { bite: 'HP 피해', scream: '정신력 피해', call: '하수인이 1마리 늘어남', brace: '받는 피해 절반', stun: '행동 없음', unknown: '어두워서 보이지 않음 · 관제가 구역 전원을 켜야 보인다' };
+const INT_FX = { bite: 'HP 피해', scream: '정신력 피해', call: '하수인이 1마리 늘어남', brace: '받는 피해 절반', stun: '행동 없음', unknown: '어두워서 보이지 않음 · 관제실에 구역 전원을 요청하면 보인다' };
 // 교전 중에는 감시 카메라·레이더 대신 한 줄 띠를 보여 준다
 function combatBarHTML(r) {
   const sc = r.scene, R = r.radar, open = S.sceneOpen && S.sceneOpen[r.id];
