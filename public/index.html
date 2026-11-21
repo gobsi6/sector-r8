@@ -1620,8 +1620,6 @@ body.modal-open{overflow:hidden}
 .opm-act .myturn .choices{grid-template-columns:1fr}
 .opm-act .myturn .tfoot{flex-direction:column;align-items:stretch}
 .opm-act .myturn .moves{display:grid;grid-template-columns:repeat(2,1fr)}.opm-act .myturn .opitems{margin-left:0}
-.myturn .moves.m3{grid-template-columns:repeat(3,minmax(0,1fr))}.myturn .moves.m3 .btn small{display:block;margin:0}
-.myturn .moves.m3 .btn{height:auto;min-height:36px;flex-direction:column;gap:1px;line-height:1.2;padding:4px 6px}
 .opm-act .ctl{display:flex;flex-direction:column;gap:10px}
 .opm-act .ctl .choices,.opm-act .fcards,.opm-act .forkp,.opm-act .nbtn{grid-template-columns:1fr}
 .opm-act .fcd{min-height:0}
@@ -1800,68 +1798,6 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 /* 팀 고유 기술 카드 */
 .choice2.tsk{box-shadow:inset 0 0 0 1.5px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}.choice2.tsk>b{display:flex;align-items:baseline;gap:8px;color:var(--c)}.choice2.tsk .tskn{font-size:11px;font-weight:700;color:var(--sub)}
 .choice2.tsk[disabled]{opacity:.6;background:transparent}
-/* 시안 B: 팀 컬러 아이덴티티 */
-.party .fm.pc.tm{overflow:hidden;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 16%,transparent),transparent 72%),var(--faint);box-shadow:inset 0 3px 0 var(--c),inset 0 0 0 1px var(--tileLine)}
-.party .fm.pc.tm.me{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 24%,transparent),transparent 72%),var(--faint);box-shadow:inset 0 3px 0 var(--c),inset 0 0 0 2px var(--c)}
-.party .fm.pc.tm>*{position:relative}.party .fm.pc.tm>.twm{position:absolute;right:4px;bottom:-26px;font-family:'Bebas Neue',sans-serif;font-size:112px;line-height:1;color:color-mix(in srgb,var(--c) 14%,transparent);pointer-events:none}
-.party .fm.pc.tm.me .mi{background:var(--c);color:#14100F}
-.myturn.tm{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 13%,transparent),transparent 240px);box-shadow:inset 0 3px 0 var(--c)}
-.myturn .mth .tnum{font-size:34px;line-height:.85;color:var(--c);margin-right:2px}
-.choice2.tsk:not([disabled]){background:var(--c);box-shadow:none;color:#15101A}.choice2.tsk:not([disabled])>b,.choice2.tsk:not([disabled]) .tskn,.choice2.tsk:not([disabled])>small,.choice2.tsk:not([disabled]) .eff{color:inherit}
-.choice2.tsk:not([disabled])>small,.choice2.tsk:not([disabled]) .tskn{opacity:.8}.choice2.tsk:not([disabled]):hover{filter:brightness(1.08)}
-[data-theme=light] .choice2.tsk:not([disabled]){color:#fff}
-.boss .bhp i{position:relative;height:12px;background:rgba(255,255,255,.08) linear-gradient(90deg,transparent calc(25% - 1px),rgba(0,0,0,.45) 0 25%,transparent 0 calc(50% - 1px),rgba(0,0,0,.45) 0 50%,transparent 0 calc(75% - 1px),rgba(0,0,0,.45) 0 75%,transparent 0)}
-.boss .bhp i span{position:absolute;left:0;top:0;bottom:0}.boss .bhp i .tr{background:#FFD0C9;transition:width .6s ease-in}.boss .bhp i .cur{background:#FF3B30;transition:none}
-.boss .bin{flex-direction:row;align-items:stretch;gap:0;padding:0;background:transparent;transform:skewX(-10deg);margin-left:4px}
-.boss .bin .nx{display:flex;align-items:center;padding:0 10px;font-size:16px;letter-spacing:.1em;color:#120000;background:#FF3B30}
-.boss .bin .bt2{display:flex;flex-direction:column;gap:1px;padding:5px 12px;flex:1;background:rgba(255,59,48,.14);box-shadow:inset 0 0 0 1.5px #FF3B30}
-.boss .bin .bt2>*{transform:skewX(10deg)}.boss .bin .bt2 b{font-size:15px;font-weight:900}
-.boss .bin.it-open .nx,.boss .bin.it-stun .nx{background:#7FD39B}.boss .bin.it-open .bt2,.boss .bin.it-stun .bt2{background:rgba(127,211,155,.12);box-shadow:inset 0 0 0 1.5px #7FD39B}
-.boss .bin.it-brace .nx{background:#F0C774}.boss .bin.it-brace .bt2{background:rgba(240,199,116,.12);box-shadow:inset 0 0 0 1.5px #F0C774}
-@media (prefers-reduced-motion:reduce){.boss .bhp i .tr{transition:none}}
-/* 시안 B 배치: 왼쪽 내 차례 · 가운데 장면 · 오른쪽 기록/채팅, 파티는 아래 줄(왼쪽+가운데)에 크게 */
-@media (min-width:1000px){
-  .opm-body{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:'act stage right' 'party party right'}
-  .opm-act{grid-area:act}.opm-left{grid-area:stage}.opm-right{grid-area:right}.opm-party{grid-area:party;min-width:0}
-  .opm-box.noact .opm-body{grid-template-areas:'stage right' 'party right'}
-  .opm-box.noparty .opm-body{grid-template-rows:minmax(0,1fr) 0}
-  .opm-party .party{margin:0;padding:0;background:none;box-shadow:none}
-  .opm-party .party .pcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-  .opm-party .party .fm.pc{padding:12px 16px;gap:6px}
-  .opm-party .party .fm.pc .fh b{font-size:19px}.opm-party .party .fm.pc .fh .clsb{font-size:12px}
-  .opm-party .party .fm.pc .vb b{font-size:16px}
-  .opm-party .party .fm.pc.tm>.twm{font-size:150px;bottom:-40px;right:10px}
-  .opm-act .myturn.tm{min-height:100%;box-sizing:border-box}
-}
-@media (max-width:999px){.opm-party{order:1}}
-/* 장면 화면(시안 B) */
-.opm-left .stage.sbv{padding:0;background:none;box-shadow:none;height:100%;box-sizing:border-box}
-.sb{position:relative;overflow:hidden;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:16px 22px 16px;color:#F2F2F0;background:#101314}
-.sb-bg{position:absolute;inset:0;background:linear-gradient(90deg,rgba(16,19,20,.92) 0%,rgba(16,19,20,.7) 45%,rgba(16,19,20,.35) 100%),var(--img,none) center/cover no-repeat}
-.sb>*:not(.sb-bg):not(.sb-wm):not(.ctx){position:relative}
-.sb-wm{position:absolute;right:18px;top:-16px;font-size:230px;line-height:1;color:rgba(255,255,255,.05);pointer-events:none}
-.sb-top{display:flex;align-items:center;gap:10px;font-size:12px;color:#C3CBCD;flex-wrap:wrap}.sb-st{margin-left:auto;display:flex;align-items:center;gap:7px}
-.sb-st small{font-size:11px;color:#A8B0B2}.sb-st b{font-size:20px;line-height:1}.sb-st b.hot{color:#FF6B60}.sb-st b.gd{color:#F0C774;font-size:17px}
-.sb-g{width:70px;height:6px;background:rgba(255,255,255,.14)}.sb-g i{display:block;height:6px;background:#F0C774}.sb-g.full i{animation:gfull .6s ease-in-out infinite alternate}
-.sb-h{display:flex;align-items:baseline;gap:12px;margin-top:6px}.sb-h b{font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.1;text-shadow:0 2px 14px rgba(0,0,0,.6)}.sb-h .hp{font-size:28px;color:#FF6B60}
-.sb-p{margin:0;max-width:560px;font-size:14px;line-height:1.6;color:#DDE2E3;text-shadow:0 1px 6px rgba(0,0,0,.7)}
-.sb-hp{display:flex}.sb-hp i{flex:1;max-width:760px;position:relative;height:14px;background:rgba(255,255,255,.12)}.sb-hp i span{position:absolute;left:0;top:0;bottom:0}.sb-hp .tr{background:#FFD0C9;transition:width .6s ease-in}.sb-hp .cur{background:#FF3B30}
-.sb-cs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:780px}
-.sb-c{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:rgba(18,21,22,.82);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
-.sb-c small{font-size:11px;color:#A8B0B2}.sb-c b{font-size:16px;line-height:1.3}.sb-c em{font-style:normal;font-size:12px;color:#C3CBCD;line-height:1.4}
-.sb-c.nx{background:rgba(40,10,8,.82);box-shadow:inset 0 0 0 1.5px #FF6B60}.sb-c.nx small{color:#FFB3AC}
-.sb-c.nx.it-open,.sb-c.nx.it-stun{background:rgba(10,32,18,.82);box-shadow:inset 0 0 0 1.5px #7FD39B}.sb-c.nx.it-open small,.sb-c.nx.it-stun small{color:#7FD39B}
-.sb-c.nx.it-brace{background:rgba(36,28,8,.82);box-shadow:inset 0 0 0 1.5px #F0C774}.sb-c.nx.it-brace small{color:#F0C774}
-.sb-c.ef{background:rgba(12,20,32,.82);box-shadow:inset 0 0 0 1px #8FB8F0}.sb-c.ef small{color:#8FB8F0}
-.sb-c.gl{box-shadow:inset 0 0 0 1px #5E9FB3}.sb-c.gl small{color:#8FC3D3}
-.sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px}
-.sb-log{display:flex;flex-direction:column;gap:6px;max-width:640px}.sb-l{display:flex;align-items:baseline;gap:12px;font-size:13px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
-.sb-l b{flex:none;width:64px;font-size:13px;color:var(--c,#A8B0B2)}.sb-l b.c-radio{--c:#8FC3D3}
-@media (min-width:1000px){.opm-box #opmRecap{display:none}.opm-box .opm-right{grid-template-rows:auto minmax(0,1fr) auto 220px auto}}.sb-l b.c-ent{--c:#FF6B60}.sb-l b.c-kill{--c:#F0C774}.sb-l b.c-sys{--c:#A8B0B2}
-.sb-strip .strip{margin:0}
-.sb.ph .sb-bg{background:linear-gradient(90deg,rgba(16,19,20,.95),rgba(20,30,34,.9))}
-@media (max-width:999px){.sb{padding:14px;gap:10px}.sb-wm{font-size:140px}.sb-h b{font-size:26px}.sb-h .hp{font-size:22px}.sb-cs{grid-template-columns:1fr}.sb-c{padding:10px 12px}.sb-bg{background:linear-gradient(180deg,rgba(16,19,20,.6),rgba(16,19,20,.85) 60%),var(--img,none) center/cover no-repeat}}
-[data-theme=light] .opm-left .sb{color:#F2F2F0}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2958,21 +2894,13 @@ function foesOnStage(r) {
 const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
 // 제압전: 개체 체력·다음 행동·대응
 const BOSS_FX = { reach: '한 명에게 큰 피해 · 대상자는 피한다, 동료는 막기', count: `모두 정신력 피해 + 남은 시간 −1 · 이번 라운드에 합쳐서 4 이상 때리면 끊긴다`, call: '하수인이 하나 나와 앞을 막는다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', open: '이번 라운드 공격 피해 +2 · 몰아칠 때', stun: '행동 없음 · 몰아칠 기회' };
-// 체력바 잔상: 깎인 만큼 옅은 칸이 남았다가 따라 줄어든다(D04)
-const bossPrev = { id: null, v: null };
-function bossTrail(host) {
-  const t = host.querySelector('.bhp .tr'); if (!t) { bossPrev.v = null; return; }
-  const to = +t.dataset.p; bossPrev.id = (host.querySelector('.sb-h>b, .boss .bh>b:not(.bb)') || {}).textContent || null;
-  if (bossPrev.v !== to) setTimeout(() => { t.style.width = to + '%'; }, 450);
-  bossPrev.v = to;
-}
 function bossHTML(r) {
   const B = r.boss; if (!B) return '';
   const pct = Math.max(0, Math.round(B.hp / B.hpMax * 100)), tg = B.taunt && r.members.find(m => m.uid === B.taunt);
   const st = [B.exposed ? '<em class="tg gd">급소 노출 · 피해 +3</em>' : '', tg ? `<em class="tg ct">${esc(tg.name)}에게 시선 고정</em>` : '', B.blocked ? '<em class="tg hp">하수인이 앞을 막는 중 · 개체를 칠 수 없음</em>' : '', B.intent === 'count' ? `<em class="tg sn">셈 끊기 ${Math.min(B.dmgRound, B.brk)}/${B.brk}</em>` : ''].join('');
   return `<div class="boss"><span class="bh"><b class="bb">TARGET</b><b>${esc(B.name)}</b><small>제압하면 작전 성공</small></span>
-    <span class="bhp"><i><span class="tr" data-p="${pct}" style="width:${bossPrev.v != null && bossPrev.id === B.name ? Math.max(pct, bossPrev.v) : pct}%"></span><span class="cur" style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
-    <span class="bin it-${B.intent}"><small class="nx bb">NEXT</small><span class="bt2"><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span></span>
+    <span class="bhp"><i><span style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
+    <span class="bin it-${B.intent}"><small>다음 행동</small><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span>
     ${st ? `<span class="bst">${st}</span>` : ''}</div>`;
 }
 function bossAtkHTML(r, me) {
@@ -3013,43 +2941,6 @@ function stageHTML(r, me) {
     ${stripHTML(r, me)}
   </div><div class="sideov">${r.boss ? bossHTML(r) : `${radarHTML(r)}${near ? encHTML(r, ctl) : ''}`}</div></div>`;
 }
-// ───────── 장면 화면(시안 B): 사진을 깔고 그 위에 이름·체력·카드 3장·최근 기록 ─────────
-const LOG_TAG = (r, e) => { const m = e.uid && r.members.find(x => x.uid === e.uid), T = m && teamOf(m);
-  if (T) return [T.name, T.gear]; if (e.kind === 'radio') return ['관제실', 'radio']; if (e.ent || e.kind === 'contact') return [(/AO-\d+/.exec(r.op.title) || ['개체'])[0], 'ent']; if (e.kind === 'kill') return ['처치', 'kill']; return ['', 'sys']; };
-function stageBHTML(r, me) {
-  const sc = r.scene, src = sc.bg ? `img/${sc.bg}.jpg` : `img/${r.op.id}-${sc.idx + 1}.jpg`;
-  if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
-  const B = r.boss, wm = (/AO-(\d+)/.exec(r.op.title) || [])[1] || String(sc.idx + 1).padStart(2, '0');
-  const cx = r._cx && Date.now() - r._cx.at < 1600 ? r._cx : null;
-  const C = r.cnt || {}, G = r.gauge;
-  const top = `<span class="sb-top"><span>${B ? `${esc(sc.title)} · ` : ''}장면 ${sc.idx + 1} / ${r.op.scenes} · 라운드 ${r.turn || 1}</span><span class="sb-st"><small>남은 시간</small><b class="bb${r.count <= 2 ? ' hot' : ''}">${r.count}</b>${C.next ? `<small>−1까지 ${C.next}R</small>` : ''}${G ? `<small>팀 연계</small><span class="sb-g${G.v >= G.max ? ' full' : ''}"><i style="width:${Math.round(G.v / G.max * 100)}%"></i></span><b class="bb gd">${G.v}/${G.max}</b>` : ''}</span></span>`;
-  let head;
-  if (B) { const pct = Math.max(0, Math.round(B.hp / B.hpMax * 100)), prev = bossPrev.v != null && bossPrev.id === B.name ? Math.max(pct, bossPrev.v) : pct;
-    head = `<span class="sb-h"><b>${esc(B.name)}</b><span class="bb hp">${B.hp} / ${B.hpMax}</span></span><span class="sb-hp bhp"><i><span class="tr" data-p="${pct}" style="width:${prev}%"></span><span class="cur" style="width:${pct}%"></span></i></span>`; }
-  else head = `<span class="sb-h"><b>${esc(sc.title)}</b></span><p class="sb-p">${esc(sc.text)}</p>`;
-  const card = (cls, k, t, sub) => `<span class="sb-c ${cls}"><small>${k}</small><b>${t}</b>${sub ? `<em>${sub}</em>` : ''}</span>`;
-  const cards = [];
-  const W = r.contactWarn;
-  if (B) cards.push(card('nx it-' + B.intent, '다음 행동', esc(B.intentName || '') + (W ? ` → ${esc(W.name)}` : ''), esc(BOSS_FX[B.intent] || '')));
-  else if (W) cards.push(card('nx', '접촉 임박', `개체 → ${esc(W.name)}`, me && me.uid === W.uid ? '「피한다」로 빗나가게, 동료는 「막기」' : '대상자는 피하고, 동료는 막기·방패'));
-  if (r.ambush) cards.push(card('nx', '하수인 접근', `${r.ambush.side === 'rear' ? '후방' : '전방'}에서 ${r.ambush.n > 1 ? r.ambush.n + '마리' : '하나'}`, '전원 숨거나 대기하면 지나간다'));
-  const fxL = [r.mark ? `약점 간파 +${r.mark.bonus}` : '', B && B.exposed ? '급소 노출 +3' : '', B && B.taunt ? '시선 고정' : '', B && B.intent === 'count' ? `셈 끊기 ${Math.min(B.dmgRound, B.brk)}/${B.brk}` : ''].filter(Boolean);
-  if (fxL.length) cards.push(card('ef', '적용 중', esc(fxL[0]), esc(fxL.slice(1).join(' · '))));
-  if (r.sweep) cards.push(card('gl', '목표', `${esc(r.op.minName || '하수인')} ${r.sweep.kills} / ${r.sweep.need}`, '목표 수만큼 처리하면 성공'));
-  else if (!B && !r.fork) { const g = (sc.choices || []).filter(c => c.adv).map(c => c.label)[0]; if (g) cards.push(card('gl', '목표', esc(g), '구역 끝까지 전진한 뒤')); }
-  const ms = r.minions || [], L = (r.order || []).map(u => r.members.find(m => m.uid === u)).filter(m => m && !m.dead);
-  if (ms.length) { const f = ms[0], tgt = f.side === 'front' ? L[0] : L[L.length - 1];
-    cards.push(card('mn', '하수인', `${esc(f.name)} ×${ms.length}`, `${f.side === 'front' ? '앞' : '뒤'} · HP ${f.hp}/${f.hpMax} · 다음: ${esc(f.intentName || '')}${tgt ? ` → ${esc(tgt.name)}` : ''}`)); }
-  else if (!B && r.radar && r.radar.detected && r.radar.dist != null) cards.push(card('rd', '개체 거리', `${r.radar.dist}m`, esc(r.sight ? r.sight.text : `${r.radar.from === 'rear' ? '뒤' : '앞'}에서 다가온다`)));
-  const LK = { roll: 1, contact: 1, kill: 1, radio: 1, burst: 1, death: 1, warn: 1, raven: 1 };
-  const logs = (r.log || []).filter(e => LK[e.kind]).slice(-4).map(e => { const [tg, c] = LOG_TAG(r, e); return `<span class="sb-l"><b class="bb c-${c}">${esc(tg)}</b><span>${esc(String(e.text || '').split(/(?<=[.!?])\s/)[0])}</span></span>`; }).join('');
-  const strip = !B && !r.sweep && !r.fork ? stripHTML(r, me) : '';
-  return `<div class="sb${cx ? ' fx-contact' : ''}${CAM_IMG[src] ? '' : ' ph'}"${CAM_IMG[src] ? ` style="--img:url('${src}')"` : ''}>
-    <i class="sb-bg" aria-hidden="true"></i><span class="sb-wm bb" aria-hidden="true">${esc(wm)}</span>
-    ${top}${head}<span class="sb-cs">${cards.slice(0, 3).join('')}</span>
-    <span class="sb-foot"><span class="sb-log">${logs}</span>${strip ? `<span class="sb-strip">${strip}</span>` : ''}</span>
-    ${cx ? `<span class="ctx" role="alert"><b class="bb">CONTACT</b><span>${esc(cx.text)}</span></span>` : ''}</div>`;
-}
 // 대열 카드: 선두부터 후미 순서. 내 카드는 강조.
 function partyHTML(r, me) {
   const field = r.members.filter(m => m.role === 'field');
@@ -3059,8 +2950,7 @@ function partyHTML(r, me) {
   const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
   const chips = m => [m.broken ? '<em class="tg sn">정신 붕괴</em>' : '', m.guard ? '<em class="tg gd">막기</em>' : '', !m.broken && m.san / m.sanMax <= .3 ? '<em class="tg sn">정신 위험</em>' : '', r.dark && !m.broken && me && m.uid === me.uid ? '<em class="tg ct" title="관제가 구역 전원을 켜면 사라집니다">어둠 · 주사위 −1</em>' : ''].join('');
   const card = m => { const f = FX['u' + m.uid], hit = f && (f.hp < 0 || f.san < 0);
-    const T = teamOf(m);
-    return `<span class="fm pc${T ? ` tm c-${T.gear}` : ''}${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}">${T ? `<span class="twm" aria-hidden="true">${m.team}</span>` : ''}<span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${T ? `<span class="clsb c-${T.gear}">${T.name}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${r.boss && r.boss.taunt === m.uid ? '<em class="tg ct">시선 고정</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
+    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${r.boss && r.boss.taunt === m.uid ? '<em class="tg ct">시선 고정</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
   const ctls = r.members.filter(m => m.role === 'ctrl');
   const ccard = m => { const f = FX['u' + m.uid], hit = f && f.san < 0;
     const st = m.dead ? '이탈' : m.broken ? '<em class="tg sn">정신 붕괴</em>' : m.passed ? '<em class="tg ok">넘김</em>' : m.acted ? '<em class="tg ok">행동 완료</em>' : '<em class="tg wt">고르는 중</em>';
@@ -3409,8 +3299,7 @@ function myTurnHTML(r, me, combat) {
   const timer = timerHTML(r, `준비 ${Rd.done}/${Rd.all}`);
   const dq = (sc.choices || []).some(c => c.max || c.min) && r.radar && r.radar.noise
     ? `<span class="dnote">무전 잡음으로 개체 거리를 알 수 없습니다. 거리 조건이 안 맞으면 판정 없이 차례만 지나갑니다.</span>` : '';
-  const TM = teamOf(me);
-  return `<div class="myturn${TM ? ` tm c-${TM.gear}` : ''}"><span class="mth">${TM ? `<b class="tnum bb">0${me.team}</b>` : ''}<b class="lb">내 차례</b><b>${esc(me.name)}</b>${teamTag(me)}${r.mark ? `<span class="clsb c-detector">약점 간파 +${r.mark.bonus}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
+  return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${teamTag(me)}${r.mark ? `<span class="clsb c-detector">약점 간파 +${r.mark.bonus}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine sel"><i>✓</i><span><small>이번 라운드에 고른 행동</small><b>${esc(mine.label)}</b><small>${Rd.waitCtl ? '관제 행동을 기다리는 중.' : `동료 ${Rd.done}/${Rd.all} · 모두 고르면 고른 순서대로 실행된다.`}</small></span><button class="btn s g" data-act="opUnpick">선택 취소</button></span><details class="chg"${S.chgOpen ? ' open' : ''}><summary data-act="chgToggle">다른 행동 보기</summary>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
     ${dq}${(() => { const T = topCards(evade + hide + cards); return T.top ? `<div class="choices cacts">${T.top}</div>${T.rest ? `<details class="more"${S.moreOpen ? ' open' : ''}><summary data-act="moreToggle">다른 행동 ${T.n}개 더 보기</summary><div class="choices cacts">${T.rest}</div></details>` : ''}` : ''; })()}${clsc}
@@ -3515,12 +3404,12 @@ function viewOps(rr, parts) {
   const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
   const noisy = ctl && r.noise && r.noise.shown ? ' noisy' : '';
   const G = r.gauge, gauge = G ? `<span class="gauge${G.v >= G.max ? ' full' : ''}"><small>팀 연계</small><span class="gb2">${Array.from({ length: G.max }, (_, k) => `<i class="${k < G.v ? 'on' : ''}"></i>`).join('')}</span><b>${G.v}/${G.max}</b><em>성공하면 1칸, 대성공은 2칸 · 가득 차면 RAVEN 일제 사격</em></span>` : '';
-  const visTop = r.status === 'live' ? `${stepsHTML(r, cnt)}${gauge}
+  const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}${gauge}
       ${npcHTML(r)}
       ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${contactBoxHTML(r, me)}${ambushBoxHTML(r)}
-      ${stageHTML(r, me)}` : '';
-  const partyH = r.status === 'live' ? `${partyHTML(r, me)}${combat ? foreHTML(r) : ''}` : '';
-  const vis = visTop + partyH;
+      ${stageHTML(r, me)}
+      ${partyHTML(r, me)}
+      ${combat ? foreHTML(r) : ''}` : '';
   const actIn = r.status === 'live' ? `
       ${canAct || ctl ? '' : roundBarHTML(r, me)}
       ${r.fork && !ctl ? forkHTML(r, me) : ''}
@@ -3538,7 +3427,7 @@ function viewOps(rr, parts) {
       ${r.escaped ? `<div class="escd"><b>이송 중 탈출</b><span>${esc(r.op.title.replace(/ 재확보$/, ''))}이(가) 구속을 풀고 다시 빠져나갔습니다. 보상은 그대로 받았고, 확보 작전은 계속 열려 있습니다.</span></div>` : r.result === 'success' && r.op.kind === 'secure' ? '<div class="escd ok"><b>격리 완료</b><span>개체를 격리실로 옮겼습니다. 다시 빠져나가기 전까지 이 작전은 닫힙니다.</span></div>' : ''}
       ${(() => { const D2 = Object.entries(r.dmgBy || {}).sort((a, b) => b[1] - a[1]); if (!D2.length) return ''; const mv = r.members.find(m => m.uid === D2[0][0]); return `<div class="mvp"><span class="bb">MVP</span><b>${esc(mv ? mv.name : '')}</b><small>입힌 피해 ${D2[0][1]}</small>${D2.slice(1).map(([u, v]) => { const x = r.members.find(m => m.uid === u); return `<small>${esc(x ? x.name : '')} ${v}</small>`; }).join('')}</div>`; })()}
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
-  if (parts) return { head, party: partyH, stage: r.status === 'live' ? `<div class="stage vis sbv${noisy}">${stageBHTML(r, me)}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };
+  if (parts) return { head, stage: r.status === 'live' ? `<div class="stage vis${noisy}">${vis}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };
   const fold = !(S.logOpen && S.logOpen[r.id]);
   return opSplit(r, ' live', `${head}
     <div class="opgrid"><div class="opmain">${stage}<button class="logfold" data-act="logFold" data-v="${r.id}" aria-expanded="${!fold}">${ico('log', 16, 2)}<b>${fold ? '작전 기록 다시보기' : '작전 기록 접기'}</b><small>${r.log.length}건</small><span class="cv">${ico(fold ? 'chevR' : 'chevD', 14, 2)}</span></button>${fold ? '' : `<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol>`}</div>
@@ -3967,7 +3856,7 @@ function syncModal() {
       <div class="opm-head" id="opmHead"></div>
       <button type="button" class="actfab" id="opmFab" data-act="actSheet" aria-label="행동 열기"></button>
       <button type="button" class="actfab chatfab" id="opmChatFab" data-act="chatSheet" aria-label="작전 채팅 열기"></button>
-      <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div><div class="opm-party" id="opmParty"></div>
+      <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div>
         <div class="opm-right"><div id="opmRecap"></div><div class="opm-sec"><span class="bb">LOG</span><small>작전 기록</small></div><ol class="oplog" id="opmLog" aria-label="작전 기록"></ol>
           <div class="opm-comms"><div class="sheet-h"><b>작전 채팅</b><small>참가자만</small><button type="button" class="btn s g" data-act="chatSheet">닫기</button></div>
           <div class="opm-sec"><span class="bb">COMMS</span><small>작전 채팅, 참가자만</small></div><div class="list och" id="opmChat"></div>
@@ -3980,10 +3869,9 @@ function syncModal() {
   ['opmHead', 'opmStage', 'opmAct'].forEach(id => { const el = document.getElementById(id); if (el) el._h = null; });
   setHTML('opmHead', P.head + `<div class="opm-sub">${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
-  setHTML('opmParty', P.party || '');
   setHTML('opmAct', P.act || '');
   const box = host.querySelector('.opm-box');
-  box.classList.toggle('noact', !P.act); box.classList.toggle('noparty', !P.party);
+  box.classList.toggle('noact', !P.act);
   // 폰: 행동 패널은 아래에서 올라오는 시트로. 화면과 행동을 스크롤 없이 오가게 한다(훈련 중에는 안내가 버튼을 가리키므로 펼쳐 둔다)
   const sheet = mobile() && !!P.act && !r.tut;
   box.classList.toggle('sheetmode', sheet); box.classList.toggle('sheet-on', sheet && !!S.actSheet);
@@ -4005,7 +3893,6 @@ function syncModal() {
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
   rollFx(host, r);
-  bossTrail(host);
   if (r.tut) tutCoach(host);
 }
 /* ───────── 판정 연출: 새로 들어온 판정을 화면 가운데에 하나씩 띄운다 ───────── */
