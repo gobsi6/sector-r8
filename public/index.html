@@ -1243,6 +1243,7 @@ body.modal-open{overflow:hidden}
 .oprow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--th)}
 .oprow:hover{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--th) 60%,transparent)}
 .oprow .bb{font-size:15px;letter-spacing:.06em;color:var(--tht)}.oprow b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oprow .chips{display:flex;align-items:center;gap:6px;white-space:nowrap}.oprow .chips .okind{margin-left:0}
 .oprow .st{font-size:12px;color:var(--sub);white-space:nowrap}.oprow.live .st{color:var(--navyLine);font-weight:700}
 .oprow .ppl{font-size:11px;color:var(--sub);white-space:nowrap}.oprow .go2{font-size:12px;font-weight:800;color:var(--navyLine);white-space:nowrap}
 .optabs2 .oprow{grid-template-columns:auto auto minmax(0,1fr) auto auto}
@@ -2758,7 +2759,7 @@ const OP_ST = r => r.contained ? '격리 완료' : r.sealedUntil > Date.now() &&
 function opRowHTML(r, act, sel) {
   const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
   return `<button class="oprow ${thC(r.op.threat)}${r.status === 'live' ? ' live' : ''}" data-act="${act}" data-v="${esc(r.op.id)}" ${sel != null ? `role="tab" aria-selected="${sel}"` : ''}>
-    <span class="bb">${esc(r.op.id)}</span>${thChip(r.op.threat)}${KIND(r.op.kind, r.op.event)}<b>${esc(r.op.title)}</b>
+    <span class="bb">${esc(r.op.id)}</span><span class="chips">${thChip(r.op.threat)}${KIND(r.op.kind)}</span><b>${esc(r.op.title)}</b>
     <span class="st">${OP_ST(r)}${opMine(r) && r.status !== 'done' ? ', 참가 중' : ''}</span><span class="ppl">현장팀 ${f}/${r.op.field}</span>${act === 'opGo' ? `<span class="go2">${r.status === 'live' ? '보기' : '입장'}</span>` : ''}</button>`;
 }
 function viewHome() {
@@ -2773,7 +2774,7 @@ function viewHome() {
     <span class="k">${ico('ops', 20, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${r.contained ? '<span class="pill"><i style="opacity:.5"></i>격리 완료 · 작전 닫힘</span>' : r.sealedUntil > Date.now() && r.status === 'lobby' ? '<span class="pill rv"><i></i>RAVEN-3 관리 중</span>' : `<span class="pill"><i style="opacity:${r.status === 'lobby' ? 1 : .5}"></i>${({ lobby: '대기실 열림', live: '작전 진행 중', done: '작전 종료' })[r.status]}</span>`}</span>
     <h2>${esc(r.op.title)}</h2>
     <p>${r.contained ? '개체가 격리실에 있습니다. 다시 빠져나가면 확보 작전이 열립니다.' : r.sealedUntil > Date.now() && r.status === 'lobby' ? `격리 실패로 RAVEN-3이 현장을 인수했습니다. 봉쇄 해제까지 ${leftTime(r.sealedUntil - Date.now())}.` : `${thChip(r.op.threat, true)} 난이도 ${LEVEL[r.op.level || 2]}, 권장 ${recTxt(r.op)}, 예상 소요 ${r.op.mins}분`}</p>
-    <span class="bot"><span class="teams"><span>현장팀 ${field}/${r.op.field}<span class="sl">${slots(field, r.op.field)}</span></span><span>관제팀 ${ctrl}/${r.op.ctrl}<span class="sl">${slots(ctrl, r.op.ctrl)}</span></span></span>
+    <span class="bot"><span class="teams"><span>현장팀 ${field}/${r.op.field}<span class="sl">${slots(field, r.op.field)}</span></span></span>
       <button class="go" data-act="opGo" data-v="${esc(r.op.id)}">${icoFill('play', 14)}${r.status === 'live' ? '작전 보기' : '대기실 입장'}</button></span>
   </section>` : `<section class="op" aria-label="작전">
     <span class="ghost" aria-hidden="true">OPERATION</span>
