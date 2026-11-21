@@ -717,7 +717,7 @@ function runOut(r, viewer, gm) {
     recover: live ? r.members.filter(needsRecovery).map(m => ({ id: 'rec-' + m.uid, uid: m.uid, name: m.name, why: m.dead ? 'dead' : 'broken' })) : [],
     attacks: live ? ['front', 'rear'].filter(sd => r.minions.some(x => x.side === sd)).map(sd => ({ id: 'atk-' + sd, side: sd, label: sd === 'front' ? `앞을 막은 ${jo(o.minion.name, '과', '와')} 싸운다` : `뒤에서 덮치는 ${jo(o.minion.name, '과', '와')} 싸운다` })) : [],
     count: r.count, support: r.support, log: r.log.slice(-60), chat: vm ? (r.chat || []).slice(-60) : [], result: r.result, started: r.started, ended: r.ended,
-    sealedUntil: entLocked(ENTITIES.find(x => x.op === r.op)) };
+    sealedUntil: entLocked(ENTITIES.find(x => x.op === r.op)), contained: r.status === 'lobby' && opContained(r.op), escAfter: opDef(r.op) && opDef(r.op).kind === 'secure' ? escAfterOf(opDef(r.op)) : null, escaped: r.escaped || null };
 }
 const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op', runOut(r, s.user && s.user.id, isGM(s.user))); };
 const busyIn = uid => { for (const r of runs.values()) if (r.status !== 'done' && r.members.some(m => m.uid === String(uid))) return r; return null; };
@@ -771,6 +771,7 @@ function opJoin(uid, opId, role) {
   const r = runs.get(opId); if (!r) return 'op/none';
   if (r.status !== 'lobby') return 'op/started';
   if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
+  if (opContained(opId)) return 'op/contained';
   const other = busyIn(uid); if (other && other !== r) return 'op/busy';
   role = 'field';
   const o = opDef(opId), cap = o.field, prev = r.members.find(m => m.uid === String(uid));
@@ -918,7 +919,7 @@ function burst(r) {
   if (B && B.hp > 0) { B.hp = Math.max(0, B.hp - dmg); txt += ` 계수자에게 피해 ${dmg}.`; }
   if (!n && !B) { countAdd(r, 1, '일제 사격'); txt += ' 길이 열렸다. 남은 시간 +1.'; }
   say(r, txt, { kind: 'burst', dmg: B ? dmg : 0 });
-  if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill' }); checkBodies(r); opFinish(r, 'success'); }
+  if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 격리실로 이송을 시작한다.`, { kind: 'kill' }); checkBodies(r); opFinish(r, 'success'); }
 }
 // 소탕: 쓰러뜨린 수 = 나온 수 − 남은 수(장면이 하나뿐이라 그대로 센다)
 const sweepNeed = r => { const o = D(r); return o.sweep ? o.sweep.needBy[Math.min(4, Math.max(1, r.nf || 1))] : 0; };
@@ -960,12 +961,13 @@ function opStart(uid, opId) {
   if (!r.members.some(m => m.role === 'field')) return 'op/no-field';
   if (r.members.some(m => !m.ready)) return 'op/not-ready';
   if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
+  if (opContained(opId)) return 'op/contained';
   const base = opDef(opId);
   r.gen = base.patrol ? genPatrol(base) : null;
   const o = D(r);
   // 인원 보정 기준: 현장 인원
   r.nf = r.members.filter(m => m.role === 'field').length; r.nt = r.nf;
-  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.rewardOut = null; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
+  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.rewardOut = null; r.escaped = null; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
   r.members.forEach(m => { if (!CLS[m.cls]) m.cls = 'weapon'; m.kitFree = m.cls === 'medkit' ? 1 : 0; });
@@ -1074,7 +1076,7 @@ function bossFight(r, m, uid) {
   say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null, dmg, why: dmg ? why.concat(notes) : [] });
   if (hurt) m.hp = Math.max(0, m.hp + hurt);
   if (B.hp <= 0) {
-    say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 접힌 손가락이 더는 펴지지 않는다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill', uid: m.uid });
+    say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 접힌 손가락이 더는 펴지지 않는다. 제압 완료. 격리실로 이송을 시작한다.`, { kind: 'kill', uid: m.uid });
     checkBodies(r); return opFinish(r, 'success');
   }
   return endTurn(r);
@@ -1692,7 +1694,12 @@ function opFinish(r, result) {
   if (r.r1) say(r, `RAVEN-1 지원 비용 정산. 작전 참가자 전원 보급품 −${R1_COST}${result === 'success' ? ', 성공 보상 절반' : ''}.`, { kind: 'warn' });
   if (left.length) say(r, `RAVEN-4 출동. 회수되지 못한 요원 ${left.map(m => m.name).join(', ')}을(를) 회수했다. 작전 참가자 전원 보급품 −${R4_COST}.`, { kind: 'warn' });
   say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: ${[reward.supply ? `보급품 ${reward.supply}` : '', reward.research ? `연구 자료 ${reward.research}` : ''].filter(Boolean).join(', ') || '없음'}${bonusPct ? ` (함께 출동 보너스 +${bonusPct}%)` : ''}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
-  sectorOnOp(r.op, result, r.members.map(m => m.name).join(', '));
+  r.escaped = null;
+  if (sectorOnOp(r.op, result, r.members.map(m => m.name).join(', ')) === 'escaped') {
+    const e = ENTITIES.find(x => x.op === r.op); r.escaped = true;
+    say(r, `이송 중 경보. ${e ? `${e.id} 「${e.name}」` : '개체'}가 구속을 풀고 다시 빠져나갔다. 보상은 그대로 지급된다. 확보 작전은 계속 열려 있다.`, { kind: 'contact', ent: true });
+    QS.addEvent.run(now(), 'escape', e ? e.id : null, `${e ? `${e.id} 「${e.name}」` : '개체'} 이송 중 탈출. 작전 ${o.id} 재개 대기.`, null);
+  } else if (result === 'success' && o.kind === 'secure') say(r, '개체를 격리실로 이송했다. 격리 완료. 이 확보 작전은 개체가 다시 빠져나가기 전까지 닫힌다.', { kind: 'sys' });
   for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
   r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'radio' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
   r.members.forEach(m => { const row = Q.agent.get(Number(m.uid)); if (row) io.emit('agent', publicAgent(row)); });
@@ -1855,10 +1862,16 @@ function sectorOnOp(opId, result, names) {
   }
   const e = ENTITIES.find(x => x.op === opId); if (!e) return;
   if (result === 'success') {
-    QS.setEnt.run(100, now(), 1, e.id);
     QS.unlock.run(e.id, 'procedure', names || '작전 기록', now());
+    // 확보 작전: 제압해도 이송 중에 확률로 다시 빠져나간다(보상은 그대로). 빠져나가면 작전이 계속 열려 있다.
+    if (base && base.kind === 'secure' && Math.random() < escAfterOf(base)) return 'escaped';
+    QS.setEnt.run(100, now(), 1, e.id);
   }
 }
+// 확보 작전은 개체가 격리돼 있는 동안 닫힌다
+const ESC_AFTER = { 'Ⅰ': 0.1, 'Ⅱ': 0.2, 'Ⅲ': 0.3, 'Ⅳ': 0.4, 'Ⅴ': 0.5 };
+const escAfterOf = o => process.env.R8_ESC_AFTER != null ? +process.env.R8_ESC_AFTER : (ESC_AFTER[o.threat] ?? 0.3);
+function opContained(opId) { const o = opDef(opId); if (!o || o.kind !== 'secure') return false; const e = ENTITIES.find(x => x.op === opId), row = e && QS.ent.get(e.id); return !!(row && row.captured); }
 let lastBase = null;
 function baseAct(uid, kind, entity) {
   lastBase = null;
@@ -2158,6 +2171,7 @@ app.post('/api/gm/entity', need, needGM, (req, res) => {
   QS.setEnt.run(st, now(), cap, e.id);
   if (b.unlock) db.prepare('UPDATE sector_entities SET lock_until = 0 WHERE id = ?').run(e.id);
   if (b.obs != null && isInt(Number(b.obs), 0, 99)) db.prepare('UPDATE sector_entities SET obs = ? WHERE id = ?').run(Number(b.obs), e.id);
+  if (e.op && runs.get(e.op)) emitRun(runs.get(e.op)); // 확보 작전이 열리고 닫히는 것을 바로 반영
   emitSector(); res.json({ ok: true });
 });
 app.post('/api/gm/event', need, needGM, (req, res) => {
