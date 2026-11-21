@@ -1719,6 +1719,8 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
   .opm-box{-webkit-overflow-scrolling:touch}
   .opm-left{contain:layout paint}
 }
+/* 진행 막대: 목표 이름은 아래 거리 줄로 합쳤다(위쪽은 개체 표시만 쓴다, 겹치지 않게) */
+.strip .sl b{font-weight:800;margin-right:2px}
 /* 경고 팝업 */
 #toasts{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,460px)}
 .r8toast{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;line-height:1.45;color:var(--ink);background:var(--tile);box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 60%,transparent),0 8px 24px rgba(0,0,0,.35);animation:toastIn .2s ease-out;transition:opacity .45s,transform .45s}
@@ -2795,8 +2797,8 @@ function stripHTML(r, me) {
     else ent = `<span class="se zone ${from}"><small>개체 · ${from === 'rear' ? '뒤쪽' : '앞쪽'} 어딘가</small></span>`;
   }
   return `<div class="strip" aria-label="진행 막대"><span class="trk"><i class="done" style="width:${P.toFixed(1)}%"></i></span>
-    <span class="sg"><i></i><small>목표 · ${esc(end.label)}</small></span>${ent}${foe}${mem}
-    <span class="sl">${left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
+    <span class="sg"><i></i></span>${ent}${foe}${mem}
+    <span class="sl"><b>목표</b> ${left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
 }
 // 무대 위 하수인: 이름, 체력, 다음 행동
 function foesOnStage(r) {
