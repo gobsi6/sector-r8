@@ -1781,6 +1781,8 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 @media (max-width:999px){#rollFx{position:fixed;top:30%}}
 @media (prefers-reduced-motion:reduce){#rollFx .rf,#rollFx .t-crit.land,.opm-box.shake .opm-left{animation:none}}
 .mvp{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 12px;box-shadow:inset 0 0 0 1px #F0C774}.mvp .bb{font-size:18px;color:#F0C774;letter-spacing:.12em}.mvp b{font-size:16px}.mvp small{color:var(--sub);font-size:12px}
+.fc .tbh{font-size:11px;color:var(--sub);margin-top:2px}
+.tbonus{display:inline-block;margin-left:6px;padding:1px 7px;font-size:12px;color:#F0C774;box-shadow:inset 0 0 0 1px #C8A040;background:color-mix(in srgb,#C8A040 12%,transparent)}[data-theme=light] .tbonus{color:#7A5600;box-shadow:inset 0 0 0 1px #A87B12}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -3343,7 +3345,7 @@ function viewOps(rr, parts) {
     const canStart = me && f && !sealed && rd === tot;
     return opSplit(r, ' lobby', `<div class="loba"><div class="lobm">
       <div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${KIND(r.op.kind, r.op.event)}</span><h2>${esc(r.op.title)}</h2><p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}</div>
-      <div class="facts"><span class="fc"><small>위험 등급</small>${thChip(r.op.threat, true)}</span><span class="fc"><small>난이도</small>${levelHTML(r.op)}</span><span class="fc"><small>예상 소요</small><b class="bb">${r.op.mins}분</b></span><span class="fc"><small>성공 보상</small><b>${reward}</b></span></div>
+      <div class="facts"><span class="fc"><small>위험 등급</small>${thChip(r.op.threat, true)}</span><span class="fc"><small>난이도</small>${levelHTML(r.op)}</span><span class="fc"><small>예상 소요</small><b class="bb">${r.op.mins}분</b></span><span class="fc"><small>성공 보상</small><b>${reward}</b><small class="tbh">함께 출동하면 2인 +25%, 3인 +50%</small></span></div>
       <div class="seats"><div class="sg"><span class="sgh"><b>현장팀</b><small>${f}/${r.op.field}</small>${r.op.rec ? `<small>· 권장 ${recTxt(r.op).split(', ')[0].replace('현장 ', '')}</small>` : ''}</span><div class="sgrid">${seats('field', r.op.field)}</div></div>
         <div class="sg c npc"><span class="sgh"><b>관제</b><small>NPC</small></span><div class="seat on npcs"><span class="sn"><b>관제실</b><small>무전 지휘</small></span><span class="si">개체 거리와 구조 변형을 무전으로 하달한다. 시설 조작·비컨·문 확인은 요원의 요청을 받아 처리한다.</span></div></div></div></div>
       <div class="lbar"><span class="mys ${myState[0]}"><small>내 상태</small><span><i></i><b>${myState[1]}</b><em>${myState[2]}</em></span></span>
@@ -3378,7 +3380,7 @@ function viewOps(rr, parts) {
       ${!me ? '<span class="sub">참가하지 않은 작전입니다. 진행 상황만 볼 수 있습니다.</span>' : ''}${err}` : '';
   const stage = r.status === 'live' ? `<div class="stage${noisy}">${vis}${actIn}</div>` : `<div class="stage done"><span class="bb res ${r.result}">${({ success: 'MISSION COMPLETE', fail: 'MISSION FAILED', abort: 'MISSION ABORTED' })[r.result]}</span>
       <b class="st">${({ success: '작전 성공', fail: '작전 실패', abort: '작전 중단' })[r.result]}</b>
-      <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
+      <p>${r.result === 'success' ? `생존 요원 보상: ${(() => { const R = r.rewardOut || r.op.reward || { supply: 0, research: 0 }; return [R.supply ? `보급품 ${R.supply}` : '', R.research ? `연구 자료 ${R.research}` : ''].filter(Boolean).join(', ') || '없음'; })()}.${r.rewardOut && r.rewardOut.bonusPct ? ` <b class="tbonus">함께 출동 보너스 +${r.rewardOut.bonusPct}%</b>` : ''}${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
       ${(() => { const D2 = Object.entries(r.dmgBy || {}).sort((a, b) => b[1] - a[1]); if (!D2.length) return ''; const mv = r.members.find(m => m.uid === D2[0][0]); return `<div class="mvp"><span class="bb">MVP</span><b>${esc(mv ? mv.name : '')}</b><small>입힌 피해 ${D2[0][1]}</small>${D2.slice(1).map(([u, v]) => { const x = r.members.find(m => m.uid === u); return `<small>${esc(x ? x.name : '')} ${v}</small>`; }).join('')}</div>`; })()}
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
   if (parts) return { head, stage: r.status === 'live' ? `<div class="stage vis${noisy}">${vis}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };

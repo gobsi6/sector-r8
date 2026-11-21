@@ -700,7 +700,7 @@ function runOut(r, viewer, gm) {
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     contactWarn: live && r.contactWarn ? r.contactWarn : null,
-    gauge: live ? { v: r.gauge || 0, max: gaugeMax(r) } : null, dmgBy: r.dmgBy || {},
+    gauge: live ? { v: r.gauge || 0, max: gaugeMax(r) } : null, dmgBy: r.dmgBy || {}, rewardOut: r.rewardOut || null,
     sweep: live && sc && sc.sweep ? { kills: sweepKills(r), need: sweepNeed(r) } : null,
     boss: live && r.boss && sc.boss ? { name: r.boss.name, hp: r.boss.hp, hpMax: r.boss.hpMax, intent: r.boss.stun ? 'stun' : r.boss.intent, intentName: r.boss.stun ? '비틀거림' : BOSS_INT[r.boss.intent], exposed: r.boss.exposedUntil >= r.turn, taunt: r.boss.taunt ? r.boss.taunt.uid : null, blocked: r.minions.some(x => x.side === 'front'), dmgRound: r.boss.dmgRound || 0, brk: BOSS_BREAK, combo: r.boss.hitTurn === r.turn - 1 ? r.boss.hitBy : null } : null,
     ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
@@ -965,7 +965,7 @@ function opStart(uid, opId) {
   const o = D(r);
   // 인원 보정 기준: 현장 인원
   r.nf = r.members.filter(m => m.role === 'field').length; r.nt = r.nf;
-  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
+  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.rewardOut = null; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
   r.members.forEach(m => { if (!CLS[m.cls]) m.cls = 'weapon'; m.kitFree = m.cls === 'medkit' ? 1 : 0; });
@@ -1647,10 +1647,15 @@ function addTrait(traits) {
   const pick = traits[die(traits.length) - 1]; pick.lv = Math.min(TRAIT_MAX_LV, (pick.lv || 1) + 1); return { id: pick.id, deepen: true };
 }
 const R1_COST = 20, R4_COST = 15, R4_CONT = 10, R4_DELAY_MS = Number(process.env.RAVEN4_DELAY_HOURS || 2) * 3600000;
+const TEAM_BONUS = +(process.env.R8_TEAM_BONUS || 25), TEAM_BONUS_MAX = +(process.env.R8_TEAM_BONUS_MAX || 50);
 function opFinish(r, result) {
   const o = D(r); clearTimeout(r._timer); r.picks = {}; r.deadline = null;
   r.status = 'done'; r.result = result; r.ended = now();
-  const reward = result === 'success' ? (r.r1 ? { supply: Math.floor(o.reward.supply / 2), research: Math.floor(o.reward.research / 2) } : o.reward) : { supply: 0, research: 0 };
+  // 함께 출동 보너스: 출동한 현장 인원 1명 늘 때마다 +25%(최대 +50%). 쓰러진 동료도 인원에 든다.
+  const crew = r.members.filter(m => m.role === 'field').length, bonusPct = Math.min(TEAM_BONUS_MAX, TEAM_BONUS * Math.max(0, crew - 1));
+  const base0 = r.r1 ? { supply: Math.floor(o.reward.supply / 2), research: Math.floor(o.reward.research / 2) } : o.reward;
+  const reward = result === 'success' ? { supply: Math.round(base0.supply * (100 + bonusPct) / 100), research: Math.round(base0.research * (100 + bonusPct) / 100) } : { supply: 0, research: 0 };
+  r.rewardOut = result === 'success' ? { ...reward, bonusPct, crew } : null;
   // 회수하지 못한 요원 → RAVEN-4 출동. 남겨진 요원은 재생이 늦어지고 오염이 깊어지며, 참가자 전원이 회수 비용을 낸다.
   const left = r.members.filter(m => m.role === 'field' && (m.dead || m.broken) && !m.recovered);
   transaction(() => {
@@ -1686,7 +1691,7 @@ function opFinish(r, result) {
   });
   if (r.r1) say(r, `RAVEN-1 지원 비용 정산. 작전 참가자 전원 보급품 −${R1_COST}${result === 'success' ? ', 성공 보상 절반' : ''}.`, { kind: 'warn' });
   if (left.length) say(r, `RAVEN-4 출동. 회수되지 못한 요원 ${left.map(m => m.name).join(', ')}을(를) 회수했다. 작전 참가자 전원 보급품 −${R4_COST}.`, { kind: 'warn' });
-  say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: 보급품 ${reward.supply}, 연구 자료 ${reward.research}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
+  say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: ${[reward.supply ? `보급품 ${reward.supply}` : '', reward.research ? `연구 자료 ${reward.research}` : ''].filter(Boolean).join(', ') || '없음'}${bonusPct ? ` (함께 출동 보너스 +${bonusPct}%)` : ''}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
   sectorOnOp(r.op, result, r.members.map(m => m.name).join(', '));
   for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
   r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'radio' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
