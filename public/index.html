@@ -1636,7 +1636,7 @@ body.modal-open{overflow:hidden}
 .party .fm.pc.ctl .ps{color:var(--navyLine)}
 .tg.ok{color:#7FD39B;background:rgba(95,175,126,.12);box-shadow:inset 0 0 0 1px #5FAF7E}.tg.wt{color:var(--sub);background:transparent;box-shadow:inset 0 0 0 1px var(--tileLine)}
 /* 카메라 화면은 테마와 상관없이 어둡다 */
-@media (min-width:1000px){.party .pcs{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+@media (min-width:1000px){.party .pcs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .stg{--ink:#F2F2F0;--sub:#A8B0B2;--faint:rgba(255,255,255,.05);--tile:#151A1C;--tileLine:rgba(255,255,255,.14);--navyLine:#5E9FB3;--red:#FF3B30;color:var(--ink)}
 /* 라이트 모드: 밝은 바탕에서 읽히는 색 */
 .prog .sp.now em,.party .fm.pc .mi{color:var(--onNavy)}
@@ -1722,6 +1722,14 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 }
 /* 진행 막대: 목표 이름은 아래 거리 줄로 합쳤다(위쪽은 개체 표시만 쓴다, 겹치지 않게) */
 .strip .sl b{font-weight:800;margin-right:2px}
+/* 갈림길: 테마에 맞는 바탕, 문 카드는 누를 수 있게 보이도록 */
+.forkw{background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine)}
+.door{background:color-mix(in srgb,var(--navyLine) 7%,var(--tile));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--navyLine) 65%,transparent);transition:box-shadow .15s,background .15s}
+.door:hover:not(:disabled){background:color-mix(in srgb,var(--navyLine) 14%,var(--tile));box-shadow:inset 0 0 0 2px var(--navyLine)}
+.door .dpk{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.door .dgo{align-self:flex-start;padding:5px 12px;font-size:12px;background:var(--navy);color:var(--onNavy)}
+.door:disabled .dgo{opacity:1;background:transparent;color:var(--sub);box-shadow:inset 0 0 0 1px var(--tileLine)}
+[data-theme=light] .door .dpk.ok b{color:#1F6B3E}[data-theme=light] .door .dpk.bad b{color:#9A5A10}
 /* 경고 팝업 */
 #toasts{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,460px)}
 .r8toast{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;line-height:1.45;color:var(--ink);background:var(--tile);box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 60%,transparent),0 8px 24px rgba(0,0,0,.35);animation:toastIn .2s ease-out;transition:opacity .45s,transform .45s}
