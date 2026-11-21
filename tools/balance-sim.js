@@ -73,13 +73,22 @@ function fieldPick(r, mem, taken) {
 }
 // 포지션 봇: 자기 포지션 행동이 필요하면 그것부터, 아니면 일반 판단(fieldPick)
 // 기본 편성(CLS 환경 변수로 바꿀 수 있다. 예: CLS=atk,tech,med,def)
-const CLS_DEF = { 1: ['atk'], 2: ['atk', 'tech'], 3: ['atk', 'med', 'tech'], 4: ['atk', 'med', 'tech', 'def'] };
+// 출발 장비 편성(CLS=weapon,radio,medkit 처럼). 장비와 상관없이 누구나 관제실 요청·치료를 할 수 있다.
+const CLS_DEF = { 1: ['weapon'], 2: ['weapon', 'radio'], 3: ['weapon', 'medkit', 'radio'], 4: ['weapon', 'medkit', 'radio', 'detector'] };
+// 봇 분담: 관제실 요청은 통신기 든 요원(없으면 선두가 아닌 첫 요원), 치료는 구급상자(없으면 응급처치 기능 있는 요원)
+function duty(r) {
+  const team = r.members.filter(x => x.role === 'field' && !x.dead && !x.broken), lead = x => ['front', 'solo'].includes(posOf(r, x.uid));
+  const tech = team.find(x => x.cls === 'radio') || team.find(x => !lead(x)) || team[0];
+  const med = team.find(x => x.cls === 'medkit') || team.find(x => x.sk && x.sk['응급처치']) || null;
+  return { tech: tech && tech.uid, med: med && med.uid };
+}
 function classPick(r, mem, taken) {
   const sc = D(r).scenes[r.scene], facsOf = G('facsOf'), p = posOf(r, mem.uid);
   const team = r.members.filter(x => x.role === 'field' && !x.dead);
   const lead = p === 'front' || p === 'solo';
   const adv0 = sc.choices ? sc.choices.filter(c => c.adv !== false) : [], needLead = !sc.fork && adv0.length && adv0.every(c => c.reach && r.pos < sc.map.len - REACH_M) && !r.minions.some(x => x.side === 'front');
-  if (mem.cls === 'tech') {
+  const DU = duty(r);
+  if (DU.tech === mem.uid) {
     if (r.noise && r.count <= 4) return ['act', mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam'];
     if (sc.fork) { const d = sc.doors.find(x => !x.peeked); if (d && !sc.doors.some(x => x.peeked && (x.risk === 'none' || x.risk === 'cache'))) return ['act', 'peek-' + d.id]; return null; }
     if (r.minions.some(x => x.side === p || p === 'solo')) return null;
@@ -92,7 +101,7 @@ function classPick(r, mem, taken) {
     if (r.support < 2 && !taken.has('sup')) { taken.add('sup'); return ['act', 'sup']; }
     return null;
   }
-  if (mem.cls === 'med') {
+  if (DU.med === mem.uid) {
     const crit = lead && needLead ? 0.25 : 1;
     const lowS = team.filter(x => x.san < x.sanMax * 0.4 * crit).sort((a, b) => a.san / a.sanMax - b.san / b.sanMax)[0];
     if (lowS) return ['act', 'calm-' + lowS.uid];
@@ -100,15 +109,11 @@ function classPick(r, mem, taken) {
     if (lowH) return ['act', 'heal-' + lowH.uid];
     return null;
   }
-  if (mem.cls === 'def' && !taken.has('cover') && !(lead && needLead)) {
-    const threat = r.minions.some(x => x.intent === 'bite' || x.intent === 'scream') || r.dist <= sc.speed + 1;
-    if (threat && (r.minions.length || r.dist <= 10)) { taken.add('cover'); return ['act', 'guard']; }
-  }
   return null;
 }
 function runOne(opId, nField, withCtrl) {
   resetBots(); runs.delete(opId); lobbyOf(opId);
-  const cl0 = process.env.CLS ? process.env.CLS.split(',') : CLS_DEF[nField], BI = { atk: 0, med: 1, tech: 2, def: 3 };
+  const cl0 = process.env.CLS ? process.env.CLS.split(',') : CLS_DEF[nField], BI = { weapon: 0, medkit: 1, radio: 2, detector: 3 };
   const used = new Set(), team = cl0.slice(0, nField).map(c => { let i = BI[c]; while (used.has(i)) i = (i + 1) % 4; used.add(i); return BOTS[i]; });
   team.forEach(b => opJoin(b.uid, opId, 'field'));
   team.forEach((b, i) => G('opCls')(b.uid, opId, cl0[i]));

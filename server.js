@@ -213,7 +213,7 @@ const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catc
 const TITLES = [
   { id: 'rookie', name: '신입 요원', desc: '작전을 처음으로 마친다.', key: 'ops', need: 1 },
   { id: 'veteran', name: '현장 베테랑', desc: '작전을 10번 성공한다.', key: 'success', need: 10 },
-  { id: 'voice', name: '무전 너머의 목소리', desc: '기술 포지션으로 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
+  { id: 'voice', name: '무전 너머의 목소리', desc: '통신기를 챙겨 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
   { id: 'night', name: '야간 근무자', desc: '기지 관리 작업을 10번 마친다.', key: 'tasks', need: 10 },
   { id: 'steady', name: '침착한 손', desc: '관리 작업 중 이상 징후에 10번 대응한다.', key: 'signs', need: 10 },
   { id: 'tankreg', name: '수조 단골', desc: '재생 수조에서 3번 재생된다.', key: 'deaths', need: 3 },
@@ -416,7 +416,7 @@ const RADAR_RANGE = 50, STEP_M = 10, RECOIL_M = 8, COUNT_EVERY = 4, MINION_CAP =
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
-  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 4, ctrl: 0, level: 3, rec: { field: [3, 4], ctrl: [0, 0] }, count: 8, countEvery: 4, entity: 'AO-212',
+  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 8, countEvery: 4, entity: 'AO-212',
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 개체가 셈을 마치기 전에 장치를 다시 설치하고 귀환하십시오.',
@@ -478,7 +478,7 @@ const OPS = [{
 /* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
 // 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
 const PATROL_SECTIONS = 3, REACH_M = 6, PATROL_STAB = 15;
-OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 4, ctrl: 0, level: 2, rec: { field: [2, 4], ctrl: [0, 0] }, count: 8, countEvery: 4, recoil: 12,
+OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 8, countEvery: 4, recoil: 12,
   brief: '하층 B3 구역 정기 순찰입니다. 구역 문을 지나 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
   sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
   countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
@@ -761,7 +761,7 @@ function opJoin(uid, opId, role) {
   r.members = r.members.filter(m => m.uid !== String(uid));
   if (r.members.filter(m => m.role === role).length >= cap) return 'op/full';
   const mx = maxes(row);
-  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), cls: (prev && prev.cls) || suggestCls(row), dead: false, broken: false, acted: false, ready: false });
+  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), cls: (prev && CLS[prev.cls] && prev.cls) || suggestCls(row), kitFree: 0, dead: false, broken: false, acted: false, ready: false });
   return null;
 }
 function opLeave(uid, opId) {
@@ -777,15 +777,19 @@ function opReady(uid, opId, on) {
 /* ───────── 라운드: 현장 요원은 라운드마다 행동을 하나씩 고른다 ─────────
    모두 고르거나 제한 시간이 지나면 고른 순서대로 실행하고(고르지 못한 요원은 대기), 그 뒤에 한 턴이 흐른다
    (하수인 행동 → 개체 접근 → 귀환 신호). 관제 행동과 소모품은 고르는 즉시 일어난다. */
-/* ───────── 포지션: 대기실에서 작전마다 고른다 ─────────
-   돌격: 공격 판정 주사위 +1, 맞히면 피해 +1
-   방어: 막기가 대열 전원을 지키고, 그 라운드의 개체 접촉 피해도 절반
-   치유: 응급 처치(HP)와 정신 안정(정신력)을 할 수 있다
-   기술: 관제실(NPC)에 시설 조작·비컨·문 확인·지원 연결·잡음 해독을 요청한다 */
-const CLS = { atk: '돌격', def: '방어', med: '치유', tech: '기술' };
+/* ───────── 출발 장비: 대기실에서 작전마다 하나 챙긴다(무료) ─────────
+   역할은 정해져 있지 않다. 누구나 공격·치료·관제실 요청을 할 수 있고, 장비가 잘하는 쪽을 정한다.
+   무기: 공격 판정 주사위 +1, 맞히면 피해 +1
+   탐지기: 은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률이 늘어난다
+   구급상자: 응급처치·정신 안정 주사위 +1, 응급처치 기능이 없어도 치료할 수 있다, 구급 키트 1회분
+   통신기: 관제실 요청(시설·비컨·지원 연결·잡음 해독) 주사위 +1
+   (내부 필드 이름은 예전 포지션 그대로 cls를 쓴다) */
+const CLS = { weapon: '무기', detector: '탐지기', medkit: '구급상자', radio: '통신기' };
+const gearDie = (m, g) => m && m.cls === g ? 1 : 0;
 function suggestCls(row) {
-  const sk = skAll(row) || {}, sc = { atk: (sk['격투'] || 0) + (sk['사격'] || 0), def: (sk['인내'] || 0) + (sk['운반'] || 0), med: (sk['응급처치'] || 0) * 2, tech: (sk['장비 운용'] || 0) + (sk['통신'] || 0) + (sk['기록 해독'] || 0) };
-  return Object.entries(sc).sort((a, b) => b[1] - a[1])[0][1] ? Object.entries(sc).sort((a, b) => b[1] - a[1])[0][0] : 'atk';
+  const sk = skAll(row) || {}, sc = { weapon: (sk['격투'] || 0) + (sk['사격'] || 0), detector: (sk['은신'] || 0) + (sk['관찰'] || 0), medkit: (sk['응급처치'] || 0) * 2, radio: (sk['장비 운용'] || 0) + (sk['통신'] || 0) + (sk['기록 해독'] || 0) };
+  const top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+  return top[1] ? top[0] : 'weapon';
 }
 function opCls(uid, opId, cls) {
   const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
@@ -795,11 +799,11 @@ function opCls(uid, opId, cls) {
 }
 function classAct(v) {
   let x;
-  if (v === 'sup') return { k: 'support', cls: 'tech' };
-  if ((x = /^fac-(\w+)$/.exec(v))) return { k: 'fac', t: x[1], cls: 'tech' };
-  if ((x = /^peek-([ab])$/.exec(v))) return { k: 'peek', t: x[1], cls: 'tech' };
-  if (v === 'decode' || v === 'jam') return { k: v, cls: 'tech' };
-  if ((x = /^calm-(.+)$/.exec(v))) return { k: 'stabilize', t: x[1], cls: 'med' };
+  if (v === 'sup') return { k: 'support' };
+  if ((x = /^fac-(\w+)$/.exec(v))) return { k: 'fac', t: x[1] };
+  if ((x = /^peek-([ab])$/.exec(v))) return { k: 'peek', t: x[1] };
+  if (v === 'decode' || v === 'jam') return { k: v };
+  if ((x = /^calm-(.+)$/.exec(v))) return { k: 'stabilize', t: x[1] };
   if (v === 'raven1') return { k: 'raven1' };
   return null;
 }
@@ -844,9 +848,9 @@ function pickCheck(r, uid, kind, v) {
     if (mt[1] === 'shv') return melee ? [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
     return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
   }
-  if (v === 'guard') return m.cls === 'def' ? (r.minions.length || r.dist <= 10 ? [null, '엄호'] : ['op/no-foe']) : r.minions.length ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'guard') return r.minions.length ? [null, '막기'] : ['op/no-foe'];
   if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
-  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (m.cls !== 'med') return ['op/cls']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
+  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
   const c = sc.choices.find(x => x.id === v); if (!c) return ['op/bad-choice'];
   if (!posOk(r, uid, c.pos)) return ['op/pos'];
   if (c.reach && r.pos < sc.map.len - REACH_M) return ['op/not-there'];
@@ -922,7 +926,8 @@ function opStart(uid, opId) {
   r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
-  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name} ${CLS[m.cls] || ''}`).join(', ')}).`, { kind: 'sys' });
+  r.members.forEach(m => { if (!CLS[m.cls]) m.cls = 'weapon'; m.kitFree = m.cls === 'medkit' ? 1 : 0; });
+  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name}: ${CLS[m.cls]}`).join(', ')}).`, { kind: 'sys' });
   say(r, '관제실: 작전 개시를 승인한다. 개체 거리와 이상 징후는 이 회선으로 하달한다.', { kind: 'radio', name: '관제실' });
   r.band = 0;
   say(r, `대열 편성: ${lineOf(r).map(m => m.name).join(' → ')} (민첩이 높은 요원이 선두에 선다)`, { kind: 'sys' });
@@ -949,7 +954,7 @@ function applyFx(r, m, fx) {
 function checkBodies(r) {
   r.members.forEach(m => {
     if (!m.dead && m.hp <= 0) { m.dead = true; m.recovered = false; say(r, `${m.name} 요원의 생체 신호가 끊겼다. 동료가 회수하지 못하면 RAVEN-4가 출동한다.`, { kind: 'death', uid: m.uid }); }
-    if (!m.dead && !m.broken && m.san <= 0) { m.broken = true; m.recovered = false; say(r, `${m.name} 요원의 정신이 붕괴했다. 치유 요원이 정신을 안정시키거나 동료가 회수해야 한다.`, { kind: 'warn', uid: m.uid }); }
+    if (!m.dead && !m.broken && m.san <= 0) { m.broken = true; m.recovered = false; say(r, `${m.name} 요원의 정신이 붕괴했다. 동료가 정신을 안정시키거나 회수해야 한다.`, { kind: 'warn', uid: m.uid }); }
   });
 }
 const fieldMember = (r, uid) => r.members.find(x => x.uid === String(uid) && x.role === 'field');
@@ -1021,7 +1026,7 @@ function shiftTick(r) {
   if (Math.random() >= SHIFT_CHANCE) return;
   const kinds = ['extend', 'marks', 'flip'].concat(r.fac && r.fac.pwr ? ['power', 'power'] : []);
   r.shift = { kind: pick(kinds), at: r.turn + 1 };
-  say(r, `관제실: 하층 도면 좌표 이상. 다음 턴 종료 시 구조 변형(${SHIFT_KINDS[r.shift.kind].name}) 예상.${r.members.some(m => m.cls === 'tech' && !m.dead) ? ' 기술 요원은 기준점 비컨을 가동할 것.' : ' 비컨 가동 인원 없음. 변형에 대비할 것.'}`, { kind: 'radio', name: '관제실' });
+  say(r, `관제실: 하층 도면 좌표 이상. 다음 턴 종료 시 구조 변형(${SHIFT_KINDS[r.shift.kind].name}) 예상. 기준점 비컨 가동을 요청할 것.`, { kind: 'radio', name: '관제실' });
 }
 function shiftApply(r) {
   const o = D(r), sc = o.scenes[r.scene], k = r.shift.kind; let text, fx = null;
@@ -1075,7 +1080,7 @@ function minionsAttack(r) {
     if (act === 'stun') { say(r, `${jo(nm, '이', '가')} 비틀거리며 자세를 다시 잡는다.`, { kind: 'contact' }); }
     else if (act === 'brace') { f.braced = true; say(r, `${jo(nm, '이', '가')} 몸을 웅크렸다. 다음 공격을 절반만 받는다.`, { kind: 'contact' }); }
     else if (act === 'call') { say(r, `${jo(nm, '이', '가')} 길게 울었다. 어둠 속에서 무언가 대답한다.`, { kind: 'contact' }); spawnMinion(r, sd, 1); }
-    else if (Math.random() < STEALTH_DODGE * lvOf(t, '은신')) { say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었지만, 요원은 이미 그 자리에 없었다. (은신)`.replace('  ', ' '), { kind: 'contact', uid: t.uid }); }
+    else if (Math.random() < STEALTH_DODGE * (lvOf(t, '은신') + (t.cls === 'detector' ? 2 : 0))) { say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었지만, 요원은 이미 그 자리에 없었다. (은신)`.replace('  ', ' '), { kind: 'contact', uid: t.uid }); }
     else if (act === 'scream') {
       let d = grit(t, sanD(-1)); if (t.guard) d = Math.min(-1, Math.round(d / 2));
       say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원의 귀에 대고 비명을 질렀다.${t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { san: d } });
@@ -1099,7 +1104,6 @@ function entityStep(r) {
   const L = lineOf(r); if (!L.length) return;
   const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
   const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san);
-  if (r.cover === r.turn - 1) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); c.text += ' (엄호로 절반)'; }
   say(r, c.text.replace('{name}', t.name), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
   applyFx(r, t, c);
   r.dist = o.recoil || RECOIL_M;
@@ -1189,7 +1193,7 @@ function actExec(r, uid, choiceId) {
   const row = Q.agent.get(uid);
   const sup = r.support; r.support = 0;
   const ease = c.adv !== false && r.fac && r.fac.ease ? 1 : 0, diff = Math.max(1, c.diff - ease);
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup, isDark(r) ? 1 : 0);
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0), isDark(r) ? 1 : 0);
   const tier = tierOf(res.succ, diff);
   const raw = c[tier], out = scaleFx(typeof raw === 'string' ? { text: raw } : raw); if (out.san) out.san = grit(m, out.san);
   const fx = ['hp', 'san', 'cont', 'count', 'sup', 'push'].some(k => out[k]) ? { hp: out.hp, san: out.san, cont: out.cont, count: out.count, sup: out.sup, push: out.push } : null;
@@ -1217,7 +1221,7 @@ function opFight(r, m, uid, side) {
   if (!melee && !ranged) return 'op/pos';
   const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const atk = m.cls === 'atk';
+  const atk = m.cls === 'weapon';
   const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
   const tier = tierOf(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
@@ -1253,12 +1257,6 @@ function opShove(r, m, uid, side) {
 }
 // 막기: 판정 없이 이번 차례 하수인에게 받는 피해(물기·비명)를 절반으로 줄인다.
 function opGuard(r, m, uid) {
-  if (m.cls === 'def') {
-    if (!r.minions.length && r.dist > 10) return 'op/no-foe';
-    r.members.filter(x => x.role === 'field' && !x.dead).forEach(x => { x.guard = true; }); r.cover = r.turn;
-    say(r, `${m.name} 요원이 방패를 세우고 대열을 엄호했다. 이번 라운드에 받는 피해가 절반으로 준다.`, { kind: 'sys', uid: m.uid });
-    return endTurn(r);
-  }
   if (!r.minions.length) return 'op/no-foe';
   m.guard = true;
   say(r, `${m.name} 요원이 자세를 낮추고 막을 준비를 했다.`, { kind: 'sys', uid: m.uid });
@@ -1269,11 +1267,11 @@ const needsRecovery = m => m.role === 'field' && !m.recovered && (m.dead || m.br
 // 응급처치: 기능이 있는 현장 요원이 다친 동료(자기 자신 포함)의 체력을 회복한다. 지능 + 응급처치, 보통(2).
 const canHeal = t => t.role === 'field' && !t.dead && t.hp < t.hpMax;
 function opHeal(r, m, uid, target) {
-  if (m.cls !== 'med') return 'op/cls';
+  if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return 'op/no-skill';
   const t = r.members.find(x => x.uid === String(target));
   if (!t || !canHeal(t)) return 'op/no-target';
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 3, '응급처치', sup);
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 3, '응급처치', sup + gearDie(m, 'medkit'));
   const tier = tierOf(res.succ, 2), heal = { crit: hpD(3), ok: hpD(2), cost: hpD(1), fail: 0 }[tier], who = t === m ? '자기' : `${t.name} 요원의`;
   const txt = { crit: `${who} 상처를 빠르게 봉합했다. 출혈이 멎었다.`, ok: `${who} 상처를 지혈했다.`, cost: `${who} 상처를 감았지만 붕대가 금세 젖는다.`, fail: `손이 떨려 ${who} 상처를 제대로 감지 못했다.` }[tier];
   say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: t === m ? '자가 응급 처치' : `${t.name} 응급 처치`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: heal ? { hp: heal } : null });
@@ -1325,14 +1323,16 @@ function opItem(uid, opId, id) {
   if (m.dead) return 'op/dead'; if (m.broken) return 'op/broken';
   if (m.itemTurn === r.turn) return 'op/item-wait';
   const row = Q.agent.get(uid), v = invOf(row), it = SHOP_BY[id];
-  if (!it || it.kind !== 'use' || !(v.items[id] > 0)) return 'shop/none';
+  const free = id === 'kit' && m.kitFree > 0; // 구급상자에 든 구급 키트 1회분
+  if (!it || it.kind !== 'use' || !(free || v.items[id] > 0)) return 'shop/none';
   const team = r.members.filter(x => x.role === 'field' && !x.dead);
   if (id === 'kit') { const t = team.filter(x => x.hp < x.hpMax).sort((a, b) => a.hp / a.hpMax - b.hp / b.hpMax)[0]; if (!t) return 'op/no-need';
     const h = Math.min(30, t.hpMax - t.hp); t.hp += h; say(r, `${m.name} 요원이 구급 키트를 썼다. ${t.name} 요원 HP +${h}.`, { kind: 'sys' }); }
   else if (id === 'calm') { const t = team.filter(x => x.san < x.sanMax).sort((a, b) => a.san / a.sanMax - b.san / b.sanMax)[0]; if (!t) return 'op/no-need';
     const h = Math.min(30, t.sanMax - t.san); t.san += h; if (t.broken && t.san > 0) t.broken = false; say(r, `${m.name} 요원이 진정제를 썼다. ${t.name} 요원 정신력 +${h}.`, { kind: 'sys' }); }
   else if (id === 'flare') { if (!r.minions.length) return 'op/no-need'; const n = r.minions.length; r.minions = []; say(r, `${m.name} 요원이 섬광탄을 던졌다. 하수인 ${n}마리가 빛을 피해 흩어졌다.`, { kind: 'sys' }); }
-  v.items[id]--; saveInv(uid, v); m.itemTurn = r.turn; m.items = v.items;
+  if (free) m.kitFree--; else { v.items[id]--; saveInv(uid, v); }
+  m.itemTurn = r.turn; m.items = v.items;
   pushAgent(uid);
   return null;
 }
@@ -1340,14 +1340,14 @@ function opItem(uid, opId, id) {
 function classExec(r, m, kind, target) {
   const o2 = D(r), row = Q.agent.get(Number(m.uid));
   if (kind === 'support') {
-    const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
+    const res = rollPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
     r.support = Math.min(SUPPORT_MAX, r.support + add); 
     say(r, add ? `관제 회선 연결. 다음 판정에 지원 주사위 ${add}개를 보탠다.` : '지원 신호가 잡음에 묻혔다.', { kind: 'roll', uid: m.uid, name: m.name, label: '관제 지원 연결', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'stabilize') {
     const t = r.members.find(x => x.uid === String(target) && !x.dead && (x.role === 'field'));
     if (!t) return 'op/bad-target';
     if (t.san >= t.sanMax) return 'op/no-need';
-    const res = rollPool(row, 5, '응급처치', 0), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
+    const res = rollPool(row, 5, '응급처치', gearDie(m, 'medkit')), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
     t.san = Math.min(t.sanMax, t.san + heal); if (t.broken && t.san > 0) t.broken = false; 
     say(r, heal ? `${t.name} 요원의 호흡이 가라앉았다. (정신력 +${heal})` : `${t.name} 요원은 아직 눈의 초점이 돌아오지 않는다.`, { kind: 'roll', uid: m.uid, name: m.name, label: `${t.name} 정신 안정`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'raven1') {
@@ -1373,7 +1373,7 @@ function classExec(r, m, kind, target) {
     
     if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제실 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
     const read = grit(m, sanD(-0.5)); m.san = Math.max(0, m.san + read);
-    const res = rollPool(row, 3, '기록 해독', 0), tier = tierOf(res.succ, 2);
+    const res = rollPool(row, 3, '기록 해독', gearDie(m, 'radio')), tier = tierOf(res.succ, 2);
     let txt, extra = 0;
     if (tier === 'fail') { extra = grit(m, sanD(-0.6)); txt = '읽어 내지 못했다. 글자들이 눈 안쪽에서 계속 움직인다.'; }
     else {
@@ -1399,7 +1399,7 @@ function classExec(r, m, kind, target) {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
     if (F.id === 'beacon') {
       r.beaconUntil = r.turn + BEACON_TURNS;
-      const res = rollPool(row, 3, '통신', 0), tier = tierOf(res.succ, F.diff);
+      const res = rollPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
       let txt;
       if (tier === 'fail') txt = '비컨 신호가 하층의 잡음에 묻혔다. 좌표를 붙들지 못했다. 심연은 신호를 들었다.';
       else { const k = SHIFT_KINDS[r.shift.kind].name; r.shift = null; r.shiftDone = true; txt = `기준점 비컨이 원래 도면 좌표를 송출했다. 구조가 제자리에 붙들렸다(${k} 차단). 심연도 그 신호를 들었다.`; }
@@ -1409,7 +1409,7 @@ function classExec(r, m, kind, target) {
     if (F.on) return 'op/used';
     if (F.id === 'wall' && !F.need) return 'op/no-target';
     
-    const res = rollPool(row, 3, '장비 운용', 0), tier = tierOf(res.succ, F.diff);
+    const res = rollPool(row, 3, '장비 운용', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
     let txt;
     if (F.id === 'pwr') {
       if (tier === 'fail') { txt = '구역 전원을 올리다 회로가 튀었다. 비상등만 깜빡이고, 관제 화면에 잡음이 번진다.'; noiseStart(r); }
@@ -1482,7 +1482,7 @@ function opFinish(r, result) {
   say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: 보급품 ${reward.supply}, 연구 자료 ${reward.research}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
   sectorOnOp(r.op, result, r.members.map(m => m.name).join(', '));
   for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
-  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'tech' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
+  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'radio' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
   r.members.forEach(m => { const row = Q.agent.get(Number(m.uid)); if (row) io.emit('agent', publicAgent(row)); });
   emitSector();
   return null;
