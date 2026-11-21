@@ -743,7 +743,7 @@ button.tile:hover{box-shadow:inset 0 0 0 1px var(--navyLine)}
 .dmi .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:11px;color:var(--sub)}.dmi.un b{color:var(--navyLine)}
 .dmnote{font-size:11px;margin-top:6px}.chat .list.dml .first{margin-top:0}.chat .list.dml{gap:8px}
 .toast{position:fixed;left:50%;top:84px;transform:translate(-50%,-12px);opacity:0;pointer-events:none;z-index:90;display:flex;gap:10px;align-items:center;max-width:min(640px,92vw);padding:12px 18px;border-radius:4px;background:var(--navy);color:var(--onNavy);box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .25s,transform .25s}
-.toast.on{opacity:1;transform:translate(-50%,0)}.toast.alert{background:var(--red);color:#fff}.toast b{font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;font-size:16px}
+.toast.on{opacity:1;transform:translate(-50%,0)}.toast.alert{background:var(--red);color:#fff}.toast b{flex:none;white-space:nowrap;font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;font-size:16px}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 @media (max-width:999px){.gmbody{grid-template-columns:1fr}.gmsplit{grid-template-columns:1fr}.gent{grid-template-columns:1fr 1fr}.gm .top{flex-wrap:wrap;height:auto;padding:12px}}
 @media (min-width:1000px) and (max-width:1279px){.body3{grid-template-columns:290px minmax(0,1fr) 300px;gap:16px;padding:20px 16px 16px}.opsmode .body3{grid-template-columns:minmax(0,1fr) 300px}.res em{display:none}}
@@ -973,7 +973,9 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .rq{width:96px;height:30px;border:0;border-radius:4px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;background:var(--faint);color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}.rq.on{background:var(--sc);color:#141414;box-shadow:none}.rq.eq{background:var(--navy);color:var(--onNavy);box-shadow:none}.rq.eq.on{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--tileLine)}
 .pvb{flex:none;height:26px;padding:0 9px;border:0;border-radius:3px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:var(--sc);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 60%,transparent)}.pvb.on{background:var(--sc);color:#141414}
 .ssub{display:flex;align-items:baseline;gap:8px;padding:8px 14px 6px;background:color-mix(in srgb,var(--ink) 3%,transparent);border-bottom:1px solid var(--tileLine)}.ssub b{font-size:12px;color:var(--sc)}.ssub small{font-size:11px;color:var(--sub)}
-.toast.ach{box-shadow:inset 0 0 0 1.5px #C8A040}.toast.ach b{color:#C8A040}
+.toast.ach{background:#2A2210;color:#F2E2B8;box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1.5px #C8A040}.toast.ach b{color:#F0C774}
+[data-theme=light] .toast.ach{background:#FFF6DC;color:#3D2C05;box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 0 0 1.5px #A87B12}[data-theme=light] .toast.ach b{color:#7A5600}
+[data-theme=light] .ach.got .at b,[data-theme=light] .ach .ok2{color:#7A5600}[data-theme=light] .ach .pg i span{background:#A87B12}
 .reqf{min-height:0;display:flex;flex-direction:column;margin:14px;border-radius:5px;overflow:hidden;background:#E9E6DD;color:#1C1C1A;box-shadow:0 10px 24px rgba(0,0,0,.25)}
 .reqf .rh{padding:16px 18px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1.5px dashed rgba(0,0,0,.25)}.reqf .rh .bb{font-size:20px;letter-spacing:.14em;line-height:1}.reqf .rh small{font-size:11px;color:#5A5A56}
 .reqf .rl2{flex:1;min-height:0;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:8px}
@@ -2748,7 +2750,7 @@ function opRank(r) {
     + (TH_N[r.op.threat] || 0) * 10 - (r.op.patrol ? 60 : 0) - (sealed ? 400 : 0) - (r.status === 'done' ? 100 : 0);
 }
 const opsSorted = () => Object.values(S.ops || {}).sort((a, b) => opRank(b) - opRank(a));
-const KIND = (k, ev) => (k === 'secure' || k === 'combat' ? '<span class="okind k-secure" title="확보 작전: 탈출했거나 새로 나타난 개체를 쓰러뜨려 격리한다">확보</span>' : k === 'sweep' ? '<span class="okind k-sweep" title="소탕 작전: 몰려오는 하수인을 정해진 수만큼 처리한다. 보급품이 많다">소탕</span>' : '<span class="okind k-explore" title="탐사 작전: 하층을 지나 목표 지점까지 간다. 연구 자료가 많다">탐사</span>') + (ev ? '<span class="okind k-event" title="이벤트 작전">이벤트</span>' : '');
+const KIND = (k, ev) => (k === 'secure' || k === 'combat' ? '<span class="okind k-secure" title="확보 작전: 탈출했거나 새로 나타난 개체를 쓰러뜨려 격리한다">확보</span>' : k === 'sweep' ? '<span class="okind k-sweep" title="소탕 작전: 몰려오는 하수인을 정해진 수만큼 처리한다. 보급품이 많다">소탕</span>' : '<span class="okind k-explore" title="탐사 작전: 하층을 지나 목표 지점까지 간다. 연구 자료가 많다">탐사</span>');
 const OP_ST = r => r.sealedUntil > Date.now() && r.status === 'lobby' ? 'RAVEN-3 봉쇄' : ({ lobby: '대기실', live: '진행 중', done: '종료' })[r.status];
 function opRowHTML(r, act, sel) {
   const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
