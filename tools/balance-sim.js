@@ -83,6 +83,8 @@ function duty(r) {
   return { tech: tech && tech.uid, med: med && med.uid };
 }
 function classPick(r, mem, taken) {
+  // 대응: 나를 노리는 하수인 예고가 있으면 받아친다(CTR=0 이면 안 씀)
+  if (process.env.CTR !== '0' && G('foeAt')(r, mem) && Math.random() < 0.6) return ['act', 'ctr'];
   // 팀 고유 기술: 쓸 수 있고 쓸 만하면 먼저 쓴다(SK=0 이면 안 씀)
   if (process.env.SK !== '0' && !G('skillPre')(r, mem)[0]) {
     const k = G('TEAMS')[mem.team].sk.id, fld = r.members.filter(x => x.role === 'field' && !x.dead);

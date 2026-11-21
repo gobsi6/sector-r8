@@ -1798,6 +1798,9 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 /* 팀 고유 기술 카드 */
 .choice2.tsk{box-shadow:inset 0 0 0 1.5px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}.choice2.tsk>b{display:flex;align-items:baseline;gap:8px;color:var(--c)}.choice2.tsk .tskn{font-size:11px;font-weight:700;color:var(--sub)}
 .choice2.tsk[disabled]{opacity:.6;background:transparent}
+/* 대응 카드 */
+.choice2.ctr{box-shadow:inset 0 0 0 1.5px #F0C774;background:color-mix(in srgb,#F0C774 10%,transparent)}.choice2.ctr>b{display:flex;align-items:baseline;gap:8px;color:#F0C774}.choice2.ctr .tskn{font-size:11px;font-weight:700;color:var(--sub)}
+[data-theme=light] .choice2.ctr{box-shadow:inset 0 0 0 1.5px #A87B12}[data-theme=light] .choice2.ctr>b{color:#7A5600}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2307,7 +2310,7 @@ function badgeHTML(a, { preview = false } = {}) {
     <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
       <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</dd><dt>상태</dt><dd class="ok" style="${stateOf(a).k === 'regen' ? 'color:var(--red)' : ''}">${stateOf(a).t}</dd></dl></div></div>
   <div class="stats">${stats}</div>
-  <dl class="info"><dt>소속</dt><dd>${ROLES[a.role][0]}</dd><dt>변질</dt><dd>${tl.length ? esc(tl.map(traitName).join(', ')) + ` <span class="sub">(${tl.length}/5)</span>` : '없음'}</dd><dt>기능</dt><dd>${esc(Object.entries(a.skills || {}).sort((p, q) => q[1] - p[1]).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</dd><dt>출동 기록</dt><dd>출동 ${a.opsDone || 0}회${a.career ? `, 계급 ${a.career.rank}` : ''}</dd></dl>
+  <dl class="info"><dt>소속</dt><dd>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : ROLES[a.role][0]}</dd>${teamOf(a) ? (() => { const n = a.opsDone || 0, lv = n >= SK_LV_C[3] ? 3 : n >= SK_LV_C[2] ? 2 : 1; return `<dt>고유 기술</dt><dd>${teamOf(a).sk.label} ${lv}단계${lv < 3 ? ` <span class="sub">(출동 ${n}회, ${SK_LV_C[lv + 1]}회에 ${lv + 1}단계)</span>` : ''}</dd>`; })() : ''}<dt>변질</dt><dd>${tl.length ? esc(tl.map(traitName).join(', ')) + ` <span class="sub">(${tl.length}/5)</span>` : '없음'}</dd><dt>기능</dt><dd>${esc(Object.entries(a.skills || {}).sort((p, q) => q[1] - p[1]).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</dd><dt>출동 기록</dt><dd>출동 ${a.opsDone || 0}회${a.career ? `, 계급 ${a.career.rank}` : ''}</dd></dl>
   <span style="flex:1"></span>
   <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>만료 ${ymd(addYear(a.createdAt))}</span></div>
 </article>
@@ -3091,7 +3094,7 @@ function foeTarget(r, sd) {
   return line.length ? (sd === 'front' ? line[0] : line[line.length - 1]) : null;
 }
 // 하수인 예고: 무엇을 하는지 + 맞는 대응
-const INT_FX = { bite: 'HP 피해 · 막기로 절반', scream: '정신력 피해 · 막기로 절반', call: '이번 라운드에 쓰러뜨리지 못하면 하나 더 온다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', stun: '행동 없음 · 몰아칠 기회', unknown: '' };
+const INT_FX = { pounce: '큰 HP 피해 · 민첩으로 받아치거나 막기', bite: 'HP 피해 · 막기로 절반', scream: '정신력 피해 · 막기로 절반', call: '이번 라운드에 쓰러뜨리지 못하면 하나 더 온다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', stun: '행동 없음 · 몰아칠 기회', unknown: '' };
 const INT_TAG = { call: ['a', '부르기 · 지금 처치'], brace: ['d', '웅크림 · 피해 절반'], stun: ['cb', '비틀거림 · 기회'] };
 // 교전 중에는 감시 카메라·레이더 대신 한 줄 띠를 보여 준다
 function combatBarHTML(r) {
@@ -3125,7 +3128,7 @@ function combatActsHTML(r, me) {
       ${btn('opAct', 'atk-' + sd, 'atk', '공격', atkOut, !ok, combo && ok ? '협공 +2' : '')}
       ${melee ? btn('opAct', 'shv-' + sd, 'etc', '밀쳐 내기', `근력+격투 · 쉬움(1) · 성공하면 ${it2 === 'stun' ? '이미 비틀거림' : it2 === 'unknown' ? '다음 행동을 막음' : '다음 ' + esc(jo2(f.intentName || it2, '을', '를')) + ' 막음'}`) : ''}</div></div>`; };
   const sides = (r.minions || []).map(x => x.side), faces = p === 'solo' ? sides.length > 0 : (p === 'front' && sides.includes('front')) || (p === 'rear' && sides.includes('rear'));
-  const items = [['kit', '구급 키트', '가장 다친 요원 HP +30', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', '정신력 +30', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', '하수인을 모두 쫓아냄', (r.minions || []).length > 0]].filter(([k]) => it[k] > 0);
+  const items = [['kit', '구급 키트', '가장 다친 요원 HP +30', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', '정신력 +30', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', '하수인을 모두 쫓아냄', (r.minions || []).length > 0], ['stim', '자극제', '다음 판정 주사위 +2', !me.stim], ['marker', '표적 마커', '이번·다음 라운드 팀 공격 피해 +2', (r.minions || []).length > 0 || !!r.boss], ['amp', '기술 증폭기', '고유 기술 바로 다시 쓰기', !!me.team && (me.skNext || 0) > r.turn]].filter(([k]) => it[k] > 0);
   const self = [faces ? btn('opAct', 'guard', 'def', me.guard ? '막는 중' : '막기', '판정 없음 · 다음 하수인 공격 피해 절반', me.guard) : '',
     ...items.map(([k, n, out, need]) => btn('opItem', k, 'etc', `${n} ×${it[k]}`, used ? '이번 차례에 이미 썼습니다' : out, used || !need))].filter(Boolean).join('');
   const mine = self ? `<div class="cgrp me"><span class="cgh"><b class="n">나</b>${esc(me.name)}<small>${POSN[p] || ''}</small></span><div class="cgb">${self}</div></div>` : '';
@@ -3265,11 +3268,21 @@ function topCards(html) {
   const S2 = L.map((h, i) => ({ h, k: score(h) * 100 + i })).sort((a, b) => a.k - b.k);
   return { top: S2.slice(0, 3).map(x => x.h).join(''), rest: S2.slice(3).map(x => x.h).join(''), n: Math.max(0, S2.length - 3) };
 }
+// 대응 카드: 이번 라운드에 나를 노리는 하수인의 예고에 맞는 능력치로 받아친다
+const COUNTER_C = { bite: ['물기를 받아낸다', 1, '인내'], scream: ['비명을 버텨 낸다', 5, '인내'], pounce: ['덮치기를 흘려 낸다', 2, '격투'] };
+function counterCardHTML(r, me) {
+  const L = (r.order || []).map(u => r.members.find(m => m.uid === u)).filter(m => m && m.role === 'field' && !m.dead); if (!L.length) return '';
+  let f = null; for (const sd of ['front', 'rear']) { const x = (r.minions || []).find(y => y.side === sd); if (!x) continue; const t = sd === 'front' ? L[0] : L[L.length - 1]; if (t.uid === me.uid && COUNTER_C[x.intent || 'bite']) { f = x; break; } }
+  if (!f) return '';
+  const [lab, st, sk] = COUNTER_C[f.intent || 'bite'];
+  return `<button class="choice2 hide ctr" data-act="opAct" data-v="ctr"><b>${lab}<small class="tskn">대응 · ${esc(f.name)}의 ${esc(f.intentName || '')}</small></b><small>${SN[st]} + ${sk} · 보통(2)</small><em class="eff">성공하면 피해 없이 받아치고 상대가 다음 라운드에 비틀거린다. 대성공이면 되받아 피해 2. 하나 모자라면 피해 절반.</em></button>`;
+}
 // 팀 고유 기술 카드: 3라운드에 한 번. 쓸 수 없을 땐 남은 라운드를 보여 준다.
 function skillCardHTML(r, me) {
   const T = TEAMS_C[me.team]; if (!T || r.fork) return '';
-  const left = Math.max(0, (me.skNext || 0) - r.turn), D2 = ['', '쉬움', '보통', '어려움'][T.sk.diff];
-  return `<button class="choice2 hide tsk c-${T.gear}" data-act="opAct" data-v="sk" ${left ? 'disabled' : ''}><b>${T.sk.label}<small class="tskn">${T.name} 고유 기술</small></b><small>${SN[T.sk.stat]} + ${T.sk.skill} · ${D2}(${T.sk.diff}) · ${left ? `${left}라운드 뒤 다시 쓸 수 있음` : `쓰면 ${SK_CD_C}라운드 쉼`}</small><em class="eff">${esc(T.sk.desc)}</em></button>`;
+  const left = Math.max(0, (me.skNext || 0) - r.turn), D2 = ['', '쉬움', '보통', '어려움'][T.sk.diff], lv = me.skLv || 1, U = SK_UP[me.team] || [];
+  const up = lv >= 2 ? ` · ${U.slice(0, lv - 1).join(' · ')}` : '';
+  return `<button class="choice2 hide tsk c-${T.gear}" data-act="opAct" data-v="sk" ${left ? 'disabled' : ''}><b>${T.sk.label}<small class="tskn">${T.name} 고유 기술 · ${lv}단계</small></b><small>${SN[T.sk.stat]} + ${T.sk.skill} · ${D2}(${T.sk.diff}) · ${left ? `${left}라운드 뒤 다시 쓸 수 있음` : `쓰면 ${SK_CD_C - (lv >= 3 ? 1 : 0)}라운드 쉼`}</small><em class="eff">${esc(T.sk.desc)}${esc(up)}</em></button>`;
 }
 // 내 차례: 교전·장면 행동은 카드로, 이동과 소모품은 아래 한 줄로. 한 패널 안에서 끝난다.
 function myTurnHTML(r, me, combat) {
@@ -3282,6 +3295,7 @@ function myTurnHTML(r, me, combat) {
     : combat ? '하수인을 치워야 대열이 움직일 수 있다.'
     : reachNeed ? '구역 끝까지 전진해야 목표 행동을 할 수 있다.' : '';
   const cards = [
+    counterCardHTML(r, me),
     skillCardHTML(r, me),
     r.boss ? bossAtkHTML(r, me) : '',
     ...(combat && !r.fork ? (r.attacks || []).map(a => attackHTML(a, me, r)) : []), combat && !r.fork ? guardHTML(r, me) : '',
@@ -3329,7 +3343,9 @@ const TEAMS_C = {
   4: { name: 'RAVEN-4', role: '회수·의무', gear: 'medkit', stats: [1, 3], perk: '치료 주사위 +1, 기능 없이도 치료, 구급 키트 1회분', sk: { label: '응급 소생', stat: 3, skill: '응급처치', diff: 2, desc: '현장 전원의 체력 회복(대성공이면 정신력도)' } },
   5: { name: 'RAVEN-5', role: '돌격·선봉', gear: 'van', stats: [0, 1], perk: '받는 체력 피해 1 감소', sk: { label: '방패', stat: 1, skill: '인내', diff: 1, desc: '이번 라운드 동료에게 가는 공격을 대신 받고 절반으로(대성공이면 0)' } }
 };
-const SK_CD_C = 3;
+const SK_CD_C = 3, SK_LV_C = [0, 0, 5, 15];
+// 고유 기술 단계별 강화(2단계·3단계). 3단계는 쉬는 시간도 한 라운드 줄어든다.
+const SK_UP = { 1: ['피해 +1', '개체에게도 온전한 피해'], 2: ['피해 보너스 +1', '한 라운드 더 지속'], 3: ['하수인 2마리까지 묶음', '하수인 전부 묶음'], 4: ['회복량 한 단계 더', '정신력도 회복'], 5: ['방패를 든 사람 피해 −1 더', '성공만 해도 피해 0'] };
 const CLS = Object.fromEntries(Object.values(TEAMS_C).map(T => [T.gear, [T.name, `${T.role} · ${T.perk}`]]));
 const teamOf = a => TEAMS_C[(a && a.team) || 0] || null;
 const teamTag = a => { const T = teamOf(a); return T ? `<span class="clsb c-${T.gear}">${T.name}</span>` : ''; };
@@ -3339,7 +3355,8 @@ function teamPickHTML(sel, act) {
     <span class="h"><b class="bb">${T.name}</b><small>${T.role}</small></span>
     <span class="r"><i>주력</i><span>${T.stats.map(i => SN[i]).join(' · ')} 판정 주사위 +1</span></span>
     <span class="r"><i>특성</i><span>${esc(T.perk)}</span></span>
-    <span class="r"><i>기술</i><span><b>${T.sk.label}</b> ${esc(T.sk.desc)}</span></span></button>`).join('')}</div>`;
+    <span class="r"><i>기술</i><span><b>${T.sk.label}</b> ${esc(T.sk.desc)}</span></span>
+    <span class="r"><i>강화</i><span>출동 5회: ${esc(SK_UP[k][0])} · 15회: ${esc(SK_UP[k][1])}, 쉬는 시간 −1</span></span></button>`).join('')}</div>`;
 }
 const clsPickHTML = m => { const T = TEAMS_C[m.team]; return T ? `<span class="si">${T.role} · ${esc(T.perk)}</span><span class="si">고유 기술 「${T.sk.label}」 ${esc(T.sk.desc)}</span>` : '<span class="si">소속 팀이 없습니다.</span>'; };
 function recNote(r) {
@@ -3361,7 +3378,7 @@ const opSplit = (r, cls, body) => `<section class="pnl ops split${cls}"><div cla
 function opItemsHTML(r, me) {
   const it = { ...(r.tutItems || (S.me && S.me.inv && S.me.inv.items) || {}) }, used = me.itemTurn === r.turn;
   if (me.kitFree > 0) it.kit = (it.kit || 0) + me.kitFree; // 구급상자에 든 1회분
-  const L = [['kit', '구급 키트', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', (r.minions || []).length > 0]].filter(([k]) => it[k] > 0);
+  const L = [['kit', '구급 키트', r.members.some(m => m.role === 'field' && !m.dead && m.hp < m.hpMax)], ['calm', '진정제', r.members.some(m => m.role === 'field' && !m.dead && m.san < m.sanMax)], ['flare', '섬광탄', (r.minions || []).length > 0], ['stim', '자극제', !me.stim], ['marker', '표적 마커', (r.minions || []).length > 0 || !!r.boss], ['amp', '기술 증폭기', !!me.team && (me.skNext || 0) > r.turn]].filter(([k]) => it[k] > 0);
   if (!L.length) return '';
   return `<div class="opitems"><small>소모품${used ? ', 이번 차례에 이미 썼습니다' : ', 차례마다 하나'}</small>${L.map(([k, n, need]) => `<button class="btn g" data-act="opItem" data-v="${k}" ${used || !need ? 'disabled' : ''}>${n} <span class="bb">×${it[k]}</span></button>`).join('')}</div>`;
 }
