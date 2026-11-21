@@ -1,3264 +1,2427 @@
-// 용의 대륙 — 1단계 서버
-// 계정, 드래곤 생성, 지역 이동, 지역 채팅
+// 섹터 R-8 게임 서버
+// 계정, 캐릭터(요원), 접속 상태, 통신 채널을 맡는다.
+// 데이터는 SQLite 파일 하나에 저장한다. Railway에 볼륨을 붙이면 그 경로(RAILWAY_VOLUME_MOUNT_PATH)를 자동으로 쓴다.
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
 const crypto = require('crypto');
+const http = require('http');
 const express = require('express');
-const compression = require('compression');
-const bcrypt = require('bcryptjs');
 const { Server } = require('socket.io');
-
-const db = require('./db');
-const {
-  KINDS, REGIONS, STANCES, STATS, CREATION, derive, ITEMS, CREATURES, RULES, SLOTS, RECIPES, SHOPS, repTier, TRADE, NEST, FISHING,
-  STANCE_RULES, FAME_TIERS, fameTier, KIN, TALENTS, TRAITS, TRAIT_EARN, TRAIT_COUNTS,
-  COMBAT, BREATHS, BREATH_COST, ELEMENTS, SKILLS, STATUS, CREATURE_COMBAT, MIND, PURIFY, CRAFT, PLACES, REGION_PLACES, PLACE_RULES, HOARD_TIERS, RAID, SEASONS, WEATHERS, DEPART,
-} = require('./game-data');
-const logic = require('./game-logic');
-const mobs = require('./game-mobs'); // 모브 드래곤: 의뢰·이야기·교환
-const life = require('./game-life');
-// 예전 첫사랑 기록 채우기: 함께한 날들에 상대 이름이 들어간 줄 (한 번만, 이미 채운 아이는 건너뜀)
-{ const n = db.kinFixAll(life.loveDiaryFix); if (n) console.log(`첫사랑 기록 ${n}명 채움`); }
-// 예전 짝 기록 채우기: 마을로 내려간 식구의 짝이 살아 있는지 보려고 짝이 태어난 때·함께 사는지 (한 번만, 이미 채운 아이는 건너뜀)
-{ const n = db.kinFixAll(life.mateLiveFix); if (n) console.log(`짝 기록 ${n}명 채움`); }
-const { REGION_LOOT, SHOPS_SPECIAL, RUIN, FACILITY, KIN_TRAITS, KIN_PLAY, isTestDragon } = require('./game-data');
-
-// ── 물건을 얻는 곳: 제작 화면에서 재료를 누르면 보여 줌. 서버를 켤 때 한 번 정리해 둠 ──
-const ITEM_SOURCES = (() => {
-  const out = {};
-  const add = (id, text) => { if (!ITEMS[id]) return; (out[id] ||= []); if (!out[id].includes(text)) out[id].push(text); };
-  const rn = (r) => REGIONS[r]?.name || r;
-  const TIER = { common: '', uncommon: ' (가끔)', rare: ' (드물게)' };
-  for (const [r, loot] of Object.entries(REGION_LOOT)) for (const [tier, ids] of Object.entries(loot)) for (const id of ids || []) add(id, `${rn(r)} 탐사·채집${TIER[tier] || ''}`);
-  for (const p of Object.values(PLACES)) if (p.drop) add(p.drop, `${rn(p.region)} ${p.name} 사냥 (${p.creature})`);
-  add('beast_hide', '어디서든 사냥'); add('sharp_fang', '어디서든 사냥 (가끔)'); add('tough_sinew', '어디서든 사냥 (가끔)'); add('recipe_scroll', '강적을 쓰러뜨리면 가끔');
-  add('calamity_core', '대륙의 재앙을 쓰러뜨리면 (함께 싸운 드래곤 모두)');
-  add('blackened_scale', '오염된 사냥감·강적을 쓰러뜨리면'); add('blackened_scale', '오염된 곳에서 탐사·채집 (가끔)');
-  add('corrupt_crystal', '오염된 사냥감·강적을 쓰러뜨리면 (가끔)'); add('corrupt_crystal', '오염된 곳에서 탐사·채집 (드물게)');
-  for (const [r, ids] of Object.entries(SHOPS)) for (const id of ids) add(id, `${rn(r)} 시장${TRADE.dailyBuy?.[id] ? ` (하루 ${TRADE.dailyBuy[id]}개)` : ''}`);
-  for (const [r, ids] of Object.entries(SHOPS_SPECIAL || {})) for (const id of ids) add(id, `${rn(r)} 시장 (우호·평판이 높을 때)`);
-  for (const f of FISHING.fish) add(f.id, `${rn(FISHING.region)} 낚시${f.tier === 'rare' ? ' (드물게)' : f.tier === 'uncommon' ? ' (가끔)' : ''}${f.hint ? ` · ${f.hint}에 잘 묾` : ''}`);
-  for (const j of FISHING.junk?.items || []) add(j.id, `${rn(FISHING.region)} 낚시 (가끔 물고기 대신 걸려 올라옴)`);
-  add('bait_shrimp', `${rn(FISHING.region)} 채집`); add('salt_crystal', `${rn(FISHING.region)} 채집`);
-  add('bait_worm', `${rn(FISHING.region)} 위협 (적대)`); add('fish_mackerel', `${rn(FISHING.region)} 위협 (적대)`);
-  for (const m of Object.values(mobs.MOBS)) for (const t of m.trades || []) for (const id of Object.keys(t.get || {})) add(id, `${m.name}(${rn(m.region)})와 교환`);
-  for (const x of RUIN.exchange) add(x.id, `${rn(RUIN.gateTo)}의 생존자와 교환 (정화의 결정 ${x.cost})`);
-  add('purify_shard', `${RUIN.name}에서 사냥·강적·탐사·채집`);
-  add(RUIN.kingScale.id, `${RUIN.name}의 강적 (아주 드물게)`); add(RUIN.kingScale.id, `${rn(PLACES[RUIN.kingScale.place]?.region)} ${PLACES[RUIN.kingScale.place]?.name || ''} 강적·사냥 (드물게)`);
-  add('ashen_core', `${RUIN.name}의 강적 (가끔)`); add('ashen_core', `${RUIN.name}에서 2시간 이상 원정 (가끔)`);
-  add('star_fragment', '어디서든 2시간 이상 원정을 끝까지 다녀오면 (3시간이면 더 잘)');
-  for (const t of RUIN.treasure.pool) add(t, `${RUIN.name}의 강적·사냥 (드물게)`);
-  for (const g of RUIN.gear.pool) add(g, `${RUIN.name}의 강적·사냥 (아주 드물게)`);
-  for (const id of FACILITY.cookable) add(`${id}__k`, '둥지 부엌에서 아이에게 요리를 맡기면');
-  for (const r of RECIPES) if (!r.hidden) add(r.out, '제작');
-  return out;
-})();
-const combat = require('./game-combat');
+const { DatabaseSync } = require('node:sqlite');
+const bcrypt = require('bcryptjs');
 
 const PORT = process.env.PORT || 3000;
-const MOVE_COOLDOWN = 1500; // ms, 연속 이동 방지
-const CHAT_COOLDOWN = 700;  // ms, 도배 방지
-const CHAT_MAX = 200;       // 글자 수
-// 용언: 지역과 관계없이 대륙의 모든 드래곤에게 닿는 말 (횟수 제한 없음, 도배 방지 간격만)
-const SHOUT_REGION = '*';   // 채팅 기록에서 용언을 담는 자리
-const SHOUT_HISTORY = 200;  // 지역에 들어갈 때 함께 보여 줄 지난 용언 수 (지역 대화가 많아도 최근 용언은 이만큼 늘 보이게. 예전 30 → 100 → 200)
-const NEWS_REGION = '!';    // 채팅 기록에서 대륙 소식(쓰러짐·구조·광폭화·부고)을 담는 자리
-const NEWS_HISTORY = 100;   // 지역에 들어갈 때 함께 보여 줄 지난 대륙 소식 수 (예전 30 → 50 → 100)
-const HISTORY = 60;         // 지역에 들어갈 때 보여줄 지난 대화 수 (지난 이야기 더 보기도 한 번에 이만큼)
-const AVATAR_MAX = 400000;  // 프로필 그림 최대 크기 (base64 글자 수, 약 300KB)
-const AVATAR_COOLDOWN = 5000;
+const DATA_DIR = process.env.DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
+fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const app = express();
-// ── 보안 ──
-// Railway는 앞에 프록시가 있어서, 접속한 사람의 진짜 주소는 X-Forwarded-For에 담겨 옴 (로그인 시도 제한에 씀)
-app.set('trust proxy', 1);
-app.disable('x-powered-by');
-// 보안 머리말: 다른 사이트가 이 게임을 몰래 틀 안에 띄우지 못하게(클릭 가로채기), 파일 종류를 속이지 못하게,
-// 화면이 불러올 수 있는 곳을 이 서버와 구글 글꼴로만 (스크립트를 끼워 넣어도 바깥으로 정보를 보내기 어렵게)
-// 그림만은 임구르(i.imgur.com)도 허용: 드래곤 특징에 적은 임구르 그림을 바로 보여 주려고 (다른 사이트 그림은 막아, 보는 사람의 접속 정보가 아무 데나 새지 않게)
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https://i.imgur.com",
-  "connect-src 'self' ws: wss:",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join('; ');
-app.use((req, res, next) => {
-  res.set('Content-Security-Policy', CSP);
-  res.set('X-Frame-Options', 'DENY');
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.set('Referrer-Policy', 'same-origin');
-  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  if (req.secure) res.set('Strict-Transport-Security', 'max-age=15552000');
-  next();
-});
-// 로그인·가입 시도 제한: 같은 곳(주소)에서 너무 많이 틀리면, 같은 아이디로 너무 많이 틀리면 잠시 막음 (비밀번호 맞히기 방지)
-const LIMIT = {
-  login: { ip: 20, user: 8, windowMs: 15 * 60 * 1000 },   // 15분 동안 같은 주소 20번 · 같은 아이디 8번 틀리면
-  register: { ip: 5, windowMs: 60 * 60 * 1000 },          // 한 시간에 같은 주소에서 계정 5개까지
-  pwreq: { ip: 5, user: 1, windowMs: 60 * 60 * 1000 },     // 임시 비밀번호 요청: 한 시간에 같은 주소 5번, 같은 아이디 1번
+/* ───────── 데이터베이스 ───────── */
+const db = new DatabaseSync(path.join(DATA_DIR, 'sector-r8.db'));
+db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+const transaction = fn => { db.exec('BEGIN IMMEDIATE'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; } };
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  login TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  pw TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS agents (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  num TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  role INTEGER NOT NULL,
+  head INTEGER NOT NULL,
+  age INTEGER NOT NULL,
+  stats TEXT NOT NULL,
+  trait INTEGER NOT NULL,
+  skills TEXT NOT NULL,
+  contamination INTEGER NOT NULL DEFAULT 0,
+  res TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  last_seen INTEGER
+);
+CREATE TABLE IF NOT EXISTS sealed (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS chat (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  num TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role INTEGER NOT NULL,
+  channel TEXT NOT NULL,
+  text TEXT NOT NULL,
+  ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_ts ON chat(channel, ts);
+CREATE TABLE IF NOT EXISTS op_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  op TEXT NOT NULL,
+  title TEXT NOT NULL,
+  result TEXT NOT NULL,
+  started INTEGER NOT NULL,
+  ended INTEGER NOT NULL,
+  members TEXT NOT NULL,
+  log TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sector_entities (
+  id TEXT PRIMARY KEY,
+  stability REAL NOT NULL,
+  updated INTEGER NOT NULL,
+  captured INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS dm (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_id INTEGER NOT NULL,
+  to_id INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  ts INTEGER NOT NULL,
+  read INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS dm_pair ON dm (from_id, to_id);
+CREATE TABLE IF NOT EXISTS tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  entity TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  mins INTEGER NOT NULL,
+  started INTEGER NOT NULL,
+  ends INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  result TEXT,
+  acked INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS sector_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  entity TEXT,
+  text TEXT NOT NULL,
+  voice TEXT
+);
+CREATE TABLE IF NOT EXISTS sector_unlocks (
+  entity TEXT NOT NULL,
+  section TEXT NOT NULL,
+  by_name TEXT NOT NULL,
+  at INTEGER NOT NULL,
+  PRIMARY KEY (entity, section)
+);
+CREATE TABLE IF NOT EXISTS drafts (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  num TEXT NOT NULL UNIQUE,
+  data TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+`);
+
+// 예전 데이터베이스에 없던 칸을 더한다
+for (const [col, type] of [['team', 'INTEGER NOT NULL DEFAULT 0'], ['traits', 'TEXT'], ['regen_until', 'INTEGER'], ['ops_done', 'INTEGER NOT NULL DEFAULT 0'], ['quar_until', 'INTEGER'], ['skill_xp', "TEXT NOT NULL DEFAULT '{}'"], ['career', 'INTEGER NOT NULL DEFAULT 0'], ['stat_pts', 'INTEGER NOT NULL DEFAULT 0'], ['inv', "TEXT NOT NULL DEFAULT '{}'"], ['ach', "TEXT NOT NULL DEFAULT '{}'"]]) {
+  if (!db.prepare(`SELECT 1 FROM pragma_table_info('agents') WHERE name = '${col}'`).get()) db.exec(`ALTER TABLE agents ADD COLUMN ${col} ${type}`);
+}
+// 외관 사진 칸이 없던 예전 데이터베이스에 칸을 더한다
+if (!db.prepare("SELECT 1 FROM pragma_table_info('tasks') WHERE name = 'signs'").get()) db.exec("ALTER TABLE tasks ADD COLUMN signs TEXT NOT NULL DEFAULT '[]'");
+if (!db.prepare("SELECT 1 FROM pragma_table_info('sector_entities') WHERE name = 'obs'").get()) db.exec('ALTER TABLE sector_entities ADD COLUMN obs INTEGER NOT NULL DEFAULT 0');
+if (!db.prepare("SELECT 1 FROM pragma_table_info('sector_entities') WHERE name = 'lock_until'").get()) db.exec('ALTER TABLE sector_entities ADD COLUMN lock_until INTEGER NOT NULL DEFAULT 0');
+if (!db.prepare("SELECT 1 FROM pragma_table_info('agents') WHERE name = 'photo'").get()) db.exec('ALTER TABLE agents ADD COLUMN photo TEXT');
+// 예전 버전(이메일 가입)으로 만든 데이터베이스면 칸 이름만 바꾼다
+if (db.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'email'").get()) db.exec('ALTER TABLE users RENAME COLUMN email TO login');
+
+// 관제팀은 NPC(이름 없는 관제실)가 맡게 되어, 예전에 관제 요원으로 만든 캐릭터는 모두 현장 요원이 된다
+db.exec('UPDATE agents SET role = 0 WHERE role = 1');
+const Q = {
+  userByLogin: db.prepare('SELECT * FROM users WHERE login = ?'),
+  addUser: db.prepare('INSERT INTO users (login, pw, created) VALUES (?, ?, ?)'),
+  addSession: db.prepare('INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)'),
+  allUsers: db.prepare('SELECT id, login FROM users'),
+  session: db.prepare('SELECT users.id, users.login FROM sessions JOIN users ON users.id = sessions.user_id WHERE token = ?'),
+  dropSession: db.prepare('DELETE FROM sessions WHERE token = ?'),
+  agent: db.prepare('SELECT * FROM agents WHERE user_id = ?'),
+  agentByNum: db.prepare('SELECT user_id FROM agents WHERE num = ?'),
+  agents: db.prepare('SELECT * FROM agents ORDER BY num'),
+  addAgent: db.prepare(`INSERT INTO agents (user_id, num, name, role, head, photo, age, stats, trait, skills, contamination, res, created, last_seen)
+    VALUES (@user_id, @num, @name, @role, @head, @photo, @age, @stats, @trait, @skills, 0, @res, @created, @created)`),
+  setPhoto: db.prepare('UPDATE agents SET photo = ? WHERE user_id = ?'),
+  afterOp: db.prepare('UPDATE agents SET contamination = @cont, traits = @traits, trait = @trait, res = @res, regen_until = @regen, quar_until = @quar, ops_done = @ops WHERE user_id = @uid'),
+  addRun: db.prepare('INSERT INTO op_runs (op, title, result, started, ended, members, log) VALUES (@op, @title, @result, @started, @ended, @members, @log)'),
+  runs: db.prepare('SELECT id, op, title, result, started, ended, members FROM op_runs ORDER BY id DESC LIMIT 40'),
+  runLog: db.prepare('SELECT log FROM op_runs WHERE id = ?'),
+  seen: db.prepare('UPDATE agents SET last_seen = ? WHERE user_id = ?'),
+  sealed: db.prepare('SELECT data FROM sealed WHERE user_id = ?'),
+  addSealed: db.prepare('INSERT INTO sealed (user_id, data) VALUES (?, ?)'),
+  draft: db.prepare('SELECT * FROM drafts WHERE user_id = ?'),
+  draftByNum: db.prepare('SELECT user_id FROM drafts WHERE num = ?'),
+  addDraft: db.prepare('INSERT INTO drafts (user_id, num, data, created) VALUES (?, ?, ?, ?)'),
+  setDraftNum: db.prepare('UPDATE drafts SET num = ? WHERE user_id = ?'),
+  dropDraft: db.prepare('DELETE FROM drafts WHERE user_id = ?'),
+  chatRecent: db.prepare('SELECT * FROM (SELECT * FROM chat ORDER BY id DESC LIMIT 300) ORDER BY id'),
+  addChat: db.prepare('INSERT INTO chat (user_id, num, name, role, channel, text, ts) VALUES (?, ?, ?, ?, ?, ?, ?)')
 };
-const tries = new Map(); // 열쇠 → [시각, ...]
-const hit = (key, windowMs) => { const now = Date.now(); const a = (tries.get(key) || []).filter((t) => now - t < windowMs); a.push(now); tries.set(key, a); return a.length; };
-const count = (key, windowMs) => { const now = Date.now(); const a = (tries.get(key) || []).filter((t) => now - t < windowMs); tries.set(key, a); return a.length; };
-setInterval(() => { const now = Date.now(); for (const [k, a] of tries) if (!a.some((t) => now - t < 60 * 60 * 1000)) tries.delete(k); }, 10 * 60 * 1000).unref?.();
-app.use(compression()); // 화면 파일을 압축해서 보냄 (index.html · style.css · app.js)
-app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// 화면 파일(public/index.html · public/style.css · public/app.js)의 버전: 셋 중 하나라도 내용이 바뀌면 값이 바뀜. 열려 있는 창은 이 값으로 새 버전을 알아챔
-const CLIENT_FILES = ['index.html', 'style.css', 'app.js'].map((f) => path.join(__dirname, 'public', f));
-let verCache = { key: '', v: '' };
-function clientVersion() {
-  try {
-    const fs = require('fs');
-    const key = CLIENT_FILES.map((f) => { try { return fs.statSync(f).mtimeMs; } catch { return 0; } }).join('|');
-    if (key !== verCache.key) {
-      const h = crypto.createHash('sha1');
-      for (const f of CLIENT_FILES) { try { h.update(fs.readFileSync(f)); } catch { /* 없으면 건너뜀 */ } }
-      verCache = { key, v: h.digest('hex').slice(0, 12) };
-    }
-  } catch { /* 그대로 */ }
-  return verCache.v;
+/* ───────── 규칙 데이터 (설계서 기준, 검증용) ───────── */
+const DEPT_SKILLS = [['장비 운용', '운반'], ['사격', '격투'], ['기록 해독', '관찰'], ['응급처치', '인내'], ['통신', '장비 운용'], ['기록 해독', '운반'], ['은신', '관찰'], ['운반', '응급처치'], ['관찰', '인내'], [],
+  ['관찰', '기록 해독'], ['운반', '장비 운용'], ['응급처치', '장비 운용'], ['인내', '운반'], ['통신', '관찰'], ['사격', '은신'], ['응급처치', '관찰'], ['응급처치', '격투'], ['기록 해독', '은신'], ['장비 운용', '인내'],
+  ['격투', '운반'], ['기록 해독', '인내'], ['통신', '사격'], ['은신', '인내'], ['통신', '기록 해독']];
+const PAST_SIZE = 25, TRAIT_SIZE = 25;
+const SKILLS = ['격투', '사격', '은신', '응급처치', '장비 운용', '기록 해독', '통신', '관찰', '인내', '운반'];
+// 이름이 바뀐 기능(참기 → 인내)은 옮기고, 없어진 기능(오컬트, 교섭)을 가진 요원은 아직 없는 기능 하나로 바꿔 준다
+const OLD_SKILL_SWAP = ['인내', '응급처치', '통신', '은신', '관찰', '기록 해독', '운반', '장비 운용', '격투', '사격'];
+for (const a of db.prepare("SELECT user_id, skills FROM agents WHERE skills LIKE '%오컬트%' OR skills LIKE '%교섭%' OR skills LIKE '%참기%'").all()) {
+  const sk = JSON.parse(a.skills);
+  if (sk['참기']) { sk['인내'] = Math.max(sk['인내'] || 0, sk['참기']); delete sk['참기']; } // 참기 → 인내 (이름만 바뀜)
+  for (const old of ['오컬트', '교섭']) if (sk[old]) { const lv = sk[old]; delete sk[old]; const to = OLD_SKILL_SWAP.find(k => !sk[k]); if (to) sk[to] = lv; }
+  db.prepare('UPDATE agents SET skills = ? WHERE user_id = ?').run(JSON.stringify(sk), a.user_id);
 }
-// ── GM 백업: 저장 파일 내려받기 · 되돌리기 (요청 머리의 Authorization: Bearer <로그인 토큰>, GM만) ──
-const os = require('os');
-const gmFromReq = (req) => {
-  const token = str((req.get('authorization') || '').replace(/^Bearer\s+/i, ''));
-  const user = token ? db.getSessionUser(token) : null;
-  return user && user.is_gm ? user : null;
-};
-const kstStamp = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
-app.get('/api/gm/backup', (req, res) => {
-  const gm = gmFromReq(req);
-  if (!gm) return res.status(403).json({ error: 'GM만 쓸 수 있다.' });
-  const tmp = path.join(os.tmpdir(), `dragon-backup-${Date.now()}.db`);
-  try {
-    db.snapshot(tmp);
-  } catch (e) {
-    return res.status(500).json({ error: `사본을 만들지 못했다. (${e.message})` });
-  }
-  db.gmLog(gm.username, null, '저장 파일을 내려받음');
-  res.download(tmp, `dragon-continent-${kstStamp()}.db`, () => fs.unlink(tmp, () => {}));
-});
-app.post('/api/gm/restore', express.raw({ type: 'application/octet-stream', limit: '200mb' }), (req, res) => {
-  const gm = gmFromReq(req);
-  if (!gm) return res.status(403).json({ error: 'GM만 쓸 수 있다.' });
-  if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: '파일이 비어 있다.' });
-  const tmp = path.join(os.tmpdir(), `dragon-restore-${Date.now()}.db`);
-  fs.writeFileSync(tmp, req.body);
-  const chk = db.checkBackup(tmp);
-  if (chk.error) { fs.unlink(tmp, () => {}); return res.status(400).json(chk); }
-  db.stageRestore(tmp);
-  fs.unlink(tmp, () => {});
-  db.gmLog(gm.username, null, `저장 파일 되돌리기 (드래곤 ${chk.dragons}마리, 계정 ${chk.users}개)`);
-  res.json({ ok: true, ...chk });
-  // 모두에게 알리고 서버를 다시 켬 (Railway가 자동으로 다시 켜도록 실패 코드로 끝냄. 켜질 때 파일을 바꿔 끼움)
-  io.emit('gm:announce', { text: 'GM이 저장 파일을 되돌리는 중이다. 잠시 뒤 다시 연결된다.', at: Date.now() });
-  setTimeout(() => { db.closeDb(); process.exit(1); }, 800);
-});
+const START_RES = { supply: 100, research: 0, pass: 1 };
+const CHANNELS = ['all', 'field', 'ctrl'];
 
-// ── 자동 백업: 하루 한 번 볼륨 안 backups 폴더에 저장 파일 사본 (최근 7개만 남김) ──
-// 이름은 auto-YYYYMMDD.db (한국 날짜). 서버가 켜질 때와 그 뒤 한 시간마다, 오늘 것이 없으면 만듦
-const AUTO_BK = { dir: path.join(path.dirname(db.DB_PATH), 'backups'), keep: 7, re: /^auto-\d{8}\.db$/ };
-const kstDay = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '');
-function autoBackups() {
-  try {
-    return fs.readdirSync(AUTO_BK.dir).filter((n) => AUTO_BK.re.test(n)).sort().reverse()
-      .map((name) => { const st = fs.statSync(path.join(AUTO_BK.dir, name)); return { name, size: st.size, at: st.mtimeMs }; });
-  } catch { return []; }
-}
-let autoBackupBusy = false;
-async function autoBackup() {
-  if (autoBackupBusy) return; // 아직 뜨는 중 (저장 파일이 크면 몇 초 걸림)
-  autoBackupBusy = true;
-  try {
-    fs.mkdirSync(AUTO_BK.dir, { recursive: true });
-    const name = `auto-${kstDay()}.db`, to = path.join(AUTO_BK.dir, name);
-    if (fs.existsSync(to)) return;
-    const tmp = `${to}.tmp`;
-    await db.snapshotAsync(tmp); // 조금씩 나눠 떠서, 백업하는 동안에도 채팅·행동이 멈추지 않음
-    fs.renameSync(tmp, to); // 다 만든 뒤에 이름을 붙여, 만드는 도중에 꺼져도 반쪽 파일이 남지 않게
-    for (const old of autoBackups().slice(AUTO_BK.keep)) fs.unlink(path.join(AUTO_BK.dir, old.name), () => {});
-    console.log(`[자동 백업] ${name}`);
-  } catch (e) { console.error('[자동 백업 실패]', e.message); }
-  finally { autoBackupBusy = false; }
-}
-setTimeout(autoBackup, 30 * 1000);
-// 휴면: 이만큼 접속하지 않은 드래곤은 결투장·지역 목록·지도·둥지 찾기·골렘 심부름 목록에서 빠짐 (본인이 와서 복구하면 다시 보임)
-const DORMANT_MS = 15 * 24 * 3600000;
-// 지워진 드래곤의 이름을 지움: 저장된 모든 글과 world 값(db.scrubGone), 접속 중인 드래곤들이 메모리에 들고 있는 기록
-function eraseName(id, name, userId = null, held = false) {
-  try {
-    db.scrubGone(id, name, userId, held);
-    for (const e of online.values()) db.scrubIn(e.dragon, name);
-  } catch (e) { console.error('[이름 지우기 실패]', e.message); }
-}
-// 휴면이 된 뒤 이만큼 지나도록 돌아와 풀지 않으면 계정과 드래곤을 지움 (계정 탈퇴와 같음, 되돌릴 수 없음). GM 계정·접속 중인 드래곤은 지우지 않음
-const DORMANT_DELETE_MS = 30 * 24 * 3600000;
-const HOLD_MS = 7 * 24 * 3600000; // 지운 계정을 GM이 맡아 두는 기간 (그 뒤 완전히 지움)
-function dormantSweep() {
-  try {
-    const now = Date.now();
-    for (const { id } of db.dormantDue(now - DORMANT_MS)) { if (!online.has(id)) db.dormantSet(id, now); }
-    let held = 0, gone = 0;
-    for (const x of db.dormantOld(now - DORMANT_DELETE_MS)) {
-      if (online.has(x.id) || x.isGm) continue;
-      db.hold(x.userId, now);            // 지움: 7일 동안은 GM이 맡아 둠 (들어올 수도 보이지도 않음, GM 화면에서 복구)
-      eraseName(x.id, x.name, x.userId, true); // 남들에게 보이는 곳의 이름은 바로 지움 (그 드래곤 자신의 기록은 복구할 수 있게 남김)
-      held++;
-    }
-    for (const x of db.heldDue(now - HOLD_MS)) { // 맡아 둔 지 7일: 완전히 지움
-      if (x.id && online.has(x.id)) continue;
-      db.deleteUser(x.userId);
-      if (x.name) eraseName(x.id, x.name, x.userId); // 이름은 어디에도 남기지 않음 (GM 기록·서버 기록·백업 파일 포함)
-      gone++;
-    }
-    if (held) { db.gmLog('자동', null, `휴면 30일이 지나 계정 ${held}개를 지웠다 (7일 동안 GM 화면 '지운 계정'에서 복구할 수 있다)`); console.log(`[휴면 삭제] 계정 ${held}개 (7일 보관)`); }
-    if (gone) { db.gmLog('자동', null, `지운 지 7일이 지난 계정 ${gone}개를 완전히 지웠다`); console.log(`[완전 삭제] 계정 ${gone}개`); }
-  } catch (e) { console.error('[휴면 정리 실패]', e.message); }
-}
-setTimeout(dormantSweep, 20 * 1000);
-setInterval(dormantSweep, 60 * 60 * 1000);
-setInterval(autoBackup, 60 * 60 * 1000);
-// GM: 자동 백업 목록 · 내려받기 · 그 시점으로 되돌리기
-app.get('/api/gm/autobackups', (req, res) => {
-  if (!gmFromReq(req)) return res.status(403).json({ error: 'GM만 쓸 수 있다.' });
-  res.json({ ok: true, list: autoBackups() });
-});
-app.get('/api/gm/autobackup/:name', (req, res) => {
-  const gm = gmFromReq(req);
-  if (!gm) return res.status(403).json({ error: 'GM만 쓸 수 있다.' });
-  const name = String(req.params.name || '');
-  if (!AUTO_BK.re.test(name) || !fs.existsSync(path.join(AUTO_BK.dir, name))) return res.status(404).json({ error: '그런 백업은 없다.' });
-  db.gmLog(gm.username, null, `자동 백업 내려받음 (${name})`);
-  res.download(path.join(AUTO_BK.dir, name), `dragon-continent-${name}`);
-});
-app.post('/api/gm/restore-auto', (req, res) => {
-  const gm = gmFromReq(req);
-  if (!gm) return res.status(403).json({ error: 'GM만 쓸 수 있다.' });
-  const name = String(req.body?.name || '');
-  const file = path.join(AUTO_BK.dir, name);
-  if (!AUTO_BK.re.test(name) || !fs.existsSync(file)) return res.status(404).json({ error: '그런 백업은 없다.' });
-  const chk = db.checkBackup(file);
-  if (chk.error) return res.status(400).json(chk);
-  db.stageRestore(file);
-  db.gmLog(gm.username, null, `자동 백업으로 되돌리기 (${name}, 드래곤 ${chk.dragons}마리)`);
-  res.json({ ok: true, ...chk });
-  io.emit('gm:announce', { text: 'GM이 저장 파일을 되돌리는 중이다. 잠시 뒤 다시 연결된다.', at: Date.now() });
-  setTimeout(() => { db.closeDb(); process.exit(1); }, 800);
-});
+/* ───────── 도우미 ───────── */
+const now = () => Date.now();
+const isInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+// 외관 사진: 브라우저에서 224×272로 줄인 data URL만 받는다
+const PHOTO_RE = /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/;
+const photoOf = v => v == null || v === '' ? null : (typeof v === 'string' && v.length <= 300000 && PHOTO_RE.test(v) ? v : undefined);
+const str = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+const online = new Map(); // user_id → 연결 수
 
-app.get('/api/version', (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.json({ v: clientVersion() });
-});
-
-const server = http.createServer(app);
-const io = new Server(server, { maxHttpBufferSize: 1e6, perMessageDeflate: { threshold: 4096 }, pingInterval: 10000, pingTimeout: 8000 }); // 끊긴 연결을 18초 안에 알아챔 (기본은 25초+20초) // 한 번에 받는 크기 (프로필 그림이 가장 큼) · 4KB 넘는 메시지는 압축해서 보냄 (접속할 때 받는 물건 목록 등)
-
-// 대륙 전체에 보내는 알림(계절·정화·습격·야시장·창작·먼 여행 등)은 모두 '대륙 소식'으로 기록에 남김.
-// 예전엔 이 가운데 쓰러짐·광폭화·부고 같은 몇 가지만 남아서, 다른 지역에 다녀오거나 다시 접속하면 '용언과 소식'에서 사라졌음.
-// (한 지역에만 보내는 알림 io.to(지역)은 그대로 그 자리에서만)
-{
-  const emitAll = io.emit.bind(io);
-  io.emit = (ev, data, ...rest) => {
-    if (ev === 'system' && data && typeof data.text === 'string' && !data.news) {
-      const at = data.at || Date.now();
-      let id = 0;
-      try { id = db.addChat('!', { dragonId: 0, name: '', kind: '', text: data.text, at }); } catch (e) { console.error('[대륙 소식]', e.message); }
-      data = { ...data, at, news: true, id };
-      io.lastNews = { id, at, text: data.text }; // 방금 남긴 소식 (진행 중인 사건의 알림을 기록 첫 쪽에 늘 끼워 넣을 때 씀)
-    }
-    return emitAll(ev, data, ...rest);
+/* ───────── 보급 상점 ───────── */
+// kind: use(작전 소모품, 최대 3개) · gear(장비, slot마다 하나 장착) · frame(출입증 테두리). 칭호는 팔지 않고 업적으로 얻는다.
+const SHOP = [
+  { id: 'kit', kind: 'use', name: '구급 키트', price: 25, desc: '작전 중 가장 많이 다친 현장 요원의 HP를 30 회복한다.' },
+  { id: 'calm', kind: 'use', name: '진정제', price: 25, desc: '작전 중 정신력이 가장 낮은 현장 요원의 정신력을 30 회복한다. 붕괴한 요원도 일으킨다.' },
+  { id: 'flare', kind: 'use', name: '섬광탄', price: 40, desc: '작전 중 주변의 하수인을 모두 쫓아낸다.' },
+  { id: 'vest', kind: 'gear', slot: 'armor', name: '경량 방호복', price: 120, desc: 'HP 최대치 +15.', fx: { hp: 15 } },
+  { id: 'suit', kind: 'gear', slot: 'armor', name: '강화 방호복', price: 260, desc: 'HP 최대치 +30.', fx: { hp: 30 } },
+  { id: 'shield', kind: 'gear', slot: 'armor', name: '차폐 외투', price: 200, desc: '오염 한계 +20. 검은 주사위가 늦게 섞인다.', fx: { lim: 20 } },
+  { id: 'patch', kind: 'gear', slot: 'tool', name: '안정 패치', price: 150, desc: '정신력 최대치 +15.', fx: { san: 15 } },
+  { id: 'radio', kind: 'gear', slot: 'tool', name: '고급 무전기', price: 180, desc: '통신 기능 +1.', fx: { skill: ['통신', 1] } },
+  { id: 'lamp', kind: 'gear', slot: 'tool', name: '전술 손전등', price: 150, desc: '관찰 기능 +1.', fx: { skill: ['관찰', 1] } },
+  { id: 'toolkit', kind: 'gear', slot: 'tool', name: '정비 공구 세트', price: 160, desc: '장비 운용 기능 +1.', fx: { skill: ['장비 운용', 1] } },
+  { id: 'gold', kind: 'frame', name: '금빛 테두리', price: 120, desc: '출입증 테두리를 금빛으로 바꾼다.' },
+  { id: 'redline', kind: 'frame', name: '붉은 경계선', price: 100, desc: '출입증 테두리를 붉은 경계선으로 바꾼다.' },
+  { id: 'holo', kind: 'frame', name: '청록 홀로그램', price: 150, desc: '출입증 테두리를 청록 홀로그램으로 바꾼다.' }
+];
+const SHOP_BY = Object.fromEntries(SHOP.map(x => [x.id, x])), USE_MAX = 3, SLOTS = ['armor', 'tool'];
+const invOf = row => { let v = {}; try { v = JSON.parse(row.inv || '{}'); } catch {} return { items: v.items || {}, own: v.own || [], eq: v.eq || {}, frame: v.frame || null, title: v.title || null, titles: v.titles || [] }; };
+/* ───────── 업적과 칭호 ───────── */
+// 칭호는 업적을 이루면 얻는다. c는 요원별 기록(작전 수, 재생 횟수 등)이다.
+const TITLES = [
+  { id: 'rookie', name: '신입 요원', desc: '작전을 처음으로 마친다.', key: 'ops', need: 1 },
+  { id: 'veteran', name: '현장 베테랑', desc: '작전을 10번 성공한다.', key: 'success', need: 10 },
+  { id: 'voice', name: '무전 너머의 목소리', desc: '통신기를 챙겨 작전을 5번 마친다.', key: 'ctrlOps', need: 5 },
+  { id: 'night', name: '야간 근무자', desc: '기지 관리 작업을 10번 마친다.', key: 'tasks', need: 10 },
+  { id: 'steady', name: '침착한 손', desc: '관리 작업 중 이상 징후에 10번 대응한다.', key: 'signs', need: 10 },
+  { id: 'tankreg', name: '수조 단골', desc: '재생 수조에서 3번 재생된다.', key: 'deaths', need: 3 },
+  { id: 'survivor', name: '끝까지 버틴 자', desc: 'HP 20% 이하로 버티며 작전을 성공한다.', key: 'clutch', need: 1 },
+  { id: 'officer', name: '고참', desc: '계급 5에 오른다.', key: 'rank', need: 5 },
+  { id: 'first', name: '첫 출동', desc: '첫 출동 훈련을 마친다.', key: 'tutDone', need: 1 }
+];
+const TITLE_BY = Object.fromEntries(TITLES.map(x => [x.id, x]));
+const achOf = row => { try { return JSON.parse(row.ach || '{}'); } catch { return {}; } };
+// 기록을 더하고 새로 이룬 업적의 칭호를 준다
+function bumpAch(uid, add) {
+  const row = Q.agent.get(Number(uid)); if (!row) return [];
+  const c = achOf(row); for (const [k, n] of Object.entries(add || {})) c[k] = (c[k] || 0) + n;
+  c.rank = rankOf(row.career || 0).rank;
+  const v = invOf(row), got = TITLES.filter(t => !v.titles.includes(t.id) && (c[t.key] || 0) >= t.need);
+  got.forEach(t => { v.titles.push(t.id); if (!v.title) v.title = t.id; });
+  db.prepare('UPDATE agents SET ach = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(c), JSON.stringify(v), Number(uid));
+  got.forEach(t => io.to('u:' + uid).emit('notice', { text: `칭호 「${t.name}」을(를) 얻었습니다. (${t.desc.replace(/\.$/, '')})`, level: 'ach', at: now() }));
+  return got;
+}
+const gearFx = row => { const v = invOf(row), fx = { hp: 0, san: 0, lim: 0, skill: {} };
+  SLOTS.forEach(sl => { const g = SHOP_BY[v.eq[sl]]; if (!g || !g.fx) return; fx.hp += g.fx.hp || 0; fx.san += g.fx.san || 0; fx.lim += g.fx.lim || 0; if (g.fx.skill) fx.skill[g.fx.skill[0]] = (fx.skill[g.fx.skill[0]] || 0) + g.fx.skill[1]; });
+  return fx; };
+function publicAgent(row) {
+  if (!row) return null;
+  return {
+    uid: String(row.user_id), num: row.num, name: row.name, role: row.role, team: row.team || 0, head: row.head, photo: row.photo || null, age: row.age,
+    stats: JSON.parse(row.stats), trait: row.trait, traits: traitsOf(row), skills: JSON.parse(row.skills), contamination: row.contamination,
+    task: typeof QT !== 'undefined' ? taskOut(QT.mine.get(row.user_id)) : null,
+    skillXp: JSON.parse(row.skill_xp || '{}'), career: { ...rankOf(row.career || 0), total: row.career || 0 }, statPts: row.stat_pts || 0, statCap: STAT_CAP,
+    regenUntil: row.regen_until || null, quarUntil: row.quar_until || null, contLimit: contLimit(row), opsDone: row.ops_done || 0,
+    inv: invOf(row), ach: achOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
 }
-// 한 연결이 짧은 사이에 너무 많은 요청을 보내면 잠시 무시 (서버를 멈추게 하려는 도배 방지). 보통 놀이는 1초에 몇 번이 고작
-const FLOOD = { perSec: 30, burst: 60 };
-io.use((socket, next) => {
-  let tokens = FLOOD.burst, last = Date.now(), warned = 0;
-  socket.use((packet, nxt) => {
-    const now = Date.now();
-    tokens = Math.min(FLOOD.burst, tokens + ((now - last) / 1000) * FLOOD.perSec);
-    last = now;
-    if (tokens < 1) {
-      const ack = packet[packet.length - 1];
-      if (typeof ack === 'function') ack({ error: '너무 빨리 누르고 있다. 잠시 숨을 고르자.' });
-      if (now - warned > 10000) { warned = now; console.warn(`[도배] ${socket.id} ${packet[0]}`); }
-      return;
-    }
-    tokens -= 1;
-    nxt();
-  });
-  next();
-});
+function chatOut(r) { return { id: r.id, uid: String(r.user_id), num: r.num, name: r.name, role: r.role, channel: r.channel, text: r.text, ts: r.ts }; }
+function newToken(userId) { const t = crypto.randomBytes(32).toString('hex'); Q.addSession.run(t, userId, now()); return t; }
+function authUser(token) { return token ? Q.session.get(String(token)) : null; }
+// GM 계정: 기본은 admin. 환경 변수 GM_LOGINS에 쉼표로 적으면 그 아이디들로 바뀐다 (대소문자 무시)
+const GM_LOGINS = String(process.env.GM_LOGINS || 'admin').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const isGM = u => !!(u && GM_LOGINS.includes(String(u.login).toLowerCase()));
+const needGM = (req, res, next) => isGM(req.user) ? next() : fail(res, 'gm/forbidden', 403);
 
-// ── 도우미 ─────────────────────────────────────────
-
-const str = (v) => (typeof v === 'string' ? v.trim() : '');
-
-// 받침 유무에 따라 조사 고르기: josa('라엘', '이', '가') → '이'
-function josa(word, withBatchim, without) {
-  const c = word.charCodeAt(word.length - 1);
-  if (c < 0xac00 || c > 0xd7a3) return `${withBatchim}(${without})`;
-  return (c - 0xac00) % 28 ? withBatchim : without;
+// 같은 주소에서 로그인 시도가 몰리면 잠시 막는다
+const tries = new Map();
+function throttled(ip) {
+  const t = tries.get(ip) || { n: 0, at: now() };
+  if (now() - t.at > 10 * 60 * 1000) { t.n = 0; t.at = now(); }
+  t.n++; tries.set(ip, t);
+  return t.n > 30;
 }
 
-// 성별과 특징 (설정에서 언제든 바꿈)
-// 성별: 남성·여성 또는 직접 쓰기(12자까지)
-const BIO = { genderMax: 12, descMax: 300 };
-const GENDER_OLD = { 수컷: '남성', 암컷: '여성' }; // 예전 값
-const genderOf = (g) => GENDER_OLD[g] || g || '';
-const numJosa = (n, a, b) => ('013678'.includes(String(n).replace(/[^0-9]/g, '').slice(-1)) ? a : b); // 숫자 뒤 조사: 끝자리를 읽은 소리에 받침이 있으면 a (영·일·삼·육·칠·팔, 0으로 끝나면 십·백·천)
-function bioOf(d) {
-  if (typeof d.bio === 'string' || !d.bio) { try { d.bio = JSON.parse(d.bio || '{}'); } catch { d.bio = {}; } }
-  return { gender: genderOf(d.bio.gender), desc: d.bio.desc || '', img: d.has_bio_img ? d.bio_img_ver : 0 }; // img: 특징 그림 버전 (0이면 없음. 주소 /bio-img/<id>?v=)
-}
+/* ───────── HTTP ───────── */
+const app = express();
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '400kb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ── 계정 (REST) ────────────────────────────────────
+const fail = (res, code, status = 400) => res.status(status).json({ error: code });
+const need = (req, res, next) => {
+  const u = authUser((req.get('authorization') || '').replace(/^Bearer /, ''));
+  if (!u) return fail(res, 'auth/required', 401);
+  req.user = u; next();
+};
 
-// 새 계정 만들기가 열려 있는지 (로그인 화면의 '계정 만들기' 탭에 안내)
-app.get('/api/signup', (req, res) => { const su = db.worldGet('signup', null); res.set('Cache-Control', 'no-store'); res.json({ open: !su?.closed || db.countUsers() === 0, msg: su?.closed ? su.msg || '' : '' }); });
-app.post('/api/register', async (req, res) => {
-  const username = str(req.body?.username);
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
-  if (!/^[가-힣A-Za-z0-9_]{2,16}$/.test(username)) {
-    return res.status(400).json({ error: '아이디는 한글, 영문, 숫자, _로 2~16자까지 쓸 수 있다.' });
-  }
-  if (password.length < 8 || password.length > 64) { // 새 계정은 8자 이상 (이미 있는 계정은 그대로 로그인됨)
-    return res.status(400).json({ error: '비밀번호는 8~64자로 정해야 한다.' });
-  }
-  if (count(`reg:${req.ip}`, LIMIT.register.windowMs) >= LIMIT.register.ip) return res.status(429).json({ error: '계정을 너무 많이 만들었다. 잠시 뒤에 다시 해 보자.' });
-  if (db.getUserByName(username)) {
-    return res.status(409).json({ error: '이미 있는 아이디다. 다른 아이디를 골라야 한다.' });
-  }
-  // GM이 새 계정 만들기를 막아 두었으면 (gm:signup). 첫 계정(GM)은 늘 만들 수 있음
-  { const su = db.worldGet('signup', null); if (su?.closed && db.countUsers() > 0) return res.status(403).json({ error: su.msg || '지금은 새 계정을 만들 수 없다. 대륙의 문이 잠시 닫혀 있다.' }); }
-  hit(`reg:${req.ip}`, LIMIT.register.windowMs);
-  const isGm = db.countUsers() === 0; // 처음 만든 계정이 GM
-  const link = str(req.body?.link).replace(/\s+/g, ' ').trim().slice(0, 40); // GM과 연결된 계정 (GM 확인용 메모)
-  // 비밀번호 암호화(약 70ms)는 비동기로: 그동안 다른 드래곤의 행동이 멈추지 않게
-  const hash = await bcrypt.hash(password, 10);
-  let userId;
-  try { userId = db.createUser(username, hash, isGm, link); } catch { return res.status(409).json({ error: '이미 있는 아이디다. 다른 아이디를 골라야 한다.' }); }
-  const token = crypto.randomBytes(24).toString('hex');
-  db.createSession(token, userId);
-  res.json({ token });
+app.get('/healthz', (req, res) => res.send('ok'));
+
+app.post('/api/signup', (req, res) => {
+  if (throttled(req.ip)) return fail(res, 'auth/too-many-requests', 429);
+  const login = str(req.body.login, 40), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
+  if (!/^[A-Za-z0-9_]{4,20}$/.test(login)) return fail(res, 'auth/invalid-login');
+  if (pw.length < 6) return fail(res, 'auth/weak-password');
+  if (Q.userByLogin.get(login)) return fail(res, 'auth/login-taken');
+  const info = Q.addUser.run(login, bcrypt.hashSync(pw, 10), now());
+  res.json({ token: newToken(info.lastInsertRowid), user: { uid: String(info.lastInsertRowid), login } });
 });
 
-// 임시 비밀번호 요청: 비밀번호를 잃어버린 멤버가 로그인 화면에서 GM에게 부탁함 (GM 도구 > 요청에서 확인하고 임시 비밀번호를 발급해 직접 전해 줌)
-// 아이디가 있든 없든 같은 대답 (아이디가 있는지 알아내는 데 쓰이지 않게)
-app.post('/api/pw-request', (req, res) => {
-  const username = str(req.body?.username).slice(0, 16);
-  const note = str(req.body?.note).replace(/\s+/g, ' ').trim().slice(0, 60);
-  const L = LIMIT.pwreq, ipKey = `pwreq:${req.ip}`, userKey = `pwreq-user:${username.toLowerCase()}`;
-  if (!username) return res.status(400).json({ error: '아이디를 적어 주자.' });
-  if (!note) return res.status(400).json({ error: '본인 확인을 위해 가입할 때 적은 계정이나 연락받을 곳을 적어 주자.' });
-  if (count(ipKey, L.windowMs) >= L.ip) return res.status(429).json({ error: '요청을 너무 여러 번 보냈다. 잠시 뒤에 다시 해 보자.' });
-  hit(ipKey, L.windowMs);
-  const user = db.getUserByName(username);
-  if (user && count(userKey, L.windowMs) < L.user) {
-    hit(userKey, L.windowMs);
-    const list = (db.worldGet('pwreq', []) || []).filter((x) => x.uid !== user.id);
-    list.unshift({ uid: user.id, username: user.username, note, at: Date.now() });
-    db.worldSet('pwreq', list.slice(0, 50));
-    for (const e of online.values()) if (e.socket?.data?.user?.is_gm) e.socket.emit('system', { text: `[GM] 임시 비밀번호 요청이 들어왔다. (아이디 ${user.username}) GM 도구 > 요청에서 확인하자.`, at: Date.now() });
-  }
-  res.json({ ok: true, text: '요청을 GM에게 보냈다. GM이 본인인지 확인한 뒤, 적어 준 곳으로 임시 비밀번호를 따로 전해 줄 것이다.' });
-});
-
-app.post('/api/login', async (req, res) => {
-  const username = str(req.body?.username);
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
-  const L = LIMIT.login, ipKey = `login:${req.ip}`, userKey = `login-user:${username.toLowerCase()}`;
-  if (count(ipKey, L.windowMs) >= L.ip || count(userKey, L.windowMs) >= L.user) {
-    return res.status(429).json({ error: '비밀번호를 너무 여러 번 틀렸다. 15분쯤 뒤에 다시 해 보자.' });
-  }
-  const user = db.getUserByName(username);
-  if (!user || user.deleted_at || !(await bcrypt.compare(password, user.pw_hash))) { // 지워서 맡아 둔 계정은 들어올 수 없음 (없는 계정과 같게)
-    hit(ipKey, L.windowMs); hit(userKey, L.windowMs);
-    return res.status(401).json({ error: '아이디나 비밀번호가 맞지 않는다.' });
-  }
-  tries.delete(userKey); // 맞히면 그 아이디의 틀린 횟수는 지움
-  const token = crypto.randomBytes(24).toString('hex');
-  db.createSession(token, user.id);
-  const temp = !!(db.worldGet('pwtemp', {}) || {})[user.id]; // 임시 비밀번호로 들어왔으면 새 비밀번호로 바꾸라고 안내
-  res.json({ token, temp });
-});
-
-// 석판 그림 올리기: 그림 파일 그대로(바이트)를 받음. 로그인 토큰은 Authorization: Bearer, 크기는 ?w=&h=
-app.post('/api/slate-img', express.raw({ type: ['image/webp', 'image/jpeg', 'image/png'], limit: '760kb' }), (req, res) => {
-  const token = str((req.get('authorization') || '').replace(/^Bearer\s+/i, ''));
-  const user = token ? db.getSessionUser(token) : null;
-  if (!user) return res.status(401).json({ error: '다시 로그인해야 한다.' });
-  const d = db.getDragonByUser(user.id);
-  const type = String(req.get('content-type') || '').split(';')[0].trim();
-  const r = slate.uploadImg(d, type, req.body, req.query.w, req.query.h);
-  res.status(r.error ? 400 : 200).json(r);
-});
-// 특징 그림 올리기: 석판 그림과 같은 방식(파일 그대로 HTTP로). 크기가 넘을 때의 안내(아래 app.use)를 받도록 그 앞에 둠. 한 장만 두므로 올리면 먼저 것은 바뀜
-const BIO_IMG = { max: 700 * 1024, gap: 3000 };
-const bioImgAt = new Map();
-app.post('/api/bio-img', express.raw({ type: ['image/webp', 'image/jpeg', 'image/png'], limit: '760kb' }), (req, res) => {
-  const token = str((req.get('authorization') || '').replace(/^Bearer\s+/i, ''));
-  const user = token ? db.getSessionUser(token) : null;
-  if (!user) return res.status(401).json({ error: '다시 로그인해야 한다.' });
-  const d = db.getDragonByUser(user.id);
-  if (!d) return res.status(400).json({ error: '먼저 드래곤을 만들어야 한다.' });
-  const type = String(req.get('content-type') || '').split(';')[0].trim();
-  if (!['image/webp', 'image/jpeg', 'image/png'].includes(type) || !Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: '그림 파일을 읽지 못했다. 다른 그림으로 해 보자.' });
-  if (req.body.length > BIO_IMG.max) return res.status(400).json({ error: '그림이 너무 크다.' });
-  const now = Date.now();
-  if (now - (bioImgAt.get(d.id) || 0) < BIO_IMG.gap) return res.status(400).json({ error: '조금 천천히 올리자.' });
-  bioImgAt.set(d.id, now);
-  const ver = db.setBioImg(d.id, req.body, type);
-  const e = online.get(d.id); // 접속해 있으면 화면의 드래곤 기록도 바로 새로
-  if (e) { e.dragon.bio_img_ver = ver; e.dragon.has_bio_img = 1; sendMe(e.socket, e.dragon); }
-  res.json({ ok: true, ver });
-});
-app.use((err, req, res, next) => { // 받는 크기를 넘으면 (express.raw의 limit)
-  if (err && err.type === 'entity.too.large') return res.status(413).json({ error: '그림이 너무 크다.' });
-  next(err);
-});
-// 선물에 끼울 그림 올리기 (석판 그림과 같은 방식). 돌려줌: { id, key } → 보낼 때 img로
-const GIFT_IMG = { max: 320 * 1024, gap: 1500, pending: 3, perDay: 10 }; // 한 장 최대 크기 · 올리는 간격 · 올려 두기 · 하루에 보낼 수 있는 그림
-const giftImgAt = new Map();
-app.post('/api/gift-img', express.raw({ type: ['image/webp', 'image/jpeg', 'image/png'], limit: '330kb' }), (req, res) => {
-  const token = str((req.get('authorization') || '').replace(/^Bearer\s+/i, ''));
-  const user = token ? db.getSessionUser(token) : null;
-  if (!user) return res.status(401).json({ error: '다시 로그인해야 한다.' });
-  const d = db.getDragonByUser(user.id);
-  if (!d) return res.status(400).json({ error: '먼저 드래곤을 만들어야 한다.' });
-  const type = String(req.get('content-type') || '').split(';')[0].trim();
-  if (!['image/webp', 'image/jpeg', 'image/png'].includes(type) || !Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: '그림 파일을 읽지 못했다. 다른 그림으로 해 보자.' });
-  if (req.body.length > GIFT_IMG.max) return res.status(400).json({ error: '그림이 너무 크다.' });
-  const now = Date.now();
-  if (now - (giftImgAt.get(d.id) || 0) < GIFT_IMG.gap) return res.status(400).json({ error: '조금 천천히 올리자.' });
-  if (db.giftImg.pending(d.id) >= GIFT_IMG.pending) return res.status(400).json({ error: '올려 두고 보내지 않은 그림이 많다. 먼저 선물을 보내자.' });
-  if (db.giftImg.sentSince(d.id, now - 86400000) >= GIFT_IMG.perDay) return res.status(400).json({ error: `그림은 하루에 ${GIFT_IMG.perDay}장까지 보낼 수 있다.` });
-  giftImgAt.set(d.id, now);
-  const clamp = (v) => Math.max(0, Math.min(4096, Math.floor(Number(v) || 0)));
-  const r = db.giftImg.add(d.id, type, req.body, clamp(req.query.w), clamp(req.query.h));
-  res.json({ ok: true, id: r.id, key: r.key });
-});
-// 선물 그림: 주소에 비밀 글자(key)가 맞아야 보임 (주고받은 둘만 주소를 앎)
-app.get('/gift-img/:id/:key', (req, res) => {
-  const row = db.giftImg.get(Number(req.params.id));
-  if (!row || row.key !== String(req.params.key)) return res.status(404).end();
-  res.set('Content-Type', row.type);
-  res.set('Cache-Control', 'private, max-age=31536000, immutable');
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.send(row.data);
-});
-// ── 그림 정리: 서버를 켤 때와 그 뒤 여섯 시간마다 ──
-// 1) 올려 두고 선물에 붙이지 않은 그림: 하루 뒤  2) 보냈지만 보물 상자에 간직하지 않은 그림: 90일 뒤 (주고받은 기록과 같음)
-// 3) 간직한 그림이라도 받은 드래곤의 보물 상자에 더는 없으면 (긴 잠·먼 여행·탈퇴 등)  4) 석판에서 글에 붙지 않은 그림: 하루 뒤
-// 백업은 VACUUM INTO라 지운 만큼 바로 작아진다. 정리할 때 그림이 차지하는 양을 서버 기록에 한 줄 남김
-function imgSweep() {
-  try {
-    const now = Date.now();
-    const up = db.giftImg.pruneUp(now - 86400000);
-    const old = db.giftImg.pruneSent(now - 90 * 86400000);
-    const sl = db.slate.imgPrune(now - 86400000);
-    let lost = 0;
-    const keptBy = new Map();
-    for (const r of db.giftImg.kept()) { if (!keptBy.has(r.to_id)) keptBy.set(r.to_id, []); keptBy.get(r.to_id).push(r.id); }
-    for (const [to, ids] of keptBy) {
-      const e = online.get(to); const d = e ? e.dragon : db.getDragon(to);
-      const have = new Set(d && !d.dead_at ? logic.chestOf(d).filter((x) => x.img).map((x) => x.img.id) : []);
-      for (const id of ids) if (!have.has(id)) { db.giftImg.del(id); lost++; }
-    }
-    const b = db.imgBytes(), mb = (n) => (n / 1048576).toFixed(1);
-    console.log(`[그림 정리] 지움: 안 보낸 선물 그림 ${up} · 오래된 선물 그림 ${old} · 상자에서 사라진 그림 ${lost} · 석판 ${sl} / 남은 그림: 석판 ${b.sn}장 ${mb(b.sb)}MB · 선물 ${b.gn}장 ${mb(b.gb)}MB`);
-  } catch (e) { console.error('[그림 정리 실패]', e.message); }
-}
-setTimeout(imgSweep, 60 * 1000);
-setInterval(imgSweep, 6 * 60 * 60 * 1000);
-// 석판 그림 (번호마다 내용이 바뀌지 않으니 오래 저장해 둬도 됨)
-app.get('/slate-img/:id', (req, res) => {
-  const row = db.slate.imgGet(Number(req.params.id));
-  if (!row) return res.status(404).end();
-  res.set('Content-Type', row.type);
-  res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.send(row.data);
-});
-
-// 프로필 그림. 주소 끝의 ?v=버전 덕분에 그림을 바꾸면 새로 받아집니다.
-app.get('/avatar/:id', (req, res) => {
-  const row = db.getAvatar(Number(req.params.id));
-  if (!row || !row.avatar) return res.status(404).end();
-  res.set('Content-Type', row.avatar_type);
-  res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.send(row.avatar);
-});
-
-// 특징 그림 (한 장). 프로필 그림처럼 ?v=버전으로 바뀐 그림이 새로 받아짐
-app.get('/bio-img/:id', (req, res) => {
-  const row = db.getBioImg(Number(req.params.id));
-  if (!row || !row.bio_img) return res.status(404).end();
-  res.set('Content-Type', row.bio_img_type);
-  res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.set('X-Content-Type-Options', 'nosniff');
-  res.send(row.bio_img);
+app.post('/api/login', (req, res) => {
+  if (throttled(req.ip)) return fail(res, 'auth/too-many-requests', 429);
+  const login = str(req.body.login, 40), pw = typeof req.body.pw === 'string' ? req.body.pw : '';
+  if (!login) return fail(res, 'auth/missing-login');
+  if (!pw) return fail(res, 'auth/missing-password');
+  const u = Q.userByLogin.get(login);
+  if (!u || !bcrypt.compareSync(pw, u.pw)) return fail(res, 'auth/invalid-credential');
+  res.json({ token: newToken(u.id), user: { uid: String(u.id), login: u.login } });
 });
 
 app.post('/api/logout', (req, res) => {
-  const token = str(req.body?.token);
-  if (token) db.deleteSession(token);
+  Q.dropSession.run((req.get('authorization') || '').replace(/^Bearer /, ''));
   res.json({ ok: true });
 });
 
-// ── 접속 중인 드래곤 ────────────────────────────────
-
-// dragonId → { socket, dragon: { id, name, kind, region } }
-const online = new Map();
-
-// av: 그림 버전. 0이면 그림이 없어서 종류별 문양을 보여줌
-// away: 원정을 떠나 자리를 비운 상태
-const publicDragon = (d) => ({
-  id: d.id, name: d.name, kind: d.kind, av: d.has_avatar ? d.avatar_ver : 0, away: !!d.exp_end, resting: !!d.rest_at, raid: !!raidBoss?.busy(d.id),
-  fishing: !!d.exp_end && logic.expInfo(d).goal === 'fishline', // 줄 걸어 두기 (원정과 같이 자리를 비우지만 '낚시 중'으로 보임)
-  berserk: !!logic.berserkOf(d),
-  place: logic.placeOf(d),
-  title: logic.titleName(d),
-  crown: logic.crownOn(d), // 들꽃 화관을 쓰고 있음 (이름 옆에 꽃)
-  tcrown: logic.titleCrown(d), // 단 칭호의 왕관 (이벤트 칭호: 'gold' → 이름 옆에 금빛 왕관)
-  tcrownText: logic.titleCrownText(d), // 왕관 옆 작은 글씨
+app.get('/api/me', need, (req, res) => {
+  const s = Q.sealed.get(req.user.id);
+  res.json({ user: { uid: String(req.user.id), login: req.user.login, gm: isGM(req.user) }, agent: publicAgent(Q.agent.get(req.user.id)), sealed: s ? JSON.parse(s.data) : null });
 });
 
-// 꽃다발 같은 물건을 보물 상자에 넣을 때: 받은 선물 장부에서 아직 상자에 넣지 않은 가장 최근 것을 찾아 보낸 이·쪽지를 돌려줌
-// 직접 만들었거나 장부에서 밀려났으면 빈 값 (상자에 '이름만' 남음). 쓴 장부 칸은 combat.keepUsed에 셈
-function giftSender(d, id) {
-  const c = logic.combatJson(d);
-  if (!c.keepUsed || typeof c.keepUsed !== 'object') c.keepUsed = {};
-  c._lastKeep = null;
-  for (const e of db.ledgerList(d.id, 200)) {
-    if (e.kind !== 'gift_in' || !e.other?.name) continue;
-    const n = e.itemsIn.filter((x) => x.id === id).reduce((a, x) => a + (x.qty || 0), 0);
-    if (n - (c.keepUsed[e.id] || 0) <= 0) continue;
-    c.keepUsed[e.id] = (c.keepUsed[e.id] || 0) + 1;
-    c._lastKeep = String(e.id);
-    return { from: e.other.name, msg: (e.msg || '').slice(0, 200) };
+// ── 재생 절차 초안: 넘버와 과거·변질 후보를 서버가 정해 두고, 새로고침해도 바뀌지 않게 저장한다
+const die = n => crypto.randomInt(1, n + 1);
+function freeNumber() {
+  for (let i = 0; i < 5000; i++) {
+    const num = 'R8-' + String(crypto.randomInt(10, 1000)).padStart(3, '0');
+    if (!Q.agentByNum.get(num) && !Q.draftByNum.get(num)) return num;
   }
-  return {};
+  throw Object.assign(new Error('no number'), { code: 'number-full' });
 }
-
-// 내 드래곤의 전체 정보 (나에게만 보냄)
-
-const meOf = (d) => ({
-  dormant: !!d.dormant_at,               // 휴면: 본인이 '돌아왔다'를 눌러 복구하기 전까지 다른 화면에 보이지 않음
-  dormantLeft: d.dormant_at ? Math.max(0, Math.ceil((d.dormant_at + DORMANT_DELETE_MS - Date.now()) / 86400000)) : null, // 휴면 풀기 전 계정이 지워지기까지 남은 날
-  duelUnseen: db.duelUnseen(d.id),       // 아직 확인하지 않은, 받은 자동 결투 수
-  favs: logic.combatJson(d).favs || null, // 즐겨찾기 (물건·제작법·칭호). 서버에 드래곤마다 저장해서 기기를 바꿔도 남음
-  seen: logic.combatJson(d).seen || null, // 읽음 표시 (업데이트 노트·석판·다시 일어선 드래곤). 기기를 바꿔도 같은 알림이 다시 뜨지 않게
-  ...publicDragon(d),
-  level: d.level, xp: d.xp, xpMax: logic.xpNeed(d.level), levelMax: logic.atMaxLevel(d),
-  hp: d.hp, hpMax: logic.hpCap(d), en: d.en, enMax: logic.enCap(d),
-  ap: d.ap, apMax: logic.apCap(d), gold: d.gold,
-  stats: logic.statsOf(d),                 // 장신구까지 더한 값
-  base: { claw: d.claw, scale: d.scale, wing: d.wing, wisdom: d.wisdom, majesty: d.majesty }, // 타고난 값 (포인트를 나눈 값 포함)
-  statPts: d.stat_pts || 0,                // 아직 나누지 않은 능력치 포인트
-  mind: d.mind ?? MIND.max, mindMax: MIND.max, mindAt: d.mind_at || 0, mindEvery: MIND.regenEvery,
-  berserkInfo: (() => { const b = logic.berserkOf(d); return b ? { at: b.at, until: b.until, region: b.region, hp: b.hp, hpMax: b.hpMax } : null; })(),
-  corrupt: { region: !purify.purified() ? logic.corruptedRegion() : null, // 매일 옮겨 가는 오염만 (재앙의 오염은 아래 blight)
-              until: logic.corruptUntil(), purify: purify.view(d) },
-  blight: blight.view(d), // 재앙의 오염 (놓친 재앙이 휩쓸고 간 곳과 그 주변)
-  marketFall: marketFall.view(d), // 무너진 시장 (GM 이벤트)
-  ruin: ruin.view(d),
-  fallen: logic.isFallen(d) ? death.view(d) : null,
-  titles: logic.titlesView(d),
-  maze: maze.meView(d),               // 지하 회랑: 자격·횃불·오늘 입장
-  city: city.meView(d),               // 고대도시: 열렸는지·안에 있는지·집터 단계·돌아온 골렘
-  dexNew: logic.dexHasNew(d), // 도감에 아직 열어 보지 않은 새 칸
-  achNew: logic.achHasNew(d), // 아직 열어 보지 않은 새 업적
-  yabawi: yabawi.here(d),     // 같은 장소에 야바위꾼이 있으면 { until, greet … }
-  yabawiNow: yabawi.nowInfo(), // 대륙 어딘가에 야바위꾼이 나와 있으면 { hint, until } (지역 카드의 알림 줄)
-  peddler: peddler.status(d),          // 안개 너머의 행상인: 와 있으면 { open, until, here }, 아니면 { next } (남쪽 해안)
-  nightMarket: nightMarket.status(d), // 축제 중이면 { open, until, next, here, mine } (왕도 야시장)
-  craftMult: (logic.titleMods(d).craftEn || 1) * logic.lifeMods(d).craftEn, // 칭호 · 장신구 효과 craftEn (지금은 이 효과를 가진 장신구 없음)
-  craftGear: logic.lifeMods(d).craftEn < 1, // 제작 기력이 장신구 덕에 줄었는지 (화면의 '○○ 덕분에' 글)
-  cookMult: logic.titleMods(d).cookEn || 1, // 칭호 '둥지의 요리사': 요리 제작 기력
-  mob: mobs.summary(d),                     // 맡은 모브 드래곤 의뢰와 진행도
-  craft: logic.craftView(d),                // 찾아낸 제작법, 대성공 확률, 공방, 장신구 강화·각인
-  buff: (() => { const b = logic.buffOf(d); return b ? { id: b.id, at: b.at || null, until: b.until } : null; })(),
-  nap: (() => { const n = logic.combatJson(d).nap; return n && n.until > Date.now() ? { until: n.until, gather: n.gather } : null; })(), // 거처의 단잠
-  scars: death.scarsOf(d),
-  bio: bioOf(d),
-  statBonus: logic.bonusOf(d).stats,       // 그중 장신구 몫
-  equip: logic.equipOf(d),
-  presets: logic.presetsView(d),            // 장비 프리셋 (장신구 + 칭호, 5칸)
-  stance: d.stance, stanceName: STANCES[d.stance] || '',
-  apAt: d.ap_at,
-  apEvery: d._apEvery || RULES.apEvery, // 지금 행동력 한 칸이 차는 간격 (쉬기·날씨·특성 반영). 위쪽 바의 '+1 남은 시간'
-  enAt: d.en_at,
-  rep: Object.fromEntries(Object.keys(SHOPS).map((r) => {
-    const v = logic.repOf(d)[r] || 0;
-    return [r, { value: v, name: repTier(v) }];
-  })),
-  stanceAt: d.stance_at || 0,
-  nest: d.nest || null,
-  restAt: d.rest_at || null,
-  restWhere: d.rest_at ? (() => { const h = logic.restHostOf(d); return h && h.id !== d.id ? { partner: h.name, region: h.nest || d.region } : { partner: null, region: d.nest || d.region }; })() : null, // 지금 쉬는 둥지 (반려의 둥지면 반려 이름)
-  hoardGold: d.hoard_gold || 0,
-  nestTier: d.nest ? logic.nestInfo(d).tier : 0,
-  restTier: d.rest_at ? (() => { const h = logic.restHostOf(d); return h.nest ? logic.nestInfo(h).tier : 0; })() : null, // 쉬는 둥지의 크기 (반려의 둥지면 그 둥지)
-  maxKin: logic.maxKinOf(d),
-  raid: logic.raidView(d),                 // 보물 도둑 (쫓을 수 있는 동안)
-  kinOffersIn: db.offersToCount(d.id) + kinLove.inCount(d.id), // 받은 식구 입양 제안 수 + 혼인 청·아이를 두고 받은 청
-  heir: (() => { try { return d.heir ? JSON.parse(d.heir) : null; } catch { return null; } })(), // 이어받은 의지
-  heirLeft: logic.combatJson(d).heirDrip?.left || 0, // 이어받은 의지 중 아직 받지 않은 능력치 포인트 (레벨 2마다 1점)
-  love: (() => { const id = heartId(d.id); if (!id) return null; const o = online.get(id)?.dragon || db.getDragon(id); return o ? { id, name: o.name, bond: db.relBond(d.id, id), together: !!logic.hooks.together(d) } : null; })(),
-  partnerNest: logic.hooks.partnerNest(d),
-  fame: { value: d.fame || 0, name: fameTier(d.fame || 0).name, majesty: fameTier(d.fame || 0).majesty },
-  bounty: logic.hasBounty(d),
-  event: pendingId(d),                // 선택을 기다리는 이벤트가 있는지
-  relIn: db.reqInCount(d.id),         // 받은 동료 요청 수
-  tpUnread: db.tpUnread(d.id),        // 아직 듣지 않은 텔레파시 수
-  kin: d.kinSummary || { home: [], lineage: 0 },
-  traits: (() => { const t = logic.traitsOf(d); return { list: t.list, chosen: !!t.chosen, counts: t.counts, done: t.done, mark: t.mark || {} }; })(), // mark: 없애기만 하는 규칙을 다시 세기 시작한 횟수
-  combat: (() => { const c = combat.combatOf(d); return { skills: combat.loadout(d), w: c.w, l: c.l, duelOn: c.duelOn, autoDuel: c.autoDuel, sig: c.sig?.type || null }; })(),
-  battle: arena ? arena.inBattle(d.id) : false,
-  raidBoss: raidBoss ? raidBoss.meView(d) : null, // 레이드: 이번 주 보상 횟수
-  perks: d.perks || {},
-  cost: { explore: logic.actionCost(d, 'explore'), gather: logic.actionCost(d, 'gather'), hunt: logic.actionCost(d, 'hunt') },
-  exp: d.exp_end ? { region: d.exp_region, start: d.exp_start, end: d.exp_end, goal: logic.expInfo(d).goal || (logic.expInfo(d).line ? 'fishline' : 'gather'), line: logic.expInfo(d).line || null, fork: logic.forkView(d), plan: logic.planView(d), went: logic.expInfo(d).went || [] } : null,
-  expLast: d.exp_end ? null : (logic.expInfo(d).last || null), // 지난 원정 일지
+function rollPasts() {
+  const out = [], seen = new Set();
+  while (out.length < 3) {
+    const p = { dept: die(PAST_SIZE) - 1, death: die(PAST_SIZE) - 1, secret: die(PAST_SIZE) - 1 }, k = p.dept + '-' + p.death + '-' + p.secret;
+    if (!seen.has(k)) { seen.add(k); out.push(p); }
+  }
+  return out;
+}
+function rollTraits() {
+  const out = [], seen = new Set();
+  while (out.length < 3) { const id = die(TRAIT_SIZE); if (!seen.has(id)) { seen.add(id); out.push({ id }); } }
+  return out;
+}
+function draftOf(uid) {
+  const row = Q.draft.get(uid);
+  if (row) return { num: row.num, ...JSON.parse(row.data) };
+  const d = { pasts: rollPasts(), traits: rollTraits() }, num = freeNumber();
+  Q.addDraft.run(uid, num, JSON.stringify(d), now());
+  return { num, ...d };
+}
+app.get('/api/draft', need, (req, res) => {
+  if (Q.agent.get(req.user.id)) return fail(res, 'agent/exists');
+  res.json({ draft: draftOf(req.user.id) });
 });
 
-const EVENTS = require('./game-events');
-// 기다리는 이벤트의 이름 (화면의 '일이 생겼다' 줄에 씀)
-function pendingId(d) {
-  if (!d.pending_event) return null;
+// 출입증 발급: 초안에서 고른 후보와 플레이어 입력을 검증해 저장한다
+app.post('/api/agent', need, (req, res) => {
+  const uid = req.user.id, b = req.body || {};
+  if (Q.agent.get(uid)) return fail(res, 'agent/exists');
+  const row = Q.draft.get(uid);
+  if (!row) return fail(res, 'agent/no-draft');
+  const d = JSON.parse(row.data);
+  const name = str(b.name, 12), realName = str(b.realName, 20);
+  if (!name) return fail(res, 'agent/bad-name');
+  if (!realName) return fail(res, 'agent/bad-realname');
+  const photo = photoOf(b.photo);
+  if (photo === undefined) return fail(res, 'agent/bad-photo');
+  b.role = 0;
+  if (!isInt(b.team, 1, 5)) return fail(res, 'agent/bad-team');
+  if (!isInt(b.role, 0, 1) || !isInt(b.age, 18, 70) || !isInt(b.pastPick, 0, 2) || !isInt(b.traitPick, 0, 2)) return fail(res, 'agent/bad-field');
+  const stats = b.stats;
+  if (!Array.isArray(stats) || stats.length !== 6 || !stats.every(v => isInt(v, STAT_MIN0, STAT_MAX0)) || stats.reduce((a, c) => a + c, 0) !== STAT_SUM) return fail(res, 'agent/bad-stats');
+  const p = d.pasts[b.pastPick], t = d.traits[b.traitPick], trait = t.id || (t.d1 + t.d2);
+  if (!isInt(b.free, 0, SKILLS.length - 1)) return fail(res, 'agent/bad-skill');
+  const skills = {};
+  DEPT_SKILLS[p.dept].forEach(k => { skills[k] = 1; });
+  if (skills[SKILLS[b.free]]) return fail(res, 'agent/bad-skill');
+  skills[SKILLS[b.free]] = 1;
+  const realAge = b.age + 5 * (1 + ((p.dept + p.death + p.secret) % 10));
+  const sealed = { mode: 'roll', realName, dept: p.dept, death: p.death, secret: p.secret, cross: str(b.cross, 8).toUpperCase(), realAge };
+  let num = row.num;
   try {
-    const id = JSON.parse(d.pending_event).id;
-    return { id, title: EVENTS.find((e) => e.id === id)?.title || '' };
-  } catch { return null; }
-}
-
-// ── 둥지 식구 ──────────────────────────────────────
-// 지난 시간만큼 식구의 일을 계산하고(성장, 노화, 부화, 선물), 소식이 있으면 알림
-// ── 소꿉친구: 가까운 둥지(같은 지역이나 바로 이웃한 지역)의 아이와 가끔 함께 놀다 옴 (KIN_PLAY) ──
-function playdate(d, kin, now) {
-  const P = KIN_PLAY;
-  if (!d.nest) return [];
-  const c = logic.combatJson(d);
-  if (now - (c.playAt || 0) < P.everyMs) return [];
-  c.playAt = now;
-  if (Math.random() >= P.chance) return [];
-  const mine = life.playable(kin, now);
-  if (!mine.length) return [];
-  const near = new Set([d.nest, ...(REGIONS[d.nest]?.links || [])]); // 같은 지역과 바로 이웃한 지역
-  const others = db.nestsAll(d.id).filter((o) => near.has(o.nest)).sort(() => Math.random() - 0.5);
-  for (const o of others) {
-    const oe = online.get(o.id);
-    const od = oe ? oe.dragon : db.getDragon(o.id);
-    if (!od) continue;
-    const okin = db.kinLoad(o.id);
-    const theirs = life.playable(okin, now);
-    if (!theirs.length) continue;
-    // 이미 친구인 짝이 있으면 그 둘이 다시 만날 때가 많음
-    const pairs = [];
-    for (const a of mine) for (const b of theirs) if (a.data.friends?.[`${o.id}:${b.id}`]) pairs.push([a, b]);
-    const [a, b] = pairs.length && Math.random() < P.sameFriend ? pairs[Math.floor(Math.random() * pairs.length)]
-      : [mine[Math.floor(Math.random() * mine.length)], theirs[Math.floor(Math.random() * theirs.length)]];
-    const r = life.playTogether(a, d, b, od, now);
-    if (oe) refreshKin(oe.dragon, okin); else db.kinSaveAll(o.id, okin);
-    social.tellRival(o.id, r.theirs.join(' '), '둥지 소식');
-    return r.mine;
-  }
-  return [];
-}
-function syncKin(socket, d, now = Date.now()) {
-  const kin = db.kinLoad(d.id);
-  const t = life.tick(d, kin, now);
-  t.lines.push(...playdate(d, kin, now));
-  refreshKin(d, kin);
-  db.saveState(d, t.items, t.hoardItems);
-  if ((t.hoardItems || []).some((x) => x.qty < 0)) logic.tidyHoardGear(d, (id) => db.hoardCount(d.id, id)); // 식구 일로 보물더미에서 나간 것
-  if (t.lines.length && socket) {
-    socket.emit('notice', { title: '둥지 소식', lines: t.lines, items: [...t.items, ...t.hoardItems], gold: t.gold });
-  }
-  return kin;
-}
-// 식구가 바뀐 뒤: 저장하고, 식구가 주는 도움(d.perks)과 요약을 새로 계산
-function refreshKin(d, kin) {
-  db.kinSaveAll(d.id, kin);
-  d.perks = life.perksOf(kin);
-  d.kinSummary = life.summary(kin, Date.now());
-}
-
-// 보물더미 가치를 새로 셈(위엄·칭호에 씀)하고, 둥지를 비운 동안 도둑이 들었는지 굴림
-function nestSync(socket, d, now = Date.now()) {
-  if (!d.nest || d.dead_at) return;
-  const ni = logic.nestInfo(d);
-  let hoard = db.hoard(d.id);
-  // 예전에 보물더미에 물건으로 쌓아 둔 추억 물건은 보물 상자로 옮김 (도둑이 못 가져가게)
-  const moved = logic.chestMigrate(d, hoard);
-  if (moved.length) { db.saveState(d, [], moved); hoard = db.hoard(d.id); }
-  ni.value = logic.hoardValue(d.hoard_gold || 0, hoard) + logic.chestValue(d); // 보물 상자의 작은 값어치도 더함
-  const r = logic.checkRaid(d, hoard, now, !!d._forceRaid);
-  delete d._forceRaid;
-  if (!r) return;
-  db.saveState(d, [], r.hoardItems || []);
-  logic.tidyHoardGear(d, (id) => db.hoardCount(d.id, id)); // 도둑이 강화한 장신구를 가져갔으면 그 기록도 지움
-  hoard = db.hoard(d.id);
-  ni.value = logic.hoardValue(d.hoard_gold || 0, hoard) + logic.chestValue(d);
-  if (socket) socket.emit('notice', { title: r.kind === 'blocked' ? '둥지를 지켜 냈다' : '보물 도둑', lines: r.lines, raid: r.kind === 'raid' });
-  else for (const l of r.lines) db.noteAdd(d.id, l);
-}
-
-// 회복을 계산한 뒤 내 정보를 보냄
-function sendMe(socket, d) {
-  logic.regen(d);
-  nestSync(socket, d);
-  // 새로 이룬 칭호가 있으면 얻고 알림 (단 칭호가 바뀌면 같은 지역에도 알림)
-  const before = logic.titleName(d);
-  const got = logic.checkTitles(d);
-  if (got.length) {
-    db.saveState(d);
-    socket.emit('notice', { title: '칭호', lines: got.map((t) => `칭호 '${t.name}'${josa(t.name, '을', '를')} 얻었다. (${t.eff})`).concat(before ? [] : [`'${got[got.length - 1].name}' 칭호를 달았다. 드래곤 기록 아래 '칭호'에서 바꿀 수 있다.`]) });
-    if (logic.titleName(d) !== before) setImmediate(() => broadcastPresence(d.region));
-  }
-  // 새로 이룬 업적. 처음 판정할 때는 도감부터 옮겨 오고, 그동안의 기록으로 이룬 것은 한 줄로만 알림
-  const c = logic.combatJson(d);
-  if (!c.ach) logic.dexBackfill(d, [...db.inventory(d.id), ...db.hoard(d.id)].map((x) => x.item));
-  const ach = logic.checkAch(d);
-  if (ach.got.length || ach.backfill) {
-    db.saveState(d);
-    const lines = ach.got.map((A) => `${A.hidden ? '숨겨진 업적' : '업적'} '${A.name}'${josa(A.name, '을', '를')} 이루었다. (${A.desc})`);
-    if (ach.backfill) lines.push(`그동안의 기록으로 업적 ${ach.backfill}개를 이미 이루었다. '상태 → 기록 → 업적'에서 볼 수 있다.`);
-    socket.emit('notice', { title: '업적', lines });
-  }
-  socket.emit('me', meOf(d));
-  rivalNews(d);
-}
-// 라이벌 소식: 레벨업·칭호·강적 처치·쓰러짐 같은 큰 사건을 나를 라이벌로 정한 드래곤들에게 알림
-const RIVAL_NEWS = /레벨 \d+|칭호 '|강적 |쓰러졌다|광폭화했다|다시 태어났다/;
-function rivalNews(d) {
-  const news = (d._news || []).filter((t) => RIVAL_NEWS.test(t));
-  d._news = [];
-  if (!news.length) return;
-  const fans = db.rivalFans(d.id);
-  for (const id of fans) {
-    const lines = news.map((t) => `라이벌 ${d.name}: ${t}`);
-    const e = online.get(id);
-    if (e) e.socket.emit('notice', { title: '라이벌 소식', lines });
-    else for (const l of lines) db.noteAdd(id, l);
-  }
-}
-// 라이벌과 같은 지역에 있게 되면 서로에게 알림 (같은 둘에게는 10분에 한 번)
-const rivalSeen = new Map();
-function rivalNear(d) {
-  const now = Date.now();
-  for (const [id, e] of online) {
-    if (id === d.id || e.dragon.region !== d.region || d.dormant_at || e.dragon.dormant_at) continue; // 휴면이면 서로 알리지 않음
-    const a = db.relGet(d.id, id), b = db.relGet(id, d.id);
-    if (a !== 'rival' && b !== 'rival') continue;
-    const key = d.id < id ? `${d.id}-${id}` : `${id}-${d.id}`;
-    if (now - (rivalSeen.get(key) || 0) < 10 * 60000) continue;
-    rivalSeen.set(key, now);
-    const mutual = a === 'rival' && b === 'rival';
-    const me = online.get(d.id);
-    if (me) me.socket.emit('rival:near', { id, name: e.dragon.name, mutual, mine: a === 'rival', arrived: false });
-    e.socket.emit('rival:near', { id: d.id, name: d.name, mutual, mine: b === 'rival', arrived: true });
-  }
-}
-// 채팅 기록에 칭호를 붙임 (지금 단 칭호)
-function withTitles(list) {
-  const cache = new Map();
-  return list.map((m) => {
-    if (!m.dragonId) return m;
-    if (!cache.has(m.dragonId)) {
-      const d = online.get(m.dragonId)?.dragon || db.getDragon(m.dragonId);
-      cache.set(m.dragonId, d ? { title: logic.titleName(d), av: d.has_avatar ? d.avatar_ver : 0 } : { title: null, av: 0 });
-    }
-    return { ...m, ...cache.get(m.dragonId) };   // 칭호와 지금의 프로필 사진
-  });
-}
-
-// 이 지역에 머무는 드래곤: 접속 중인 드래곤이 먼저, 그다음 접속하지 않은 드래곤(마지막으로 본 순서)
-// 창을 내리거나 닫아도 목록에서 사라지지 않고 '접속 안 함'으로 남음
-// 오래 자리를 비운 드래곤: 접속하지 않은 지 이만큼 지나면 '이곳의 드래곤' 목록에서 잠시 빠짐 (잠깐 쉬는 것일 뿐, 다시 접속하면 그대로 돌아옴)
-const AWAY_MS = RULES.awayMs; // 3일 (game-data.js RULES.awayMs)
-function occupants(region) {
-  const list = [];
-  const awayBefore = Date.now() - AWAY_MS;
-  for (const { dragon } of online.values()) {
-    if (dragon.region === region && !dragon.dormant_at) list.push({ ...publicDragon(dragon), online: true }); // 휴면을 풀기 전에는 보이지 않음
-  }
-  for (const d of db.dragonsIn(region)) {
-    if (online.has(d.id)) continue;
-    if ((d.last_seen || 0) < awayBefore) continue; // 3일 넘게 자리를 비움: 목록에서 잠시 빠짐
-    list.push({ ...publicDragon(d), online: false, lastSeen: d.last_seen || 0 });
-  }
-  return list;
-}
-
-function broadcastPresence(region) {
-  io.to(region).emit('presence', { region, occupants: occupants(region) });
-}
-
-function broadcastCounts() {
-  const counts = {};
-  for (const { dragon } of online.values()) {
-    if (dragon.dormant_at) continue; // 휴면을 풀기 전에는 접속 인원에도 세지 않음
-    counts[dragon.region] = (counts[dragon.region] || 0) + 1;
-  }
-  io.emit('world:counts', counts);
-}
-
-// 지역 안내 문구. except를 넘기면 그 소켓에게는 보내지 않음
-function system(region, text, except) {
-  (except ? except.to(region) : io.to(region)).emit('system', { text, at: Date.now() });
-}
-
-function sendRegionState(socket, dragon) {
-  socket.emit('region:state', {
-    region: dragon.region,
-    occupants: occupants(dragon.region),
-    // 이 지역의 대화에 지난 용언을 시각 순서대로 섞어 보여 줌
-    more: true, // 위로 올리면 더 불러올 수 있음 (불러와 보고 없으면 버튼을 숨김)
-    page: HISTORY, // 한 쪽에 담는 지역 대화 수 (화면이 '더 있을지' 가늠할 때)
-    // 지역 대화·용언·대륙 소식을 따로 가져와 섞음 (용언·소식이 활발한 지역 대화에 밀려 잘리지 않게)
-    history: withTitles(chatPage(dragon.region, Infinity)),
-  });
-}
-
-// 이야기 한 쪽: 지역의 말 N개, 그리고 같은 기간의 용언·대륙 소식을 모두 (기간이 어긋나 중간이 빠지지 않게)
-// 지역의 말이 N개보다 적으면(이야기의 처음까지 왔으면) 용언·소식은 각자 정한 개수만큼 더 앞까지
-const BIG_ID = Number.MAX_SAFE_INTEGER;
-function chatPage(region, before) {
-  const b = Number.isFinite(before) ? before : BIG_ID;
-  const here = Number.isFinite(before) ? db.olderChat(region, b, HISTORY) : db.recentChat(region, HISTORY);
-  const since = here.length >= HISTORY ? Math.min(...here.map((m) => m.at)) : null; // 이 쪽이 덮는 기간의 시작
-  const side = (rg, n) => (since != null ? db.chatSince(rg, b, since, Math.max(200, n)) : db.olderChat(rg, b, n));
-  // 첫 쪽에는 지역 대화가 덮는 기간보다 오래된 용언이라도 최근 SHOUT_HISTORY개는 함께 (활발한 지역에서 용언이 몇 개만 보이지 않게)
-  let shouts = side(SHOUT_REGION, SHOUT_HISTORY);
-  if (!Number.isFinite(before) && since != null && shouts.length < SHOUT_HISTORY) {
-    const ids = new Set(shouts.map((m) => m.id));
-    shouts = [...shouts, ...db.olderChat(SHOUT_REGION, BIG_ID, SHOUT_HISTORY).filter((m) => !ids.has(m.id))];
-  }
-  let news = side(NEWS_REGION, NEWS_HISTORY);
-  // 첫 쪽: 용언이 더 남아 있으면 소식도 가장 오래된 용언 시각까지만 (소식만 더 멀리 이어져 '용언이 끊긴 것'처럼 보이지 않게. 그 앞은 위로 올려 함께 불러옴)
-  if (!Number.isFinite(before) && shouts.length >= SHOUT_HISTORY) { const sMin = Math.min(...shouts.map((m) => m.at)); news = news.filter((m) => m.at >= sMin); }
-  // 첫 쪽: 아직 진행 중인 큰 사건(무너진 시장·대륙의 재앙·오염)의 알림은 오래되었어도 늘 함께 (다른 소식에 밀려 나중에 온 드래곤이 못 보는 일이 없게)
-  if (!Number.isFinite(before)) {
-    const have = new Set(news.map((m) => m.id));
-    for (const p of livePins()) if (p?.id && !have.has(p.id)) { have.add(p.id); news.push({ id: p.id, at: p.at, text: p.text, dragonId: 0, name: '', kind: '' }); }
-  }
-  return [
-    ...here,
-    ...shouts.map((m) => ({ ...m, shout: true })),
-    ...news.map((m) => ({ ...m, news: true })),
-  ].sort((a, c) => a.at - c.at || a.id - c.id);
-}
-// 진행 중인 큰 사건의 알림 (끝나면 빠짐)
-function livePins() {
-  const out = [...marketFall.pins(), boss.pin(), contest.pin()];
-  const cp = db.worldGet('corruptPin');
-  if (cp && cp.region === logic.corruptedRegion() && !purify.purified()) out.push(cp);
-  out.push(blight.pin());
-  return out.filter(Boolean);
-}
-function enterWorld(socket, dragon) {
-  const prev = online.get(dragon.id);
-  if (prev && prev.socket.id !== socket.id) {
-    // 같은 드래곤으로 다른 창에서 접속하면 이전 창을 끊음
-    prev.socket.data.kicked = true;
-    prev.socket.emit('kicked');
-    prev.socket.disconnect(true);
-  }
-  socket.data.dragonId = dragon.id;
-  logic.regen(dragon);
-  { // 예전 걸작 기록을 따로 된 '걸작 ○○'으로 옮김 (한 번만 일어남)
-    const mw = logic.migrateMasterwork(dragon, (id) => db.itemCount(dragon.id, id));
-    if (mw.changed) db.saveState(dragon, mw.items);
-  }
-  { // 예전에 '떠나보내기' 단추(새끼)·'마을로 돌려보내기'(어른 인간)로 떠나보낸 식구가 칭호 셈에서 빠져 있던 것을 채움 (한 번만)
-    const c = logic.combatJson(dragon);
-    if (!c.sendoffFix) {
-      c.sendoffFix = 1;
-      const kin = db.kinLoad(dragon.id);
-      const gone = kin.filter((k) => (k.type === 'drake' && k.status === 'independent') || (k.type === 'human' && k.status === 'returned' && k.data?.path === 'return')).length;
-      const t = logic.traitsOf(dragon);
-      if (gone > (t.counts.sendoff || 0)) t.counts.sendoff = gone; // 이벤트로 이미 센 것과 겹치지 않게 더 큰 쪽만
-      db.saveState(dragon);
-    }
-  }
-  syncKin(socket, dragon);
-  sendMe(socket, dragon); // 접속할 때 새로 이룬 칭호도 확인
-  if (arena) arena.resume(dragon.id, socket); // 새로고침 전의 싸움이 남아 있으면 이어서
-  social.onEnter(socket, dragon);
-  maze.onEnter(socket, dragon);
-  online.set(dragon.id, { socket, dragon, at: Date.now() }); // at: 이번에 접속한 시각 (결투장 목록 순서 등)
-  socket.join(dragon.region);
-  if (contest) socket.emit('contest', contest.view(dragon)); // 풍어 요리 잔치 (열려 있을 때만 모습이 있음)
-  if (contest) { const x = contest.intro(dragon); if (x) setTimeout(() => socket.connected && socket.emit('contest:intro', x), 1500); } // 대회 중 처음 들어오면(새 드래곤 포함) 시작 안내, 다른 첫 화면 알림이 먼저 뜬 뒤에
-  setImmediate(() => rivalNear(dragon));
-  const back = !prev && Date.now() - (dragon.last_seen || 0) >= AWAY_MS; // 오래 자리를 비웠다가 돌아옴
-  db.touch(dragon.id); dragon.last_seen = Date.now(); // 메모리의 값도 맞춰 둠 (다음 판정이 예전 값을 보지 않게)
-
-  // 들어오고 나가는 알림은 띄우지 않음 (창을 내렸다 켤 때마다 다시 접속해 쌓였음). 오래 비웠다가 돌아올 때만 알림
-  if (!prev && back && !dragon.dormant_at) { // 휴면이면 복구할 때 알림
-    system(dragon.region, `오랫동안 보이지 않던 ${dragon.name}${josa(dragon.name, '이', '가')} 먼 길을 돌아 다시 이곳에 모습을 드러냈다.`, socket);
-  }
-  sendRegionState(socket, dragon);
-  broadcastPresence(dragon.region);
-  broadcastCounts();
-}
-
-function entryOf(socket) {
-  const entry = online.get(socket.data.dragonId);
-  return entry && entry.socket === socket ? entry : null;
-}
-
-// 동료: 프로필, 관계, 선물, 교환 (social.js)
-const social = require('./social')({ db, online, entryOf, sendMe, logic, life, inBattle: (id) => !!arena && arena.inBattle(id), nightOpen: () => !!nightMarket.sessionAt() }); // nightMarket은 아래에서 만들어지지만, 쓰는 건 게임이 돌아갈 때라 괜찮음
-
-// 강적·결투장·전투 설정·광폭화 (arena.js)
-let arena = null;
-let raidBoss = null; // 레이드 (아래에서 만들어짐. 쓰는 건 게임이 돌아갈 때라 괜찮음)
-arena = require('./arena')({ io, db, online, logic, combat, life, sendMe, broadcastPresence });
-const BERSERK = '광폭화한 몸이 제멋대로 날뛴다. 누군가 진정시켜 주기를 기다려야 한다.';
-
-// 쓰러짐·상흔·죽음·남긴 둥지 (death.js)
-const death = require('./death')({ io, db, online, logic, life, sendMe, broadcastPresence });
-// 지하 회랑: 고대 유적 아래 일곱 층의 공유 미로 (maze.js)
-const maze = require('./maze')({ io, db, online, logic, sendMe, system, death });
-// 고대도시: 지하 회랑을 모두 밝히면 고대 유적 아래로 열리는 도시 (city.js)
-const city = require('./city')({ io, db, online, logic, sendMe });
-// 고대도시 재료를 얻는 곳도 '얻는 곳' 안내에 더함 (제작·가구 만들기·칸 되살리기에서 재료를 누르면 보임)
-{
-  const { CITY_RULES: CR, CITY_TRADE: CTR, CITY_JOBS: CJ, CITY_WORKSHOP: CW } = require('./city');
-  const add = (id, text) => { if (!ITEMS[id]) return; (ITEM_SOURCES[id] ||= []); if (!ITEM_SOURCES[id].includes(text)) ITEM_SOURCES[id].push(text); };
-  const often = (p) => (p >= 0.5 ? '' : p >= 0.3 ? ' (가끔)' : ' (드물게)');
-  for (const [id, p] of CR.gather || []) add(id, `고대도시 골렘 일감 '${CJ.gather}'${often(p)}`);
-  for (const [id, p] of CR.dig || []) add(id, `고대도시 골렘 일감 '${CJ.dig}'${often(p)}`);
-  for (const [id, seals, qty] of CTR.city || []) add(id, `오르딘(고대도시)과 교환 (석공 인장 ${seals}에 ${qty}개, 날마다 바뀜)`);
-  for (const [id, seals] of CTR.rare || []) add(id, `오르딘(고대도시)과 교환 (석공 인장 ${seals}, 날마다 바뀜)`);
-  for (const w of CW.list || []) add(w.out, `고대도시 작업실 생산대 (${Object.entries(w.needs).map(([k, n]) => `${ITEMS[k]?.name || k} ${n}`).join(' · ')})`);
-  add('shroom_spore', '온실 옆 집의 집터 덤 (하루 한 번 정원 거두기)'); add('cave_crystal', '온실 옆 집의 집터 덤 (하루 한 번 정원 거두기)');
-}
-// ── 계절과 날씨: 시각으로 정해짐. 바뀌면 모두에게 알리고, 그 지역 이야기 창에도 한 줄 ──
-function weatherAll(now = Date.now()) {
-  const se = logic.seasonAt(now);
-  return {
-    season: { id: se.id, name: se.name, until: se.until },
-    regions: Object.fromEntries(Object.keys(REGIONS).map((r) => [r, logic.weatherOf(r, now)])),
-  };
-}
-let wxLast = weatherAll();
-const wxTicker = setInterval(() => {
-  const cur = weatherAll();
-  if (cur.season.id !== wxLast.season.id) {
-    const se = SEASONS.find((x) => x.id === cur.season.id);
-    io.emit('system', { text: `[계절] ${se.name}${josa(se.name, '이', '가')} 왔다. ${se.desc}`, at: Date.now() });
-  }
-  let changed = cur.season.id !== wxLast.season.id;
-  for (const [r, w] of Object.entries(cur.regions)) {
-    const prev = wxLast.regions[r];
-    if (prev.id !== w.id || prev.until !== w.until) changed = true;
-    if (prev.id !== w.id) system(r, `하늘이 바뀌었다: ${WEATHERS[prev.id].name} → ${WEATHERS[w.id].name}. ${WEATHERS[w.id].desc}`);
-  }
-  // 날씨가 바뀐 지역에 있는 드래곤은 행동 단추의 행동력(뇌우의 사냥 +1 등)을 새로 받음. 예전엔 다음 행동 전까지 옛 날씨의 값이 남아 있었음
-  const wxChanged = new Set(Object.entries(cur.regions).filter(([r, w]) => wxLast.regions[r]?.id !== w.id).map(([r]) => r));
-  wxLast = cur;
-  if (changed) io.emit('weather', cur);
-  if (wxChanged.size) for (const e of online.values()) if (e.dragon && wxChanged.has(e.dragon.region)) sendMe(e.socket, e.dragon);
-}, 20000);
-wxTicker.unref?.();
-
-// 대륙의 재앙: 모두가 함께 맞서는 거대한 적 (boss.js)
-const boss = require('./boss')({ io, db, online, logic, combat, arena, sendMe });
-// 풍어 요리 잔치 (요리대회): GM이 여는 기간 한정 이벤트. 크라켄은 boss로 부름 (contest.js)
-const contest = require('./contest')({ io, db, online, logic, combat, arena, sendMe, boss });
-// 떠돌이 야바위꾼: 하루 네 번 한 시간씩 대륙 어딘가에 판을 벌임 (yabawi.js)
-const slate = require('./slate')({ io, db, entryOf }); // 석판 (게시판)
-const yabawi = require('./yabawi')({ io, db, online, logic, sendMe, isOpen: (r) => (r.startsWith('raid:') ? !!raidBoss?.cleared(r.slice(5)) : ruin.unlocked(r)) }); // ruin은 아래에서 만들어지지만, 쓰는 건 게임이 돌아갈 때라 괜찮음
-// 왕도 야시장: 축제 날 저녁 6시~새벽 5시, 상인 노점과 드래곤들의 노점 (nightmarket.js)
-const nightMarket = require('./nightmarket')({ io, db, online, logic, sendMe });
-// 안개 너머의 행상인: 하루 세 번 남쪽 해안에 90분씩 (peddler.js). 이국 장신구는 빚은 물건처럼 월드에 저장 (아래 registerItem)
-const peddler = require('./peddler')({ io, db, online, logic, sendMe, registerItem: (sig, def) => peddlerItem(sig, def) });
-logic.hooks.openMistBox = (d, id) => peddler.openBox(d, id);
-// 다른 둥지 아이와 맺어지기: 서로의 첫사랑 → 혼인 청 → 두 보호자 허락 (kinlove.js)
-const kinLove = require('./kinlove')({ db, online, sendMe, life, logic,
-  news: (text) => { const at = Date.now(); let id = 0; try { id = db.addChat('!', { dragonId: 0, name: '', kind: '', text, at }); } catch {} io.emit('system', { text, at, news: true, id }); },
-  kinChanged: (id, kin) => { const e = online.get(id); if (e) { refreshKin(e.dragon, kin); sendMe(e.socket, e.dragon); } else db.kinSaveAll(id, kin); } });
-logic.hooks.kinLove = kinLove;
-life.setNightCheck((t) => !!nightMarket.sessionAt(t)); // 식구 나들이: 낮에 한 번 · 야시장 밤에 한 번
-// ── 정화: 오염된 땅에서 행동할수록 모두의 기여가 쌓이고, 목표에 닿으면 그 땅의 오염이 일찍 걷힘 ──
-// 오염 시계 (GM이 즉시 일으키면 바뀜). logic이 이걸 보고 지금 오염된 곳을 셈
-let corruptClock = db.worldGet('corruptClock') || { off: 0, bump: 0, force: null };
-logic.hooks.corruptClock = () => corruptClock;
-const purify = (() => {
-  const period = (now = Date.now()) => logic.corruptPeriod(now);
-  let st = db.worldGet('purify');
-  const cur = (now = Date.now()) => {
-    const p = period(now);
-    if (!st || st.period !== p) { st = { period: p, region: logic.corruptedRegion(now), pts: {}, names: {}, total: 0, done: false }; db.worldSet('purify', st); }
-    return st;
-  };
-  // 오염된 땅에서 한 행동만큼 기여. 정화되면 모두에게 보상 (돌려주는 건 이 행동의 결과에 붙일 문장)
-  function add(d, kind, n = null) {
-    const s = cur();
-    if (s.done || d.region !== s.region) return [];
-    const v = n ?? PURIFY.pts[kind] ?? 0;
-    if (!v) return [];
-    s.pts[d.id] = (s.pts[d.id] || 0) + v;
-    s.names[d.id] = d.name;
-    s.total += v;
-    const lines = [];
-    if (s.total >= PURIFY.goal) { lines.push('마지막 한 줌의 검은 기운이 흩어졌다. 이 땅의 오염이 걷힌다!'); setImmediate(finish); }
-    db.worldSet('purify', s);
-    return lines;
-  }
-  function finish() {
-    const s = cur();
-    if (s.done) return;
-    s.done = true;
-    s.doneAt = Date.now();
-    db.worldSet('purify', s);
-    const R = PURIFY.reward;
-    const ids = Object.keys(s.pts).map(Number).filter((id) => s.pts[id] >= PURIFY.minPts);
-    const regionName = REGIONS[s.region]?.name || '';
-    io.emit('system', { text: `[정화] ${regionName}의 오염이 걷혔다! ${ids.length}마리의 드래곤이 함께 정화했다. 다음 오염이 퍼질 때까지 이 땅은 맑다.`, at: Date.now() });
-    for (const id of ids) {
-      const e = online.get(id);
-      const d = e ? e.dragon : db.getDragon(id);
-      if (!d || d.dead_at) continue;
-      const mine = s.pts[id];
-      const gold = Math.min(R.goldMax, R.goldBase + mine * R.goldPer);
-      d.gold += gold;
-      const lines = [`${regionName}의 오염을 함께 걷어 냈다. 나의 기여 ${mine} (전체 ${s.total})`, `금화 ${gold}닢을 받았다.`];
-      const f = logic.addFame(d, R.fame); if (f) lines.push(f);
-      const up = logic.gainXp(d, logic.xpOf(d, R.xp)); lines.push(`경험치 +${logic.xpOf(d, R.xp)}${up ? ' · 레벨이 올랐다!' : ''}`);
-      lines.push(...logic.traitCount(d, 'purify'));
-      logic.chron(d, 'mark', `${regionName}의 오염을 함께 정화했다.`);
-      db.saveState(d);
-      if (e) { sendMe(e.socket, d); e.socket.emit('notice', { title: '정화', lines }); } else for (const l of lines) db.noteAdd(id, l);
-    }
-    for (const e of online.values()) sendMe(e.socket, e.dragon); // 오염 표시가 사라지게
-  }
-  const view = (d) => { const s = cur(); return { region: s.region, total: s.total, goal: PURIFY.goal, mine: s.pts[d.id] || 0, done: s.done, people: Object.keys(s.pts).length }; };
-  return { add, view, purified: (now = Date.now()) => { const s = cur(now); return s.period === period(now) && s.done; }, debugSet: (n) => { const s = cur(); s.total = n; db.worldSet('purify', s); } };
-})();
-logic.hooks.purified = purify.purified;
-
-// ── 재앙의 오염: 놓친 대륙의 재앙이 떠나면 휩쓸고 간 곳(center)과 이어진 야생 지역(near)이 한동안 오염됨 (BOSS.blight) ──
-// 지역마다 따로 정화할 수 있음: 그곳에서 탐사·채집·사냥·강적·이벤트로 기여가 쌓이고, 목표에 닿으면 일찍 걷히며 기여한 드래곤 모두 보상
-// 상태는 world 표의 'boss_blight' { boss, at, pin, regions: { 지역id: { kind, until, total, goal, pts, names, done } } }
-const blight = (() => {
-  const { BOSS } = require('./game-data');
-  const B = BOSS.blight;
-  let st = db.worldGet('boss_blight') || { boss: '', at: 0, regions: {} };
-  const save = () => db.worldSet('boss_blight', st);
-  const live = (r, now = Date.now()) => !!r && r.until > now;                // 아직 기간 안 (정화되었어도)
-  const on = (region, now = Date.now()) => { const r = st.regions[region]; return live(r, now) && !r.done ? r : null; }; // 지금 오염됨
-  const wild = (id) => REGIONS[id] && !SHOPS[id] && !logic.isRuin(id);
-  const pushAll = () => { for (const e of online.values()) sendMe(e.socket, e.dragon); };
-  const KIND = { center: '짙은', near: '옅은' };
-  // 놓친 재앙이 떠날 때 (boss.js의 gone이 부름)
-  function start(region, bossName) {
-    if (!B || !wild(region)) return;
-    const now = Date.now();
-    const regions = {};
-    for (const [id, r] of Object.entries(st.regions)) if (live(r, now)) regions[id] = r; // 아직 남은 지난 오염은 그대로 둠
-    const put = (id, kind) => {
-      const prev = regions[id];
-      if (prev && !prev.done && prev.kind === 'center' && kind === 'near') return; // 짙은 오염을 옅게 덮지 않음
-      regions[id] = { kind, until: now + B[kind].hours * 3600000, total: 0, goal: B[kind].goal, pts: {}, names: {}, done: false };
-    };
-    put(region, 'center');
-    const near = REGIONS[region].links.filter(wild);
-    for (const id of near) put(id, 'near');
-    const rn = REGIONS[region].name;
-    const text = `[재앙의 오염] ${bossName}${josa(bossName, '이', '가')} 남긴 검은 기운이 ${rn}${near.length ? `과 그 주변(${near.map((id) => REGIONS[id].name).join(', ')})` : ''}에 퍼졌다! ${rn}${josa(rn, '은', '는')} ${B.center.hours}시간, 주변은 ${B.near.hours}시간 동안 오염된다. 그곳에서 힘을 모으면 일찍 정화할 수 있다.`;
-    io.emit('system', { text, at: Date.now() }); // 대륙 소식으로 기록됨
-    st = { boss: bossName, at: now, regions, pin: io.lastNews || null }; // 오염이 남아 있는 동안 이 알림은 이야기 창 기록에 늘 남김
-    save();
-    pushAll();
-  }
-  // 정화 기여 (돌려주는 것: 이 행동의 결과에 붙일 문장)
-  function add(d, kind, n = null) {
-    const r = on(d.region);
-    if (!r) return [];
-    const v = n ?? PURIFY.pts[kind] ?? 0;
-    if (!v) return [];
-    r.pts[d.id] = (r.pts[d.id] || 0) + v;
-    r.names[d.id] = d.name;
-    r.total += v;
-    const lines = [];
-    if (r.total >= r.goal) { lines.push('재앙이 남긴 검은 기운이 마침내 흩어졌다!'); const region = d.region; setImmediate(() => finish(region)); }
-    save();
-    return lines;
-  }
-  function finish(region) {
-    const r = on(region);
-    if (!r) return;
-    r.done = true;
-    r.doneAt = Date.now();
-    save();
-    const R = PURIFY.reward, k = B[r.kind]?.reward ?? 1;
-    const rn = REGIONS[region]?.name || '';
-    const ids = Object.keys(r.pts).map(Number).filter((id) => r.pts[id] >= PURIFY.minPts);
-    io.emit('system', { text: `[정화] ${st.boss || '재앙'}${josa(st.boss || '재앙', '이', '가')} ${rn}에 남긴 검은 기운이 걷혔다! ${ids.length}마리의 드래곤이 함께 정화했다.`, at: Date.now() });
-    for (const id of ids) {
-      const e = online.get(id);
-      const d = e ? e.dragon : db.getDragon(id);
-      if (!d || d.dead_at) continue;
-      const mine = r.pts[id];
-      const gold = Math.round(Math.min(R.goldMax, R.goldBase + mine * R.goldPer) * k);
-      const xp = logic.xpOf(d, Math.round(R.xp * k));
-      d.gold += gold;
-      const lines = [`${rn}에 남은 재앙의 기운을 함께 걷어 냈다. 나의 기여 ${mine} (전체 ${r.total})`, `금화 ${gold}닢을 받았다.`];
-      const f = logic.addFame(d, Math.max(1, Math.round(R.fame * k))); if (f) lines.push(f);
-      const up = logic.gainXp(d, xp); lines.push(`경험치 +${xp}${up ? ' · 레벨이 올랐다!' : ''}`);
-      lines.push(...logic.traitCount(d, 'purify'));
-      logic.chron(d, 'mark', `${rn}에 남은 재앙의 기운을 함께 정화했다.`);
-      db.saveState(d);
-      if (e) { sendMe(e.socket, d); e.socket.emit('notice', { title: '정화', lines }); } else for (const l of lines) db.noteAdd(id, l);
-    }
-    pushAll(); // 오염 표시가 사라지게
-  }
-  // 화면에 줄 모습: 기간이 남은 곳만 (정화된 곳도 기간 동안은 '정화됨'으로 보임)
-  const view = (d) => {
-    const now = Date.now();
-    return Object.entries(st.regions).filter(([, r]) => live(r, now)).map(([region, r]) => ({
-      region, kind: r.kind, strength: KIND[r.kind], until: r.until, total: r.total, goal: r.goal, mine: (d && r.pts[d.id]) || 0, people: Object.keys(r.pts).length, done: r.done, boss: st.boss,
-      drain: (B[r.kind]?.drain ?? 1) * (d && d.level < B.lowLevel ? B.lowDrain : 1), low: !!d && d.level < B.lowLevel, lowLevel: B.lowLevel, // 이 드래곤이 받는 정신 소모 배율 (매일 오염과 겹치면 화면에서 1로)
-    }));
-  };
-  // 이야기 창에 남길 알림: 아직 오염된 곳이 하나라도 있으면
-  const pin = () => (st.pin && Object.keys(st.regions).some((id) => on(id)) ? st.pin : null);
-  // 시험용(GM): 지금 바로 일으키기 / 모두 거두기
-  const clear = () => { st.regions = {}; st.pin = null; save(); pushAll(); };
-  return { start, add, view, pin, clear, of: (region, now) => { const r = on(region, now); return r ? { kind: r.kind } : null; } };
-})();
-logic.hooks.blight = blight.of;
-logic.hooks.bossBlight = blight.start; // boss.js: 놓친 재앙이 떠날 때
-logic.hooks.blightClear = blight.clear; // GM 시험용
-// ── 무너진 시장 (GM이 일으키는 단발 이벤트): 인간 마을 하나의 시장이 무너지고, 모두가 금화와 재료를 모아 다시 세움 ──
-// 다 세우면 각자 보탠 만큼(기여) 태양석·소금 결정을 줌 (다른 드래곤이 얼마나 보탰는지와 상관없음). 자원마다 목표가 있고, 진행은 자원별로 채운 비율의 평균
-// 기여: 자원마다 (보탠 양 ÷ 그 자원의 목표) × 100 (이벤트 전체 기여 = 100 × 자원 수)
-// 보상: reward.sun·reward.salt는 '한 드래곤이 최대로 받는 양' (몫 제한까지 다 보탰을 때). 각자 (내 기여 ÷ 한 드래곤의 최대 기여)만큼 받음 → 다른 드래곤의 기여와 상관없음 (소금 결정은 적어도 1개)
-// 몫 제한: 한 드래곤은 자원마다 목표의 cap%까지만 보탬 (일찍 온 한두 드래곤이 다 채우지 않게). 시작하고 하루가 지나면 제한이 풀림 (사람이 적어 멈추지 않게)
-const MF_CAP_FREE = 24 * 3600000;
-const marketFall = (() => {
-  // 마을마다 따로: { towns: { 마을id: { town, at, goals: {gold, 물건id: 개수}, got: {...}, pts: {id: 점수}, names: {}, reward: {sun, salt}, attacker } } }
-  // (예전 저장 모양은 한 마을짜리 { town, ... } — 그대로 읽어 옮김)
-  const raw = db.worldGet('marketFall') || null;
-  const all = raw?.towns || (raw?.town ? { [raw.town]: raw } : {});
-  const save = () => db.worldSet('marketFall', { towns: all });
-  const actives = () => Object.values(all).filter((x) => x && !x.done);
-  const of = (town) => { const x = all[town]; return x && !x.done ? x : null; };
-  const keys = (st) => Object.keys(st.goals);
-  const nameOf = (k) => (k === 'gold' ? '금화' : ITEMS[k]?.name || k);
-  const pct = (st) => keys(st).reduce((a, k) => a + Math.min(1, (st.got[k] || 0) / st.goals[k]), 0) / keys(st).length;
-  const capOn = (st, now = Date.now()) => !!st.cap && now - st.at < MF_CAP_FREE;
-  const myCap = (st, k) => Math.ceil(st.goals[k] * st.cap / 100); // 한 드래곤이 이 자원에 보탤 수 있는 끝
-  const myGiven = (st, id, k) => st.given?.[id]?.[k] || 0;
-  const fullPts = (st) => 100 * keys(st).length;
-  const maxPts = (st) => (st.cap ? st.cap * keys(st).length : fullPts(st)); // 한 드래곤의 최대 기여 (몫 제한까지 다 보탰을 때. 제한이 없으면 전체)
-  const rewardOf = (st, pts) => { const r = Math.min(1, pts / maxPts(st)); return { sun: Math.round(r * st.reward.sun), salt: Math.max(1, Math.round(r * st.reward.salt)) }; }; // 제한이 풀린 뒤 더 보태도 최대를 넘지 않음
-  // 모두에게 보일 모습: 무너진 마을마다 하나씩 (my: 이 드래곤의 몫)
-  const view1 = (st, d) => ({
-    town: st.town, at: st.at, attacker: st.attacker || '',
-    cap: capOn(st) ? st.cap : 0, capFree: st.at + MF_CAP_FREE,
-    res: keys(st).map((k) => ({ id: k, name: nameOf(k), got: st.got[k] || 0, goal: st.goals[k], mine: d ? myGiven(st, d.id, k) : 0, myCap: capOn(st) ? myCap(st, k) : null })),
-    pct: pct(st), people: Object.keys(st.pts).length, mine: d ? Math.round(st.pts[d.id] || 0) : 0,
-    reward: st.reward, full: fullPts(st), maxPts: maxPts(st), // { sun, salt } 한 드래곤의 최대 보상과 그때의 기여 (화면에서 '지금 몫이면 받을 것'을 보여 줌)
-  });
-  const view = (d) => actives().map((st) => view1(st, d));
-  const push = () => { for (const e of online.values()) e.socket.emit('marketfall', view(e.dragon)); };
-  function start(town, goals, reward, attacker, cap = 20) {
-    const st = all[town] = { town, at: Date.now(), goals, got: {}, given: {}, pts: {}, names: {}, reward, attacker: attacker || '', cap, done: false };
-    save();
-    const tn = REGIONS[town].name;
-    io.emit('system', { text: `[습격] ${attacker ? `${attacker}${josa(attacker, '이', '가')}` : '정체를 알 수 없는 드래곤이'} ${tn}의 시장을 덮쳤다! 가게들이 무너져 장사를 할 수 없다. ${tn}에서 금화와 재료를 모아 함께 다시 세우자.`, at: Date.now() });
-    st.pin = io.lastNews || null; save(); // 다시 세울 때까지 이 알림은 이야기 창 기록에 늘 남김
-    push();
-  }
-  // 보태기: 지금 있는 마을의 시장에. { gold, items: { id: 개수 } }. 목표를 넘는 몫은 받지 않음. 점수 = 자원마다 (보탠 양 ÷ 목표) × 100
-  function help(d, gold, items, have) {
-    if (!actives().length) return { error: '지금은 다시 세우는 시장이 없다.' };
-    const st = of(d.region);
-    if (!st) return { error: `${actives().map((x) => REGIONS[x.town].name).join('이나 ')}에 가야 도울 수 있다.` };
-    if (d.exp_end) return { error: '원정을 떠나 있는 동안에는 할 수 없다.' };
-    const give = {};
-    const room = (k) => Math.max(0, Math.min(st.goals[k] - (st.got[k] || 0), capOn(st) ? myCap(st, k) - myGiven(st, d.id, k) : Infinity)); // 남은 몫과 내 몫 제한
-    const g = Math.max(0, Math.floor(Number(gold) || 0));
-    if (g && st.goals.gold) give.gold = Math.min(g, d.gold, room('gold'));
-    let capped = false;
-    for (const [id, n0] of Object.entries(items || {})) {
-      if (id === 'gold' || !st.goals[id]) continue;
-      const n = Math.max(0, Math.floor(Number(n0) || 0));
-      if (n) { give[id] = Math.min(n, have(id), room(id)); if (capOn(st) && n > give[id] && myGiven(st, d.id, id) + give[id] >= myCap(st, id)) capped = true; }
-    }
-    if (g && capOn(st) && g > (give.gold || 0) && myGiven(st, d.id, 'gold') + (give.gold || 0) >= myCap(st, 'gold')) capped = true;
-    for (const k of Object.keys(give)) if (!(give[k] > 0)) delete give[k];
-    if (!Object.keys(give).length) return { error: capped ? `한 드래곤이 보탤 수 있는 몫(자원마다 ${st.cap}%)을 다 채웠다. 남은 것은 다른 드래곤들에게 맡기자.` : '보탤 것이 없다. (이미 다 모인 것은 더 받지 않는다)' };
-    let pts = 0;
-    const out = [];
-    st.given ||= {};
-    for (const [k, n] of Object.entries(give)) { st.got[k] = (st.got[k] || 0) + n; (st.given[d.id] ||= {})[k] = myGiven(st, d.id, k) + n; pts += (n / st.goals[k]) * 100; out.push(`${nameOf(k)} ${n.toLocaleString()}`); }
-    if (!st.pts[d.id]) logic.chron(d, 'mark', `무너진 ${REGIONS[st.town].name}의 시장을 다시 세우는 일에 손을 보탰다.`); // 발자취: 처음 보탤 때 한 번
-    st.pts[d.id] = (st.pts[d.id] || 0) + pts;
-    st.names[d.id] = d.name;
-    if (give.gold) d.gold -= give.gold;
-    const done = keys(st).every((k) => (st.got[k] || 0) >= st.goals[k]);
-    save();
-    const lines = [`${out.join(', ')}만큼 보탰다. 마을 사람들이 고개 숙여 고마워한다.`];
-    if (done) { lines.push('마지막 들보가 올라갔다. 시장이 다시 선다!'); setImmediate(() => finish(st.town)); } else push();
-    return { title: '시장 다시 세우기', lines, items: Object.entries(give).filter(([k]) => k !== 'gold').map(([id, n]) => ({ id, qty: -n })), gold: give.gold ? -give.gold : 0 };
-  }
-  // 다 세움: 보탠 몫에 따라 태양석·소금 결정, 그 마을 평판
-  function finish(town) {
-    const st = of(town);
-    if (!st) return;
-    st.done = true; save();
-    const tn = REGIONS[st.town].name;
-    const ids = Object.keys(st.pts).map(Number);
-    io.emit('system', { text: `[복구] ${tn}의 시장이 다시 섰다! ${ids.length}마리의 드래곤이 힘을 모았다. 오늘부터 다시 장이 열린다.`, at: Date.now() });
-    for (const id of ids) {
-      const e = online.get(id); const d = e ? e.dragon : db.getDragon(id);
-      if (!d || d.dead_at) continue;
-      const { sun, salt } = rewardOf(st, st.pts[id]);
-      const items = [{ id: 'sun_stone', qty: sun }, { id: 'salt_crystal', qty: salt }];
-      logic.addRep(d, st.town, 10);
-      logic.chron(d, 'mark', `무너진 ${tn}의 시장을 함께 다시 세웠다.`);
-      db.saveState(d, items);
-      const lines = [`${tn}의 시장을 함께 다시 세웠다. 나의 기여 ${Math.round(st.pts[id])}`, `마을 사람들이 고마움의 뜻으로 태양석 ${sun}개와 소금 결정 ${salt}개를 건넸다. (${tn} 평판 +10)`];
-      if (e) { sendMe(e.socket, d); e.socket.emit('notice', { title: '시장 다시 세우기', lines, items }); } else for (const l of lines) db.noteAdd(id, l);
-    }
-    push();
-  }
-  function stop(town) { const st = of(town); if (!st) return false; st.done = true; save(); io.emit('system', { text: `[복구] ${REGIONS[st.town].name}의 시장이 마을 사람들의 손으로 다시 섰다.`, at: Date.now() }); push(); return true; }
-  return { start, help, view, stop, has: (town) => !!of(town), down: (region) => !!of(region), pins: () => actives().map((x) => x.pin), list: () => actives().map((x) => ({ town: x.town, at: x.at })) }; // list: GM 한눈에 보기
-})();
-logic.hooks.marketDown = marketFall.down;
-// ── 멸망한 대륙의 정화도: 서버 전체가 함께 채움. 단계를 넘을 때마다 새 지역이 열림 ──
-// 목표는 최근 활동한 입장 가능(레벨 RUIN.minLevel 이상) 드래곤 수 × RUIN.goalPer — 인원이 몇이든 걸리는 기간이 비슷하다
-// 한 번 열린 지역은 st.open에 남아, 인원이 늘어 목표가 커져도 다시 잠기지 않는다
-const ruin = (() => {
-  let st = db.worldGet('ruin') || { total: 0, pts: {}, names: {}, stage: 0 };
-  const save = () => db.worldSet('ruin', st);
-  let goalAt = 0, goalV = RUIN.goalMin; // 목표는 1분씩 캐시 (저장 공간을 자주 두드리지 않게)
-  const goal = (now = Date.now()) => {
-    if (RUIN.goalFixed) return RUIN.goalFixed; // 고정 목표 (game-data.js의 RUIN.goalFixed)
-    if (now - goalAt > 60000) {
-      const n = db.activeSince(now - RUIN.activeDays * 24 * 3600000).filter((x) => x.level >= RUIN.minLevel).length;
-      goalV = Math.max(RUIN.goalMin, n * RUIN.goalPer);
-      goalAt = now;
-    }
-    return goalV;
-  };
-  const pct = () => Math.min(1, st.total / goal());
-  // 정화도 칭호: 지금까지의 기여를 드래곤 기록(특성 횟수 ruinpts)에 옮겨 둠 (칭호가 생기기 전에 쌓은 기여도 인정)
-  for (const [id, p] of Object.entries(st.pts || {})) {
-    try { const d = db.getDragon(Number(id)); if (d && (logic.traitsOf(d).counts.ruinpts || 0) < p) { logic.traitsOf(d).counts.ruinpts = p; db.saveState(d); } } catch {}
-  }
-  const gated = () => Object.values(REGIONS).filter((r) => r.realm === 'ruin' && r.unlock > 0);
-  const openText = (r) => `[${RUIN.name}] 정화도 ${Math.round(r.unlock * 100)}%! 오염이 물러나며 ${r.name}${josa(r.name, '으로', '로')} 가는 길이 열렸다.`;
-  // 예전 저장분: 열림 기록이 없으면 지금 정화도로 조용히 채움 (다시 알리지 않게)
-  if (!Array.isArray(st.open)) { st.open = gated().filter((r) => pct() >= r.unlock).map((r) => r.id); save(); }
-  // 정화 완료: 100%에 닿으면 st.done이 켜지고, 그 뒤로는 목표가 바뀌어도 꺼지지 않음 (기여는 계속 쌓여 칭호·순위에 반영)
-  const doneText = `[${RUIN.name}] 모두의 정화도 100%! 대륙을 덮던 검은 기운이 걷혔다. 이제 이 땅에서 정신이 덜 깎인다.`;
-  if (st.done == null) { st.done = pct() >= 1; if (st.done) st.doneAt = Date.now(); save(); } // 예전 저장분: 이미 100%였다면 조용히 완료로
-  // 문턱을 새로 넘은 지역을 열고 모두에게 알림. 돌려주는 것: 이번에 알린 문장들 (새로 열린 지역, 정화 완료)
-  function settle() {
-    const opened = gated().filter((r) => !st.open.includes(r.id) && pct() >= r.unlock);
-    const lines = [];
-    for (const r of opened) {
-      st.open.push(r.id);
-      io.emit('system', { text: openText(r), at: Date.now() });
-      lines.push(openText(r));
-    }
-    const cleared = !st.done && pct() >= 1;
-    if (cleared) {
-      st.done = true;
-      st.doneAt = Date.now();
-      io.emit('system', { text: doneText, at: Date.now() });
-      lines.push(doneText);
-    }
-    if (opened.length || cleared) save();
-    if (opened.length && raidBoss) setTimeout(() => io.emit('raidboss', raidBoss.view()), 0); // 새로 열린 땅의 레이드도 바로 '열림'으로 (접속해 있던 드래곤들의 레이드 모습이 닫힘에 머물지 않게)
-    return lines;
-  }
-  const unlocked = (region) => {
-    if (!logic.isRuin(region) || !(REGIONS[region]?.unlock > 0)) return true;
-    if (!st.open.includes(region)) settle();
-    return st.open.includes(region);
-  };
-  const nextLock = () => gated().filter((r) => !st.open.includes(r.id)).sort((a, b) => a.unlock - b.unlock)[0] || null;
-  function add(d, kind, n = null) {
-    if (!logic.isRuin(d.region)) return [];
-    const v = n ?? RUIN.pts[kind] ?? 0;
-    if (!v) return [];
-    st.pts[d.id] = (st.pts[d.id] || 0) + v;
-    st.names[d.id] = d.name;
-    st.total += v;
-    logic.traitsOf(d).counts.ruinpts = st.pts[d.id]; // 칭호 판정용: 내 누적 기여 (정화도 칭호)
-    const lines = settle(); // 새로 열린 지역·정화 완료가 있으면 내 결과 창에도
-    save();
-    return lines;
-  }
-  const top = (n = 5) => Object.entries(st.pts).sort((a, b) => b[1] - a[1]).slice(0, n).map(([id, p]) => ({ id: Number(id), name: st.names[id], pts: p }));
-  const view = (d) => { settle(); const nx = nextLock(); return { total: st.total, goal: goal(), pct: pct(), done: !!st.done, open: st.open.slice(), mine: st.pts[d.id] || 0, next: nx ? { name: nx.name, at: nx.unlock } : null }; };
-  const cleared = () => !!st.done;
-  // 시험용: 100% 아래로 내리면 완료도 풀어서 다시 시험할 수 있게
-  return { add, view, top, unlocked, cleared, debugSet: (n) => { st.total = n; goalAt = 0; if (pct() < 1) st.done = false; save(); settle(); } };
-})();
-logic.hooks.ruinCleared = ruin.cleared;
-// 정화 기여: 멸망한 대륙이면 그 땅의 정화도, 아니면 매일 오염의 정화와 재앙의 오염 정화 (둘이 겹친 곳이면 둘 다에 쌓임. 각자 자기 지역이 아니면 무시)
-logic.hooks.purify = (d, kind, n = null) => (logic.isRuin(d.region) ? ruin.add(d, kind, n) : [...purify.add(d, kind, n), ...blight.add(d, kind, n)]);
-// 레이드: 만렙 드래곤 넷이 모여 함께 맞서는 기믹 전투 (raidboss.js)
-// ── 보물더미 순위: 둥지가 있는 드래곤의 보물더미 가치 (금화 + 물건 + 보물 상자). 5분마다 새로 셈 ──
-let rankCache = { at: 0, list: [] };
-function hoardRank(me) {
-  const now = Date.now();
-  if (now - rankCache.at > 5 * 60000) {
-    const list = [];
-    for (const { id } of db.activeSince(0)) {
-      try {
-        const d = online.get(id)?.dragon || db.getDragon(id);
-        if (!d || !d.nest || d.dead_at || isTestDragon(d)) continue;
-        list.push({ id, name: d.name, value: logic.hoardValue(d.hoard_gold || 0, db.hoard(id)) + logic.chestValue(d) });
-      } catch {}
-    }
-    list.sort((a, b) => b.value - a.value);
-    rankCache = { at: now, list };
-  }
-  const l = rankCache.list;
-  const i = l.findIndex((x) => x.id === me.id);
-  return { top: l.slice(0, 3).map((x) => ({ name: x.name, value: x.value, me: x.id === me.id })), mine: i >= 0 ? i + 1 : null, of: l.length };
-}
-// ── 끊긴 싸움 안내: 싸우는 드래곤을 world 'liveFights'에 적어 두고, 서버가 다시 켜졌을 때 남아 있으면 쪽지로 알림 ──
-// (싸움은 메모리에만 있어서 서버를 다시 켜면 사라짐. 체력 등은 싸움이 끝날 때 저장되므로 잃는 것은 없음)
-const liveFights = (() => {
-  const LOST = {
-    raid: '서버가 다시 시작되어 하던 레이드가 끊겼다. 체력과 주간 보상 횟수는 그대로이고, 잃은 것은 없다.',
-    duel: '서버가 다시 시작되어 하던 결투가 끊겼다. 결투는 없던 일이 되었다.',
-    bet: '서버가 다시 시작되어 하던 내기 결투가 끊겼다. 결투는 없던 일이 되었다.',
-    elite: '서버가 다시 시작되어 강적과의 싸움이 끊겼다. 싸움은 없던 일이 되었다.',
-    hunt: '서버가 다시 시작되어 사냥하던 싸움이 끊겼다. 싸움은 없던 일이 되었다.',
-    boss: '서버가 다시 시작되어 대륙의 재앙과의 싸움이 끊겼다. 싸움은 없던 일이 되었다.',
-    calm: '서버가 다시 시작되어 광폭한 드래곤을 진정시키던 싸움이 끊겼다.',
-  };
-  // 켜질 때: 지난번에 싸우던 드래곤에게 쪽지 (다시 접속하면 '자리를 비운 동안'으로 보임)
-  // 사냥·강적은 싸움을 열며 쓴 행동력을 돌려줌 ({ k: 종류, ap: 쓴 행동력 }. 예전 기록은 종류 글자만 있음)
-  const before = db.worldGet('liveFights', null) || {};
-  let n = 0;
-  for (const [id, v] of Object.entries(before)) {
-    try {
-      const kind = typeof v === 'string' ? v : v?.k;
-      const ap = typeof v === 'object' && v ? Math.max(0, Math.floor(v.ap || 0)) : 0;
-      let back = '';
-      if (ap) {
-        const d = db.getDragon(Number(id));
-        if (d && !d.dead_at) { d.ap = (d.ap || 0) + ap; db.saveState(d); back = ` 싸움에 쓴 행동력을 돌려받았다. (행동력 +${ap})`; }
-      }
-      db.noteAdd(Number(id), `[서버 점검] ${LOST[kind] || LOST.hunt}${back}`); n++;
-    } catch (e) { console.error('[끊긴 싸움]', id, e.message); }
-  }
-  if (n) console.log(`[끊긴 싸움] ${n}마리에게 안내를 남겼다.`);
-  const st = {};
-  db.worldSet('liveFights', st);
-  let t = null;
-  const save = () => { if (t) return; t = setTimeout(() => { t = null; db.worldSet('liveFights', st); }, 1000); t.unref?.(); };
-  const fn = (id, kind, ap = 0) => { if (kind) st[id] = ap ? { k: kind, ap } : kind; else delete st[id]; save(); };
-  fn.now = () => Object.fromEntries(Object.entries(st).map(([id, v]) => [id, typeof v === 'string' ? v : v.k])); // GM 도구: 지금 싸우는 드래곤 { id: 종류 }
-  return fn;
-})();
-arena.setTrack(liveFights);
-raidBoss = require('./raidboss')({ io, db, online, logic, combat, arena, sendMe, track: liveFights,
-  isOpen: (r) => ruin.unlocked(r), fall: death.fall, purify: (d, n) => ruin.add(d, 'raid', n), presence: (r) => broadcastPresence(r),
-  news: (text) => { const at = Date.now(); let id = 0; try { id = db.addChat('!', { dragonId: 0, name: '', kind: '', text, at }); } catch {} io.emit('system', { text, at, news: true, id }); } });
-arena.setRaid(raidBoss);
-logic.hooks.companionsHere = (d) => { for (const e of online.values()) if (e.dragon.id !== d.id && e.dragon.region === d.region && !e.dragon.dead_at && !e.dragon.dormant_at) return true; return false; };
-// 청출어람: 내 스승의 레벨을 따라잡았으면 그 스승의 이름 (칭호 판정에서 씀)
-// 드래곤이 대륙을 떠남 (먼 여행·긴 잠): 그 집터에 놓여 있던 선물은 보낸 이에게 돌려줌
-logic.hooks.onGone = (d) => { try { social.returnHomeGifts(d.id, d.name); } catch (e) { console.error('[집터 선물 돌려주기]', e.message); } };
-logic.hooks.surpassed = (d) => {
-  const low = logic.combatJson(d).mentorLow || {}; // 맺을 때 스승보다 레벨이 낮았는지 (0이면 처음부터 같거나 높았음 → 따라잡은 것이 아님. 적힌 것이 없는 예전 관계는 레벨 차이 3 이상일 때 맺었으므로 셈)
-  for (const id of db.relByBond(d.id, 'mentor')) {
-    if (low[id] === 0) continue;
-    const m = online.get(id)?.dragon || db.getDragon(id);
-    if (m && !m.dead_at && d.level >= m.level) return m.name;
-  }
-  return null;
-};
-logic.hooks.purifyDebug = purify.debugSet; // 시험용: 정화 진행을 바로 정함
-// ── 자유 제작: 직접 빚은 물건 (월드에 저장, 켤 때 ITEMS에 다시 올림) ──
-const free = require('./game-free');
-const FREE_CFG = require('./game-data').FREE;
-// 빚은 물건 목록은 켤 때 한 번 읽어 메모리에 두고, 바뀔 때만 저장 (빚을 때마다 큰 기록을 다시 읽지 않게)
-const CUSTOM = db.worldGet('customItems') || {};
-// 예전에 빚은 걸작: 저절로 붙은 이름이면 앞에 '걸작'을 붙임 (직접 지은 이름은 그대로)
-{
-  let n = 0;
-  for (const def of Object.values(CUSTOM)) {
-    if (def.type === 'equip' && def.custom?.mw && !def.custom.named && !String(def.name).startsWith('걸작')) { def.name = `걸작 ${def.name}`; n++; }
-  }
-  if (n) { db.worldSet('customItems', CUSTOM); console.log(`[빚은 물건] 예전 걸작 ${n}개의 이름 앞에 '걸작'을 붙임`); }
-}
-// 이국 장신구(행상인): 효과 글·값은 지금 PEDDLER.gear로 맞춤 (수치를 고쳐도 이미 가진 것에 바로 들게)
-{ const PG = require('./game-data').PEDDLER.gear; for (const def of Object.values(CUSTOM)) { const g = def.exotic && PG[def.exotic]; if (g) { def.life = { ...g.life }; def.lifeEff = g.eff; def.desc = `${g.desc} 안개 너머의 행상인에게서 왔다.`; def.lvReq = require('./game-data').PEDDLER.gearLv || undefined; } } }
-// 자유 제작 장신구의 착용 레벨: 섞은 재료(custom.mats)로 다시 셈 (예전에 빚은 것에도. 이미 차고 있는 것은 벗기 전까지 그대로)
-{ const { gearLvOfMats } = require('./game-data'); let n = 0;
-  for (const def of Object.values(CUSTOM)) if (def.type === 'equip' && Array.isArray(def.custom?.mats)) { const lv = gearLvOfMats(def.custom.mats.filter((x) => ITEMS[x])); if ((def.lvReq || 0) !== lv) { if (lv) def.lvReq = lv; else delete def.lvReq; n++; } }
-  if (n) { db.worldSet('customItems', CUSTOM); console.log(`[빚은 물건] 자유 제작 장신구 ${n}개의 착용 레벨을 재료에 맞춤`); } }
-for (const [id, def] of Object.entries(CUSTOM)) ITEMS[id] = def;
-const customSave = (id, def) => { CUSTOM[id] = def; db.worldSet('customItems', CUSTOM); ITEMS[id] = def; io.emit('items:add', { id, item: def }); };
-// 이국 장신구 (행상인): 같은 나눔이면 같은 id로 겹침
-function peddlerItem(sig, def) {
-  let id = free.hashId(sig), n = 0;
-  while (CUSTOM[id] && CUSTOM[id].custom?.sig !== sig) id = free.hashId(`${sig}#${++n}`);
-  if (CUSTOM[id]) { ITEMS[id] = CUSTOM[id]; return id; }
-  customSave(id, { ...def, custom: { sig, kind: 'exotic', at: Date.now() } });
-  return id;
-}
-logic.hooks.registerCustom = (d, ids, r) => {
-  const sig = free.signature(d.id, ids, r);
-  const all = CUSTOM;
-  let id = free.hashId(sig), n = 0;
-  const lvReq = r.kind === 'gear' ? (r.def.lvReq || 0) : 0;
-  while (all[id] && (all[id].custom?.sig !== sig || (all[id].lvReq || 0) !== lvReq)) id = free.hashId(`${sig}#${++n}`); // 착용 레벨이 다르면 다른 물건
-  if (all[id]) { for (let k = 0; k < 20 && all[id].custom?.renamedTo && all[all[id].custom.renamedTo]; k++) id = all[id].custom.renamedTo; ITEMS[id] = all[id]; return { id, isNew: false }; } // 이름을 바꿔 새 물건으로 갈라졌으면 가장 새 이름으로
-  const mats = ids.map((x) => ITEMS[x].name).join('·');
-  const base = { name: r.name, rarity: r.rarity, value: r.value, desc: `${mats}${josa(mats, '을', '를')} 섞어 빚었다.` };
-  const def = r.kind === 'gear'
-    ? { ...base, type: 'equip', slot: r.slot, ...r.def }
-    : r.kind === 'meal'
-      ? { ...base, cat: 'meal', kin: r.kin } // 식구 요리: 드래곤은 먹지 않고 식구에게 건넴 (game-life.js careOf)
-      : { ...base, type: 'use', use: r.use }; // 먹는 것 · 선물(보물 상자에 간직)
-  def.custom = { by: d.id, byName: d.name, sig, mats: ids, kind: r.kind, quality: r.quality, mw: !!r.mw, at: Date.now() };
-  customSave(id, def);
-  return { id, isNew: true };
-};
-const CREATIONS = db.worldGet('creations') || {}; // 창작 도감 (메모리에 두고 바뀔 때만 저장)
-// 빚은 물건의 효과를 한 줄로 (창작 도감에 남김)
-const SLOT_NAMES = Object.fromEntries((require('./game-data').SLOTS || []).map((s) => [s.key, s.name]));
-function customEff(it) {
-  if (!it) return '';
-  const u = it.use || {};
-  if (it.type === 'equip') return [`${SLOT_NAMES[it.slot] || ''} 장신구`, ...Object.entries(it.bonus || {}).map(([k, v]) => `${STATS.find((s) => s.key === k)?.name || k} +${v}`), it.elem ? `${ELEMENTS[it.elem] || it.elem} 속성` : '', it.mindWard ? '정신을 지킴' : ''].filter(Boolean).join(' · ');
-  if (u.keep) return `보물 상자에 간직할 선물 · 가치 ${it.value}`;
-  if (it.kin) return `식구 요리 · 유대 +${it.kin.bond} · 배 +${it.kin.sat}${it.kin.talent ? ` · ${TALENTS[it.kin.talent]?.name || ''} 쪽` : ''}`;
-  return [u.hp ? `체력 +${u.hp}` : '', u.en ? `기력 +${u.en}` : '', u.mind ? `정신 +${u.mind}` : '', u.buff ? '사나움' : ''].filter(Boolean).join(' · ');
-}
-// 예전에 남은 칸: 효과·성질 합이 없으면 그 물건에서 채움 (물건이 남아 있을 때)
-for (const c of Object.values(CREATIONS)) {
-  const it = ITEMS[c.id];
-  if (it && it.custom?.mw && !it.custom.named && c.name !== it.name) c.name = it.name; // 걸작 이름을 붙인 것과 맞춤
-  if (!c.eff && it) c.eff = customEff(it);
-  if (!c.mats && it?.custom?.mats) c.mats = it.custom.mats.slice();
-  if (!c.sum && c.mats) { c.sum = {}; for (const m of c.mats) for (const [k, n] of Object.entries(FREE_CFG.tags[m] || {})) c.sum[k] = (c.sum[k] || 0) + n; }
-  if (c.open == null) c.open = false;
-}
-// 아무도 가지고 있지 않은 빚은 물건 정리 (하루 한 번)
-// 마지막으로 누군가 가지고 있던 때(heldAt)부터: 이름 없는 것은 7일, 이름 붙인 것은 30일이 지나면 지움. 창작 도감에 오른 것은 늘 남김
-let customGcLast = db.worldGet('customGcLast') || null;
-function customGC() {
-  // 먼저: 목록에 없는 빚은 물건이 소지품·착용 등에 남아 있으면 치움 (접속 중인 드래곤의 착용도)
-  const known = (id) => !!CUSTOM[id];
-  for (const e of online.values()) { const eq = logic.equipOf(e.dragon); for (const [slot, id] of Object.entries(eq || {})) if (String(id).startsWith('cx_') && !known(id)) delete eq[slot]; }
-  const orphans = db.customOrphans(known);
-  if (orphans) console.log(`[빚은 물건 정리] 목록에 없는 물건 ${orphans}개를 소지품·착용 등에서 치움`);
-  const keep = db.customRefs();
-  for (const e of online.values()) { // 접속 중인 드래곤: 아직 저장되기 전의 착용·내 제작법까지
-    for (const v of Object.values(logic.equipOf(e.dragon) || {})) keep.add(v);
-    for (const m of logic.combatJson(e.dragon).myRecipes || []) if (m.id) keep.add(m.id);
-  }
-  for (const c of Object.values(CREATIONS)) keep.add(c.id);
-  for (const id of nightMarket.heldItems()) keep.add(id); // 야시장 노점에 맡겨 둔 빚은 물건
-  // 이름을 붙여 새 물건으로 갈라진 예전 물건(renamedTo)은, 새 이름 물건이 남아 있는 동안 지우지 않음 (작은 기록 하나):
-  // 이걸 지우면 같은 조합으로 빚을 때 새 이름을 찾지 못해 이름 없는 물건이 다시 생기므로. 대신 효과 글 등은 그대로라 크기는 물건 하나 몫(약 0.3KB)
-  for (const [id, def] of Object.entries(CUSTOM)) { const to = def.custom?.renamedTo; if (to && CUSTOM[to]) keep.add(id); }
-  const now = Date.now(), DAY = 86400000;
-  let removed = 0, touched = false;
-  for (const [id, def] of Object.entries(CUSTOM)) {
-    const c = def.custom || (def.custom = {});
-    if (keep.has(id)) { if (!c.heldAt || now - c.heldAt > DAY / 2) { c.heldAt = now; touched = true; } continue; } // 누군가 가지고 있음: 그때를 적어 둠
-    const last = Math.max(c.heldAt || 0, c.at || 0);
-    if (now - last < (c.named ? 30 : 7) * DAY) continue;
-    delete CUSTOM[id]; delete ITEMS[id]; removed++;
-  }
-  if (removed || touched) db.worldSet('customItems', CUSTOM);
-  customGcLast = { at: now, removed, orphans, left: Object.keys(CUSTOM).length };
-  db.worldSet('customGcLast', customGcLast);
-  if (removed) console.log(`[빚은 물건 정리] ${removed}개 지움, ${customGcLast.left}개 남음`);
-  return customGcLast;
-}
-setTimeout(() => { try { customGC(); } catch (e) { console.error('[빚은 물건 정리 실패]', e.message); } }, 60 * 1000).unref?.();
-setInterval(() => { try { customGC(); } catch (e) { console.error('[빚은 물건 정리 실패]', e.message); } }, 24 * 3600 * 1000).unref?.();
-const customStats = () => ({ count: Object.keys(CUSTOM).length, named: Object.values(CUSTOM).filter((d) => d.custom?.named).length, kb: Math.round(JSON.stringify(CUSTOM).length / 1024), creations: Object.keys(CREATIONS).length, last: customGcLast });
-logic.hooks.creations = () => CREATIONS; // 도감의 '빚은 물건'이 처음 오른 것을 표시할 때
-// 창작 도감: 종류 + 부위(먹는 것은 주된 효능) + 기운의 조합을 처음 빚은 드래곤을 영구히 남김
-logic.hooks.creation = (d, r, id) => {
-  const key = free.creationKey(r);
-  const w = CREATIONS;
-  if (w[key]) return [];
-  const label = free.creationLabel(r);
-  // 효과와 성질 합은 함께 남기고, 넣은 재료는 처음 빚은 드래곤이 공개할 때만 보임
-  w[key] = { key, label, id, name: ITEMS[id].name, by: d.id, byName: d.name, at: Date.now(), eff: customEff(ITEMS[id]), sum: r.sum, mats: (ITEMS[id].custom?.mats || []).slice(), open: false };
-  db.worldSet('creations', w);
-  io.emit('system', { text: `[창작] ${d.name}${josa(d.name, '이', '가')} 대륙에서 처음으로 ${label}${josa(label, '을', '를')} 빚어냈다!`, at: Date.now() });
-  logic.chron(d, 'mark', `대륙에서 처음으로 ${label}${josa(label, '을', '를')} 빚어냈다. ('${ITEMS[id].name}')`);
-  return [`대륙에서 아무도 빚어 본 적 없는 ${label}${josa(label, '이다', '다')}! 창작 도감에 이름이 남았다.`];
-};
-// 숨겨진 제작법을 대륙에서 처음 찾아낸 드래곤: 전체 공지와 칭호
-logic.hooks.firstRecipe = (d, out) => {
-  const w = db.worldGet('firstRecipe') || {};
-  if (w[out]) return [`(이 제작법을 처음 찾아낸 드래곤은 ${w[out].name}이었다)`];
-  w[out] = { id: d.id, name: d.name, at: Date.now() };
-  db.worldSet('firstRecipe', w);
-  io.emit('system', { text: `[발견] ${d.name}${josa(d.name, '이', '가')} 대륙에서 처음으로 '${ITEMS[out].name}' 제작법을 찾아냈다!`, at: Date.now() });
-  logic.chron(d, 'mark', `대륙에서 처음으로 '${ITEMS[out].name}' 제작법을 찾아냈다.`);
-  return ['대륙에서 처음 찾아낸 제작법이다! 모두에게 소식이 퍼졌다.', ...logic.traitCount(d, 'firstcraft')];
-};
-// 이벤트가 볼 수 있게: 보물더미, 최근 재앙의 흔적
-logic.hooks.hoard = (id) => db.hoard(id);
-logic.hooks.bossTrace = (region) => boss.trace(region);
-// ── 환영 공지 (GM 도구에서 고칠 수 있음. ver가 오르면 모두에게 한 번 더 뜸) ──
-const WELCOME_MAX = 2000;
-const WELCOME_DEFAULT = `안녕하세요. 용의 대륙에 오신 것을 환영합니다.
-당신은 이 대륙에서 살아가는 용입니다. 인간을 적대할 수도 있고, 우호적인 관계를 맺을 수도 있으며, 어느 쪽에도 속하지 않은 채 은둔하며 살아갈 수도 있습니다. 버려진 알이나 인간 아이와 인연이 닿아 그들을 거두어 키울 수도 있겠죠. 몬스터를 사냥하며 스스로를 갈고닦는 것도 좋은 선택입니다.
-그러나 조심하세요. 강적을 만나 쓰러질 수도 있고, 정신력이 바닥나 폭주하게 될 수도 있습니다. 물론, 곁에서 당신을 도와줄 동료가 있다면 큰 문제는 없을지도 모릅니다.
-본 게임은 캐릭터 이입을 통한 플레이를 권장합니다. 처음 만나는 사이라도 상냥하게 대해주세요.
-
-본 게임은 바이브 코딩을 통해 제작되었습니다. 따라서 일부 기능이 원활하게 작동하지 않거나 예상치 못한 오류가 발생할 수 있습니다. 너그러운 마음으로 양해 부탁드리며, 플레이 중 문제가 발생한다면 GM(청우)에게 편하게 제보해주세요. 감사합니다!`;
-// ── 업데이트 노트: GM이 쓰고, 모두가 메뉴에서 읽음. world 표의 'notes'에 새것부터 [{ id, title, date, body }]
-const NOTE = { max: 60, titleMax: 60, bodyMax: 3000 };
-const NOTES_DEFAULT = [{
-  id: 1, date: '2026-10-17', title: '용언과 업데이트 노트',
-  body: [
-    '- 용언이 생겼다. 채팅 입력칸 왼쪽의 \'용언\'을 켜고 말하면, 지역과 관계없이 대륙의 모든 드래곤에게 닿는다.',
-    '- 채팅 보내기 버튼이 둥근 화살표로 바뀌었다. 글을 쓰면 색이 들어온다.',
-    '- 착용 중인 장신구에도 등급 마름모가 보인다. 희귀한 장신구는 칸이 금빛이 된다.',
-    '- 남의 도움으로 일어서는 건 하루 2번까지로 바뀌었다.',
-    '- 업데이트 노트가 생겼다. 메뉴에서 언제든 다시 볼 수 있고, 환영 공지도 여기서 다시 볼 수 있다.',
-  ].join('\n'),
-}];
-const notesOf = () => db.worldGet('notes', null) ?? NOTES_DEFAULT;
-// 공지: 업데이트 노트와 따로. 가장 새 공지는 아직 안 읽은 드래곤에게 접속할 때 메인에 한 번 뜸
-const noticesOf = () => db.worldGet('notices', null) || [];
-const kstDate = (t = Date.now()) => new Date(t + 9 * 3600000).toISOString().slice(0, 10); // 한국 날짜 YYYY-MM-DD
-
-const welcomeOf = () => { const w = db.worldGet('welcome', null); return w && w.text ? { text: w.text, ver: w.ver || 1 } : { text: WELCOME_DEFAULT, ver: 1 }; };
-
-// 관계: 연인·반려와 같은 지역에 함께 있는지 (둘 다 접속), 반려의 둥지
-const heartId = (id) => db.relByBond(id, 'partner')[0] || db.relByBond(id, 'lover')[0] || null;
-logic.hooks.together = (d) => {
-  const id = heartId(d.id);
-  const e = id && online.get(id);
-  return e && online.has(d.id) && e.dragon.region === d.region && !e.dragon.exp_end && !d.exp_end ? e.dragon.name : null;
-};
-// 반려의 둥지에서 쉬는 중이면 그 둥지의 주인 (쉬기 회복을 그 둥지의 크기·보물더미·온천으로)
-logic.hooks.restHost = (d) => {
-  if (d.nest && d.nest === d.region) return null; // 내 둥지가 이 지역에 있으면 내 둥지에서 쉼 (반려의 둥지가 같은 지역이어도)
-  const pn = logic.hooks.partnerNest(d);
-  if (!pn || pn.region !== d.region) return null;
-  return online.get(pn.id)?.dragon || db.getDragon(pn.id) || null;
-};
-logic.hooks.partnerNest = (d) => {
-  const id = db.relByBond(d.id, 'partner')[0];
-  if (!id) return null;
-  const e = online.get(id);
-  const p = e ? e.dragon : db.getDragon(id);
-  return p && !p.dead_at && p.nest ? { id, name: p.name, region: p.nest } : null;
-};
-// 관계 이벤트가 볼 수 있게: 스승·제자, 연인·반려, 원수, 동료, 먼 여행을 떠난 드래곤, 입양 보낸 식구
-logic.hooks.ties = (d) => {
-  const look = (id) => online.get(id)?.dragon || db.getDragon(id);
-  const fallenOf = (x) => { let f = x.fallen; if (typeof f === 'string') { try { f = JSON.parse(f); } catch { f = null; } } return f; };
-  const t = { mentor: null, students: [], heart: null, nemesis: [], friends: [], departed: [], adoptedOut: [] };
-  for (const r of db.relList(d.id)) {
-    const x = look(r.id);
-    if (!x) continue;
-    const one = { id: x.id, name: x.name, level: x.level, region: x.region, nest: x.nest };
-    if (x.dead_at) {
-      const f = fallenOf(x);
-      if (f?.departed && r.kind === 'friend') t.departed.push({ ...one, words: f.words || '', at: f.at });
-      continue;
-    }
-    if (r.kind === 'nemesis') t.nemesis.push(one);
-    if (r.kind !== 'friend') continue;
-    if (r.bond === 'mentor') t.mentor = one;
-    else if (r.bond === 'student') t.students.push(one);
-    else if (r.bond === 'partner' || (r.bond === 'lover' && !t.heart)) t.heart = { ...one, bond: r.bond };
-    else t.friends.push({ ...one, bond: r.bond });
-  }
-  // 의지를 물려준 드래곤도 먼 여행을 떠난 드래곤
-  try { const h = d.heir && JSON.parse(d.heir); if (h?.name) t.departed.push({ id: null, name: h.name, words: h.words || '', at: h.at, heir: true }); } catch {}
-  t.adoptedOut = db.kinAdoptedOut(d.id);
-  return t;
-};
-arena.setFall(death.fall);
-const FALLEN = '쓰러져 있다. 일어설지, 긴 잠에 들지 먼저 정해야 한다.';
-
-// GM 도구 (gm.js)
-const gm = require('./gm')({
-  io, db, online, logic, life, meOf, sendMe, refreshKin, arena, nestSync,
-  fightsNow: () => ({ live: liveFights.now(), ...(raidBoss?.gmView?.() || { lobbies: [], fights: [] }), cave: city.caveNow ? city.caveNow() : [] }), // GM 도구: 진행 중인 싸움 (+ 시련의 굴)
-  presence: (d) => broadcastPresence(d.region), // 이름·종족이 바뀌면 이곳의 드래곤 목록을 다시 보냄
-  // 순간이동: d.region은 이미 바뀐 상태. 접속 중이면 방을 옮기고 양쪽에 알림
-  teleport(d, from) {
-    const entry = online.get(d.id);
-    if (!entry) return;
-    const ga = josa(d.name, '이', '가');
-    entry.socket.leave(from);
-    system(from, `${d.name}${ga} 거센 바람에 휩쓸려 사라졌다.`);
-    entry.socket.join(d.region);
-    system(d.region, `${d.name}${ga} 바람을 타고 나타났다.`, entry.socket);
-    broadcastPresence(from);
-    broadcastPresence(d.region);
-    broadcastCounts();
-    sendRegionState(entry.socket, d);
-    social.onMove(d.id);
-  },
-  kick(sock) {
-    sock.emit('gm:kicked');
-    sock.disconnect(true);
-  },
+    transaction(() => {
+      if (Q.agentByNum.get(num)) { num = freeNumber(); }
+      Q.addAgent.run({ user_id: uid, num, name, role: 0, head: 0, photo, age: b.age, stats: JSON.stringify(stats), trait, skills: JSON.stringify(skills), res: JSON.stringify(START_RES), created: now() });
+      db.prepare('UPDATE agents SET traits = ?, team = ? WHERE user_id = ?').run(JSON.stringify([{ id: trait, lv: 1 }]), b.team, uid);
+      Q.addSealed.run(uid, JSON.stringify(sealed));
+      Q.dropDraft.run(uid);
+    });
+  } catch (e) { console.error(e); return fail(res, 'server', 500); }
+  const agent = publicAgent(Q.agent.get(uid));
+  io.emit('agent', agent);
+  res.json({ agent, sealed });
 });
 
-// 지나온 이야기: 이 행동이 성공하면 [종류, 한 줄]을 남김 (choice: 선택, mark: 큰 사건)
-const firstLine = (res) => String(res.lines?.[0] || '').replace(/\s+$/, '');
-const CHRON_ON = {
-  'event:choose': (d, res) => ['choice', `${res.title} — '${res.choice}'`],
-  'stance:set': (d) => ['choice', `인간을 대하는 방식을 '${STANCES[d.stance]}'${josa(STANCES[d.stance], '으로', '로')} 바꾸었다.`],
-  'traits:choose': (d, res) => ['choice', firstLine(res)],
-  'kin:path': (d, res) => ['choice', firstLine(res)],
-  'kin:release': (d, res) => ['choice', firstLine(res)],
-  'kin:incubate': (d, res) => ['mark', firstLine(res)],
-  'nest:build': (d, res) => ['mark', firstLine(res)],
+// 외관 사진 바꾸기 / 지우기
+app.post('/api/agent/photo', need, (req, res) => {
+  if (!Q.agent.get(req.user.id)) return fail(res, 'agent/none');
+  const photo = photoOf(req.body && req.body.photo);
+  if (photo === undefined) return fail(res, 'agent/bad-photo');
+  Q.setPhoto.run(photo, req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id));
+  io.emit('agent', agent);
+  res.json({ agent });
+});
+
+/* ───────── 작전 (샘플: AO-212 「계수자」 재격리) ───────── */
+// 판정: d6 주사위 풀. 5·6이 성공 1개. 오염 주사위는 6이면 성공 2개, 1이면 이상 반응. 지원 주사위는 관제팀이 보탠다.
+const SN = ['근력', '체력', '민첩', '지능', '육감', '의지'];
+const REGEN_MS = Number(process.env.REGEN_HOURS || 6) * 3600 * 1000;
+const MAX_TRAITS = 5, TRAIT_MAX_LV = 3;
+// 변질 특성 효과 (서버 계산용): 능력치 보정 [능력치 번호, +n], HP·정신력 보정
+// 변질 특성이 주는 기능 보너스 (두 번째 그림자 은신 +1, 겹친 목소리 통신 +1, 굳은 관절 은신 −1, 개체의 표식 은신 +2)
+const TRAIT_SKILL = { 1: ['은신', 1], 15: ['통신', 1], 17: ['은신', -1], 25: ['은신', 2] };
+/* 능력치 1~20 체계: 평균 10. 생성 때 합계 60, 하나당 3~15. 훈련 상한 20, 넘는 길은 변질뿐. */
+const STAT_SUM = 60, STAT_MIN0 = 3, STAT_MAX0 = 15, STAT_CAP = 20, DICE_MAX = 14;
+const TRAIT_STAT = { 2: [1, 4], 3: [5, 4], 5: [2, 2], 10: [3, 2], 11: [4, 4], 14: [1, 2], 17: [0, 2], 18: [4, 2], 21: [3, 2], 22: [5, 2] };
+const TRAIT_HP = { 6: 25 }, TRAIT_SAN = { 16: 30 }; // 최종 수치에 더한다
+// 예전 1~7 체계(합계 24)로 만든 요원은 ×2+2로 옮긴다
+for (const a of db.prepare('SELECT user_id, stats FROM agents').all()) { const st = JSON.parse(a.stats); if (st.reduce((x, y) => x + y, 0) < 40) db.prepare('UPDATE agents SET stats = ? WHERE user_id = ?').run(JSON.stringify(st.map(v => v * 2 + 2)), a.user_id); }
+const DIFF_NAME = { 1: '쉬움', 2: '보통', 3: '어려움', 4: '극한' };
+
+// 거리: 개체와 대열 사이 거리(m). from은 개체가 있는 쪽(front 앞, rear 뒤). speed는 한 턴에 개체가 다가오는 거리.
+// 선택지: pos는 대열 위치(front 선두, mid 중열, rear 후미, 없으면 누구나), max/min은 필요한 거리, adv:false면 장면이 넘어가지 않는다.
+const RADAR_RANGE = 50, STEP_M = 15, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY = 4, MINION_CAP = 4;
+// 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
+const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
+const OPS = [{
+  id: 'R8-14', kind: 'secure', event: true, title: 'AO-212 「계수자」 재확보', threat: 'Ⅲ', mins: 15, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
+  countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
+  endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
+  brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 쓰러뜨리고 다시 격리하십시오. 제압하면 장치는 기지가 다시 켭니다.',
+  boss: { hpBy: [0, 34, 42, 36, 40], name: '계수자' },
+  contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
+  forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
+  minion: { name: '세어진 것', hp: 3, text: '이마에 숫자가 새겨진 사람 형체. 셈에 붙들린 이전 직원들의 모습을 하고 있다.',
+    spawn: { front: '대열 앞의 어둠에서 세어진 것이 걸어 나왔다. 이마의 숫자가 깜빡인다.', rear: '대열 뒤에서 세어진 것이 일어섰다. 방금 지나온 바닥에 누워 있던 것이다.' },
+    hit: '세어진 것이 {pos} {name} 요원에게 달려들었다.', kill: '{name} 요원이 세어진 것을 쓰러뜨렸다. 이마의 숫자가 꺼졌다.' },
+  scenes: [
+    { title: 'B-3 복도 진입', from: 'front', dist: 40, speed: 5,
+      map: { len: 60, start: 5, marks: [{ at: 0, label: '진입구', kind: 'door' }, { at: 14, label: '숫자가 적힌 벽' }, { at: 28, label: '깨진 형광등' }, { at: 42, label: '배전반' }, { at: 58, label: '격리실 B-3 문', kind: 'door' }] },
+      text: '형광등이 깜빡일 때마다 벽에 적힌 숫자가 하나씩 줄어든다. 복도 끝에서 누군가 낮게 수를 세는 소리가 들린다.',
+      choices: [
+        { id: 'sneak', label: '격리실 문까지 숨어서 접근한다', pos: 'front', max: 15, stat: 2, skill: '은신', diff: 2,
+          crit: '발소리 하나 내지 않고 문 앞에 닿았다. 셈 소리가 잠시 멎었다.', ok: '숨을 죽인 채 문 앞에 닿았다.', cost: { text: '바닥의 유리 조각을 밟았다. 발바닥이 찢어졌다.', hp: -1 }, fail: { text: '발소리가 울렸다. 셈 소리가 빨라진다.', san: -1, count: -1 } },
+        { id: 'read', label: '벽의 숫자를 해독한다', pos: 'mid', stat: 3, skill: '기록 해독', diff: 2, adv: false,
+          crit: { text: '숫자는 남은 사람의 수였다. 셈의 규칙을 알아내 셈을 늦췄다.', count: 2 }, ok: { text: '숫자가 줄어드는 간격을 기록했다. 셈이 하나 늦어졌다.', count: 1 }, cost: { text: '숫자를 오래 들여다본 탓에 머릿속에서 셈이 멈추지 않는다.', san: -1 }, fail: { text: '숫자를 소리 내어 읽고 말았다. 벽의 숫자가 둘 줄었다.', count: -2 } },
+        { id: 'light', label: '뒤에서 조명을 확보한다', pos: 'rear', stat: 3, skill: '장비 운용', diff: 1, adv: false,
+          crit: { text: '복도 전체에 조명이 들어왔다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '손전등 각도를 맞췄다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '조명은 켰지만 깜빡임이 셈과 박자를 맞추기 시작했다.', san: -1, sup: 1 }, fail: { text: '전구가 터졌다. 소리에 셈이 빨라진다.', count: -1 } }
+      ] },
+    // 제압전: 격리실 안에서 개체와 맞선다. 개체 체력을 0으로 만들면 성공. 하수인이 앞을 막으면 개체를 칠 수 없다.
+    { title: '격리실: 계수자 제압', boss: true, from: 'front', dist: 6, speed: 0, spawn: { front: 1 },
+      map: { len: 24, start: 4, marks: [{ at: 0, label: '격리실 문', kind: 'door' }, { at: 8, label: '관찰창' }, { at: 16, label: '쓰러진 의자' }, { at: 24, label: 'AO-212', kind: 'wall' }] },
+      text: '격리실 한가운데 AO-212가 서 있다. 손가락을 하나씩 접으며 수를 센다. 셈 소리가 요원들 중 누군가의 목소리를 닮아 간다.',
+      choices: [
+        { id: 'sense', label: '진짜 위치를 짚어 낸다', pos: 'mid', stat: 4, skill: '관찰', diff: 2, adv: false,
+          crit: { text: '목소리는 미끼였다. 개체의 진짜 급소를 짚었다. 두 라운드 동안 공격이 더 아프게 들어간다.', bossExpose: 2 }, ok: { text: '개체가 서 있는 진짜 위치를 찾았다. 이번 라운드와 다음 라운드에 공격 피해 +3.', bossExpose: 1 }, cost: { text: '찾아냈지만 개체와 눈이 마주쳤다.', bossExpose: 1, san: -1 }, fail: { text: '목소리에 속았다. 엉뚱한 곳을 가리켰다.', san: -1 } },
+        { id: 'taunt', label: '대신 수를 세어 주의를 끈다', pos: 'front', stat: 5, skill: '인내', diff: 2, adv: false,
+          crit: { text: '개체가 요원의 셈을 따라 하기 시작했다. 다음 공격은 이 요원에게 오고, 절반만 들어온다.', bossTaunt: 2 }, ok: { text: '개체의 시선이 요원에게 고정됐다. 다음 공격은 이 요원에게 온다.', bossTaunt: 1 }, cost: { text: '시선은 끌었지만 셈이 머릿속에 남는다.', bossTaunt: 1, san: -2 }, fail: { text: '셈을 놓쳤다. 개체는 관심이 없다.', san: -1 } },
+        { id: 'flash', label: '섬광탄으로 몰아붙인다', pos: 'rear', stat: 2, skill: '사격', diff: 2, adv: false,
+          crit: { text: '섬광이 정면으로 터졌다. 개체가 비틀거리며 다음 행동을 놓친다. 하수인도 흩어졌다.', bossStun: 1, clearMinions: 1 }, ok: { text: '섬광에 개체가 눈을 가렸다. 다음 행동을 놓친다.', bossStun: 1 }, cost: { text: '개체는 비틀거렸지만 섬광에 요원도 눈이 멀었다.', bossStun: 1, hp: -1 }, fail: { text: '섬광탄이 불발했다.' } }
+      ] }
+  ]
+}];
+
+/* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
+// 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
+const PATROL_SECTIONS = 2, REACH_M = 6, PATROL_STAB = 15;
+OPS.push({ id: 'R8-P', patrol: true, kind: 'explore', title: '하층 탐사', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, recoil: 12,
+  brief: '하층 B3 구역 탐사입니다. 구역 문을 지나며 남겨진 연구 기록을 회수하고 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
+  sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 연구 자료를 많이 얻고, 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
+  countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
+  endText: '귀환 신호가 끊겼다. 대열은 반복되는 복도 속에서 길을 잃었다.', endHp: -3, failText: '탐사 기록을 폐기한다.', reward: { supply: 10, research: 4 }, scenes: [] });
+/* ───────── 소탕 (정기 작전) ─────────
+   한 장면. 하수인이 라운드마다 몰려온다. 정해진 수만큼 쓰러뜨리면 성공, 남은 시간이 0이 되면 실패. 보급품을 많이 준다. */
+OPS.push({ id: 'R8-S', kind: 'sweep', title: 'B2 배양 구역 소탕', threat: 'Ⅱ', mins: 15, field: 3, ctrl: 0, level: 2, rec: { field: [1, 3], ctrl: [0, 0] }, count: 5, countEvery: 3, tickSpawn: false,
+  brief: '하층 B2 배양 구역에서 하수인이 또 불어났습니다. 정해진 수만큼 처리해 개체 수를 줄이십시오. 정기 작전입니다.',
+  sub: '라운드마다 하수인이 몰려옵니다. 목표 수만큼 쓰러뜨리면 성공. 보급품을 많이 얻습니다.',
+  countLabel: '소각 대기 시간', tickText: '배양조에서 거품이 올라왔다. 소각 대기 시간이 줄었다.',
+  endText: '소각 대기 시간이 끝났다. 구역 전체에 소각 경보가 울린다. 대열은 쫓기듯 빠져나왔다.', endHp: -2, failText: '구역을 소각 처리한다. 다음 소탕까지 개체 수가 회복된다.', reward: { supply: 45, research: 0 },
+  sweep: { needBy: [0, 8, 16, 15, 17] },
+  entity: '배양 군체', contact: { text: '배양조 하나가 통째로 무너졌다. {name} 요원이 덮쳐졌다.', hp: -2, san: -1, count: 0 },
+  forms: ['배양조 안쪽에서 무언가 꿈틀거린다.', '배양조 너머로 덩어리진 윤곽이 보인다.', '덩어리 표면에 손 모양 돌기가 수없이 돋아 있다.', '돌기들이 일제히 요원들 쪽을 가리킨다.'],
+  minion: { name: '배양체', hp: 2, text: '배양조에서 기어 나온 반투명한 덩어리. 사람 손 모양의 돌기가 달려 있다.',
+    spawn: { front: '앞쪽 배양조가 터지며 배양체가 기어 나왔다.', rear: '뒤쪽 배수구에서 배양체가 올라왔다.' },
+    hit: '배양체가 {pos} {name} 요원에게 달라붙었다.', kill: '{name} 요원이 배양체를 터뜨렸다. 끈적한 액체가 바닥에 퍼진다.' },
+  scenes: [
+    { title: 'B2 배양 구역', sweep: true, from: 'front', dist: 60, speed: 0, spawn: { front: 2 },
+      map: { len: 40, start: 20, marks: [{ at: 0, label: '배수구', kind: 'door' }, { at: 12, label: '배양조 1' }, { at: 28, label: '배양조 2' }, { at: 40, label: '소각로', kind: 'door' }] },
+      text: '배양조 여러 개가 줄지어 서 있다. 깨진 유리 사이로 반투명한 것들이 꿈틀거린다. 소각로 예열음이 낮게 울린다.',
+      choices: [
+        { id: 'valve', label: '배양조 밸브를 잠근다', stat: 3, skill: '장비 운용', diff: 2, adv: false,
+          crit: { text: '밸브를 모두 잠갔다. 배양조가 조용해졌다.', count: 2 }, ok: { text: '밸브 하나를 잠갔다. 시간을 벌었다.', count: 1 }, cost: { text: '잠그긴 했지만 뜨거운 증기에 손을 데었다.', count: 1, hp: -1 }, fail: { text: '밸브가 부러졌다. 배양조가 끓어오른다.', count: -1 } },
+        { id: 'burn', label: '소각 유도선을 깐다', stat: 3, skill: '장비 운용', diff: 3, adv: false,
+          crit: { text: '유도선에 불이 붙었다. 근처의 배양체가 한꺼번에 타 버렸다.', clearMinions: 1 }, ok: { text: '유도선을 깔았다. 다음 판정이 수월해진다.', sup: 2 }, cost: { text: '깔긴 했지만 연기를 들이마셨다.', sup: 1, hp: -1 }, fail: { text: '불꽃이 튀어 배양체가 흥분했다.', san: -1 } },
+        { id: 'regroup', label: '대열을 재정비한다', stat: 5, skill: '인내', diff: 1, adv: false,
+          crit: { text: '호흡을 맞췄다. 다음 판정에 주사위 2개가 붙는다.', sup: 2 }, ok: { text: '대열을 다시 짰다. 다음 판정에 주사위 1개가 붙는다.', sup: 1 }, cost: { text: '정비는 했지만 배양조 소리가 귀에 남는다.', sup: 1, san: -1 }, fail: { text: '손발이 맞지 않는다.' } }
+      ] }
+  ] });
+const pick = a => a[die(a.length) - 1];
+// 조사: 받침 있으면 a, 없으면 b
+const jo = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return w + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? a : b); };
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = die(i + 1) - 1; [b[i], b[j]] = [b[j], b[i]]; } return b; };
+// 배회 개체: 레이더에 잡히는 하층의 존재
+const WANDERERS = [
+  { name: '배회자', forms: ['발소리가 하나 더 들린다. 형체는 보이지 않는다.', '복도 끝에 제복 차림의 형체가 등을 돌리고 서 있다.', '형체가 걸어온다. 걸음이 대열의 발소리와 정확히 맞는다.', '얼굴이 보인다. 대열 중 누군가와 같은 얼굴이다.'],
+    contact: { text: '차가운 손이 {name} 요원의 어깨를 붙잡았다. 그 손에도 같은 넘버가 적혀 있다.', hp: -1, san: -1 } },
+  { name: '늘어진 것', forms: ['천장 환풍구에서 무언가 끌리는 소리가 난다.', '천장 패널 사이로 지나치게 긴 팔 하나가 늘어져 있다.', '팔과 다리가 천장에서 거꾸로 늘어져 흔들린다. 관절이 너무 많다.', '그것이 천장에서 떨어져 내린다. 몸통이 없다.'],
+    contact: { text: '천장에서 늘어진 팔이 {name} 요원의 목을 감았다.', hp: -2 } },
+  { name: '소리 없는 것', forms: ['복도의 소음이 한쪽부터 사라지고 있다.', '어둠 속에서 소리가 빨려 들어가는 지점이 있다.', '형광등 아래에 사람 크기의 빈자리가 있다. 그 안으로 소리가 사라진다.', '자기 숨소리가 들리지 않는다. 그것이 바로 앞에 있다.'],
+    contact: { text: '{name} 요원의 목소리가 사라졌다. 입은 움직이는데 아무 소리도 나지 않는다.', san: -2 } }
+];
+// 하층 존재(하수인): 싸워서 쓰러뜨리는 일반 개체
+const CRAWLERS = [
+  { name: '뒤틀린 직원', hp: 3, spawn: { front: '앞쪽 사물함 문이 열리고, 관절이 반대로 꺾인 직원이 기어 나왔다.', rear: '대열 뒤에서 관절이 반대로 꺾인 직원이 일어섰다.' }, kill: '{name} 요원이 뒤틀린 직원을 쓰러뜨렸다. 명찰의 이름은 읽을 수 없었다.' },
+  { name: '형광 벌레 떼', hp: 2, spawn: { front: '깨진 형광등에서 빛나는 벌레 떼가 쏟아져 나와 앞을 막았다.', rear: '뒤쪽 형광등이 터지며 빛나는 벌레 떼가 쏟아졌다.' }, kill: '{name} 요원이 벌레 떼를 흩어 놓았다. 형광등이 다시 켜졌다.' },
+  { name: '기어 다니는 것', hp: 2, spawn: { front: '바닥 배수구에서 손바닥만 한 것들이 기어 나와 길을 막았다.', rear: '지나온 배수구에서 무언가 기어 나와 뒤를 쫓는다.' }, kill: '{name} 요원이 기어 다니는 것을 짓밟았다.' }
+];
+const ODDITIES = ['자기 넘버가 붙은 사물함', '벽을 가리키는 비상구 표지', 'B3 층 표시', '고인 물에 비친 다른 복도', '꺼진 형광등 구간', '사망자 출입 기록 단말', '안쪽에서 잠긴 격리실', '같은 날짜의 근무 일지', '거꾸로 매달린 소화기', '벽에 긁힌 까마귀 그림', '물이 새는 천장', '멈춘 벽시계'];
+// 구역 틀: 장면 설명과 목표 행동
+const SECTIONS_T = [
+  { title: '반복 복도', bg: 'P-repeat', door: '문틈으로 방금 지나온 것과 같은 복도가 보인다', text: '같은 복도가 세 번째 반복된다. 벽의 층 표시는 계속 B3다.',
+    goal: { label: '반복 구간의 끝 문을 연다', stat: 4, skill: '관찰', diff: 2, crit: '반복의 틈을 찾았다. 문 너머로 새 구역이 이어진다.', ok: '구역 문이 열렸다.', cost: { text: '문은 열렸지만 같은 복도를 한 번 더 걸은 기억이 남았다.', san: -1 }, fail: { text: '문 너머도 같은 복도였다.', count: -1 } },
+    side: { label: '반복 패턴을 기록한다', pos: 'mid', stat: 3, skill: '기록 해독', diff: 2, crit: { text: '반복의 주기를 알아냈다. 귀환 신호를 보정했다.', count: 2 }, ok: { text: '반복 패턴을 기록했다. 귀환 신호가 조금 맑아졌다.', count: 1 }, cost: { text: '기록하는 사이 같은 문장을 두 번 적었다.', san: -1 }, fail: { text: '기록이 뒤죽박죽이 됐다.', count: -1 } } },
+  { title: '사물함 구역', bg: 'P-locker', door: '안쪽에서 금속을 두드리는 소리가 난다', text: '양쪽 벽을 따라 사물함이 끝없이 늘어서 있다. 몇 개는 안쪽에서 두드리는 소리가 난다.',
+    goal: { label: '구역 끝 보안문을 해제한다', stat: 3, skill: '장비 운용', diff: 2, crit: '보안문이 소리 없이 열렸다.', ok: '보안문이 열렸다.', cost: { text: '문은 열렸지만 경보음이 울렸다.', count: -1 }, fail: { text: '보안 코드가 맞지 않는다. 사물함 두드리는 소리가 커졌다.', san: -1 } },
+    side: { label: '두드리는 사물함을 연다', pos: 'mid', stat: 5, skill: '인내', diff: 2, crit: { text: '안에는 섹터 보급 상자가 있었다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '안에서 쓸 만한 장비를 찾았다.', sup: 1 }, cost: { text: '안에는 자기 넘버가 적힌 제복이 걸려 있었다.', san: -2, sup: 1 }, fail: { text: '사물함 안에서 무언가 손을 뻗었다.', hp: -2 } } },
+  { title: '침수 통로', bg: 'P-flood', door: '문 아래로 차가운 물이 스며 나온다', text: '발목까지 물이 차 있다. 물에 비친 복도는 실제와 다른 방향으로 뻗어 있다.',
+    goal: { label: '물에 비친 길이 아니라 실제 길로 건넌다', stat: 2, skill: '운반', diff: 2, crit: '흔들림 없이 통로를 건넜다.', ok: '통로를 건넜다.', cost: { text: '건넜지만 물속의 무언가가 발목을 스쳤다.', hp: -1 }, fail: { text: '물에 비친 길을 따라가 버렸다.', count: -1, san: -1 } },
+    side: { label: '배수 밸브를 연다', pos: 'mid', stat: 0, skill: '운반', diff: 2, crit: { text: '물이 빠지며 바닥의 길이 드러났다. 귀환 신호가 맑아졌다.', count: 1, sup: 1 }, ok: { text: '물이 조금 빠졌다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '밸브는 열렸지만 손이 미끄러져 다쳤다.', hp: -1, sup: 1 }, fail: { text: '밸브가 꿈쩍하지 않는다.', count: -1 } } },
+  { title: '정전 구역', bg: 'P-dark', door: '문틈이 완전히 어둡다. 빛이 새어 나오지 않는다', text: '조명이 모두 꺼져 있다. 손전등 빛이 닿는 곳만 존재하는 것처럼 보인다.',
+    goal: { label: '예비 전원을 켜고 문을 연다', stat: 3, skill: '장비 운용', diff: 2, crit: '구역 전체에 불이 들어왔다. 문이 열렸다.', ok: '예비 전원이 들어왔다. 문이 열렸다.', cost: { text: '전원은 들어왔지만 감전으로 손이 저렸다.', hp: -1 }, fail: { text: '배전반에서 불꽃이 튀었다.', hp: -1, count: -1 } },
+    side: { label: '어둠 속 기척을 살핀다', pos: 'mid', stat: 4, skill: '관찰', diff: 2, crit: { text: '기척의 위치를 정확히 짚었다. 개체가 물러났다.', push: 15 }, ok: { text: '기척 쪽으로 빛을 비췄다. 개체가 물러났다.', push: 10 }, cost: { text: '빛을 비춘 곳에 얼굴이 있었다.', san: -2, push: 10 }, fail: { text: '아무것도 찾지 못했다.', count: -1 } } },
+  { title: '출입 기록실', bg: 'P-record', door: '문 너머에서 단말 작동음이 웅웅거린다', text: '벽 가득한 단말에 출입 기록이 흐른다. 사망한 직원들의 넘버가 지금도 출입하고 있다.',
+    goal: { label: '기록을 위조해 구역 문을 통과한다', stat: 3, skill: '기록 해독', diff: 2, crit: '단말이 대열을 직원으로 인식했다. 문이 열렸다.', ok: '문이 열렸다.', cost: { text: '문은 열렸지만 단말에 자기 사망 일시가 떴다.', san: -1 }, fail: { text: '단말이 경보를 울렸다.', count: -1 } },
+    side: { label: '자기 넘버의 기록을 찾아본다', pos: 'mid', stat: 5, skill: '기록 해독', diff: 3, crit: { text: '기록 속에서 잃어버린 기억 한 조각을 찾았다.', san: 2, sup: 1 }, ok: { text: '자기 넘버의 출입 기록을 찾았다. 마지막 출입은 오늘이다.', sup: 1 }, cost: { text: '찾지 말았어야 했다.', san: -2 }, fail: { text: '기록이 빠르게 지워졌다.', count: -1 } } }
+];
+const REAR_T = [
+  { label: '뒤를 막고 시간을 번다', stat: 1, skill: '인내', diff: 2, crit: { text: '추적을 완전히 끊었다.', push: 20 }, ok: { text: '뒤쪽을 막아 시간을 벌었다.', push: 15 }, cost: { text: '막았지만 몸으로 받아 냈다.', push: 10, hp: -1 }, fail: { text: '막아서지 못했다.', count: -1 } },
+  { label: '섬광탄으로 밀어낸다', stat: 2, skill: '사격', diff: 2, crit: { text: '섬광에 개체가 크게 물러났다.', push: 20 }, ok: { text: '섬광에 개체가 물러났다.', push: 15 }, cost: { text: '물러났지만 눈앞이 하얗게 번졌다.', push: 10, san: -1 }, fail: { text: '섬광탄이 불발됐다.', count: -1 } }
+];
+function genMap(len, endLabel) {
+  const marks = [{ at: 0, label: '진입문', kind: 'door' }];
+  const odd = shuffle(ODDITIES).slice(0, 3), gap = len / 4;
+  odd.forEach((t, i) => marks.push({ at: Math.round(gap * (i + 1) + (die(5) - 3)), label: t }));
+  marks.push({ at: len, label: endLabel, kind: 'door' });
+  return { len, start: 2, marks };
+}
+/* ───────── 갈림길: 구역 사이마다 도면에 없던 문 두 개가 나타난다 ─────────
+   현장팀은 투표로 문을 고른다(동률이면 먼저 고른 쪽, 아무도 고르지 않으면 무작위).
+   관제는 관제 행동 하나로 한쪽 문 너머의 감시 카메라를 들여다볼 수 있다. */
+const DOOR_RISK = {
+  none: { name: '특이 사항 없음', text: '문 너머는 조용하다. 도면과 크게 다르지 않다.' },
+  loop: { name: '루프 위험', text: '같은 구간이 되풀이되는 흔적이 있다. 들어가면 절반 확률로 귀환 신호 −1.' },
+  nest: { name: '하수인 둥지', text: '바닥과 천장에 무언가 웅크린 형체가 여럿 보인다. 들어가자마자 하수인 2마리.' },
+  close: { name: '개체 근접', text: '배회 개체가 문 바로 너머에 있다. 개체가 10m 더 가까이에서 시작한다.' },
+  cache: { name: '보급 상자', text: '쓰러진 선반 아래 섹터 보급 상자가 보인다. 들어가면 지원 주사위 +1.' }
+};
+const RISK_POOL = ['none', 'none', 'loop', 'nest', 'close', 'cache'];
+function genSection(t, i) {
+  const from = die(10) <= 6 ? 'rear' : 'front', len = 30 + 5 * (die(5) - 1);
+  return { title: `${t.title} (하층 B3-${i + 1})`, text: t.text, from, dist: from === 'rear' ? 15 + 5 * die(3) : len + 5 * die(3), speed: 5,
+    spawn: die(10) <= 5 ? { [die(2) === 1 ? 'front' : 'rear']: 1 } : null, map: genMap(len, '구역 문'), shiftable: true, bg: t.bg,
+    choices: [{ id: 'goal', pos: 'front', reach: true, ...t.goal }, { id: 'side', adv: false, ...t.side }, { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] };
+}
+function genFork(pool, i) {
+  const ts = shuffle(pool).slice(0, 2), rk = shuffle(RISK_POOL);
+  const r2 = rk[0] === rk[1] ? rk.find(x => x !== rk[0]) : rk[1];
+  const doors = ts.map((t, k) => ({ id: k ? 'b' : 'a', name: k ? '문 B' : '문 A', tpl: t.title, hint: t.door, risk: k ? r2 : rk[0], scene: genSection(t, i), peeked: false }));
+  return { title: '갈림길', fork: true, bg: 'P-fork', text: '복도가 둘로 갈라졌다. 도면에는 없던 문이다. 어느 쪽이든 아까와 같은 곳으로 이어진다는 보장은 없다.', from: 'rear', dist: 60, speed: 0,
+    map: { len: 10, start: 5, marks: [{ at: 0, label: '지나온 구역 문', kind: 'door' }, { at: 10, label: '문 A와 문 B', kind: 'door' }] }, choices: [], doors };
+}
+function genPatrol(base) {
+  const w = pick(WANDERERS), cr = pick(CRAWLERS), order = shuffle(SECTIONS_T), first = order[0];
+  const scenes = [genSection(first, 0)];
+  let used = [first];
+  for (let i = 1; i < PATROL_SECTIONS; i++) {
+    if (process.env.R8_FORK === '0') { const t = order[i]; used.push(t); scenes.push(genSection(t, i)); continue; }
+    const pool = SECTIONS_T.filter(t => !used.includes(t)), f = genFork(pool.length >= 2 ? pool : SECTIONS_T, i);
+    used = used.concat(f.doors.map(d => SECTIONS_T.find(t => t.title === d.tpl)));
+    scenes.push(f, f.doors[0].scene); // 고르기 전까지 다음 칸은 문 A로 채워 둔다(GM 장면 넘기기용)
+  }
+  scenes.push({ title: '상층 승강기', bg: 'P-lift', text: '승강기 표시등이 깜빡인다. 층 표시는 B3과 B4 사이를 오간다. 뒤에서 무언가 따라온다.', from: 'rear', dist: 20, speed: 10,
+    spawn: { rear: 1 }, map: genMap(40, '상층 승강기'),
+    choices: [{ id: 'goal', label: '승강기를 호출해 탑승한다', pos: 'front', reach: true, stat: 2, skill: '운반', diff: 2, crit: '모두가 승강기에 올랐다. 문이 닫혔다.', ok: '승강기 문이 닫혔다. 위로 올라간다.', cost: { text: '문이 닫히기 직전 무언가 손을 들이밀었다.', hp: -2 }, fail: { text: '승강기가 오지 않는다. 표시등이 B4를 가리킨다.', count: -1 } },
+      { id: 'side', label: '수동으로 승강기를 끌어올린다', pos: 'mid', stat: 0, skill: '장비 운용', diff: 2, adv: false, crit: { text: '승강기가 빠르게 내려온다.', count: 1, sup: 1 }, ok: { text: '승강기가 내려오고 있다.', sup: 1 }, cost: { text: '손잡이가 손을 할퀴었다.', hp: -1, sup: 1 }, fail: { text: '줄이 끊어질 듯 삐걱댄다.', count: -1 } },
+      { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] });
+  return { ...base, entity: w.name, forms: w.forms, contact: w.contact, minion: { name: cr.name, hp: cr.hp, spawn: cr.spawn, kill: cr.kill }, scenes,
+    title: `하층 탐사: ${first.title}부터` };
+}
+// 갈림길 투표 결과로 다음 구역을 정하고 들어간다
+function forkResolve(r) {
+  const o = D(r), sc = o.scenes[r.scene]; if (!sc || !sc.fork) return;
+  const votes = Object.values(r.picks || {}).filter(p => /^fork-[ab]$/.test(p.v)).sort((a, b) => a.at - b.at);
+  const n = { a: 0, b: 0 }; votes.forEach(p => { n[p.v.slice(5)]++; });
+  let id, why;
+  // 아무도 투표하지 않은 첫 라운드는 갈림길에서 기다린다(문 확인 결과를 보고 고를 수 있게). 두 번째부터는 아무 문이나.
+  if (!votes.length && !r.forkIdle) { r.forkIdle = 1; say(r, '대열은 갈림길 앞에서 잠시 숨을 골랐다. 다음 라운드에는 어느 쪽이든 들어서야 한다.', { kind: 'move' }); return; }
+  if (!votes.length) { id = die(2) === 1 ? 'a' : 'b'; why = '아무도 고르지 않아 대열은 먼저 눈에 띈 문으로 들어섰다.'; }
+  else if (n.a === n.b) { id = votes[0].v.slice(5); why = `표가 갈렸다(${n.a}:${n.b}). 먼저 손을 든 쪽을 따른다.`; }
+  else { id = n.a > n.b ? 'a' : 'b'; why = `투표 ${n.a}:${n.b}.`; }
+  const d = sc.doors.find(x => x.id === id);
+  say(r, `${why} 대열은 ${jo(d.name, "을", "를")} 열었다.`, { kind: 'move' });
+  const nx = { ...d.scene };
+  if (d.risk === 'close') nx.dist = Math.max(8, nx.dist - 10);
+  o.scenes[r.scene + 1] = nx;
+  r.scene++; r.dist = nx.dist; r.pos = nx.map.start;
+  say(r, nx.text, { kind: 'scene', title: nx.title });
+  sceneEnter(r);
+  if (d.risk === 'loop') { if (Math.random() < 0.5) { countAdd(r, -1, '같은 구간 반복'); say(r, `문을 지나자 방금 지나온 복도가 다시 나타났다. 같은 구간을 한 번 더 걸었다. ${o.countLabel} −1.`, { kind: 'warn', fx: { count: -1 } }); } else say(r, '같은 구간이 되풀이되려다 멈췄다. 운이 좋았다.', { kind: 'sys' }); }
+  else if (d.risk === 'nest') { spawnMinion(r, 'front', 1); spawnMinion(r, 'rear', 1); }
+  else if (d.risk === 'close') say(r, '문을 열자마자 레이더가 울렸다. 개체가 가까이에 있다.', { kind: 'warn' });
+  else if (d.risk === 'cache') { r.support = Math.min(SUPPORT_MAX, r.support + 1); say(r, '쓰러진 선반 아래에서 보급 상자를 찾았다. 다음 판정에 지원 주사위 1개.', { kind: 'sys' }); }
+  r._sceneChanged = true;
+}
+
+const traitsOf = row => {
+  if (row.traits) { try { const t = JSON.parse(row.traits); if (Array.isArray(t)) return t; } catch {} }
+  return row.trait ? [{ id: row.trait, lv: 1 }] : [];
+};
+function modStats(row) {
+  const s = JSON.parse(row.stats).slice();
+  traitsOf(row).forEach(t => { const b = TRAIT_STAT[t.id]; if (b) s[b[0]] += b[1]; });
+  return s;
+}
+// 수치 배율: 평균 능력치(각 4)일 때 HP 100, 정신력 100이 되도록 곱한다
+const HP_MUL = 100 / 12, SAN_MUL = 100 / 7;
+function maxes(row) {
+  const s = modStats(row), tr = traitsOf(row);
+  // 최대치는 5 단위로 끊는다
+  const o = s.map(v => (v - 2) / 2); // 1~20 → 예전 척도. 평균 10 → 4
+  const hp = Math.round((o[0] + o[1] + 4) * HP_MUL / 5) * 5 + tr.reduce((a, t) => a + (TRAIT_HP[t.id] || 0), 0);
+  const san = Math.round((o[5] + 3) * SAN_MUL / 5) * 5 + tr.reduce((a, t) => a + (TRAIT_SAN[t.id] || 0), 0);
+  const g = gearFx(row);
+  return { hp: hp + g.hp, san: san + g.san };
+}
+// 오염 한계치: 체력과 의지가 버티는 만큼. 평균(각 4)이면 100, 5 단위.
+const contLimit = row => { const s = modStats(row).map(v => (v - 2) / 2); return Math.max(30, Math.round((s[1] + s[5] + 4) * 100 / 12 / 5) * 5) + gearFx(row).lim; };
+const QUAR_MS = Number(process.env.QUARANTINE_HOURS || 4) * 3600000;
+const VULTURE_OVER = ['"폭주 직전에 잡았다. 운이 좋은 줄 알아."', '"한 번만 더 넘기면 그땐 격리실 쪽에 눕힌다."', '"변이는 기록해 뒀다. 다음엔 표본으로 보게 될지도 모르지."'];
+// 피해·회복을 배율에 맞춰 키우고, 매번 ±30% 흔들어 긴박하게
+const spread = (base, mul) => base ? Math.sign(base) * Math.max(1, Math.round(Math.abs(base) * mul * (0.7 + (die(61) - 1) / 100))) : 0;
+const hpD = b => spread(b, HP_MUL), sanD = b => spread(b, SAN_MUL);
+const scaleFx = fx => fx ? { ...fx, hp: hpD(fx.hp || 0) || undefined, san: sanD(fx.san || 0) || undefined } : fx;
+// 주사위 풀 굴리기
+const skLv = (row, k) => Math.max(0, (JSON.parse(row.skills)[k] || 0) + (gearFx(row).skill[k] || 0) + traitsOf(row).reduce((a, t) => a + (TRAIT_SKILL[t.id] && TRAIT_SKILL[t.id][0] === k ? TRAIT_SKILL[t.id][1] : 0), 0));
+const skAll = row => Object.fromEntries(SKILLS.map(k => [k, skLv(row, k)]));
+function rollPool(row, statIdx, skill, support, pen, cap) {
+  const s = modStats(row), sk = skLv(row, skill);
+  // 주사위: 능력치 ÷ 2 − 1 (평균 10이면 4개로 예전과 같다. 2 오를 때마다 하나씩 늘어 20이면 9개) + 기능 등급
+  const base = Math.max(1, Math.min(DICE_MAX, Math.floor(s[statIdx] / 2) - 1 + sk - (pen || 0)));
+  const black = Math.min(base, Math.floor((row.contamination || 0) / (contLimit(row) / 5)));
+  let sup = Math.min(DICE_MAX - base, support || 0);
+  // 작전 판정은 굴리는 주사위가 최대 cap개. 넘친 주사위는 2개당 공격 피해 +1로 바뀐다
+  let over = 0, bw = base - black;
+  if (cap && base + sup > cap) { over = base + sup - cap; let cut = over; const ds = Math.min(sup, cut); sup -= ds; cut -= ds; const dw = Math.min(bw, cut); bw -= dw; cut -= dw; }
+  const bb = Math.min(black, (cap && over ? cap - bw - sup : black)), w = Array.from({ length: bw }, () => die(6)), b = Array.from({ length: bb }, () => die(6)), sp = Array.from({ length: sup }, () => die(6));
+  const succ = w.filter(v => v >= 5).length + b.reduce((a, v) => a + (v === 6 ? 2 : v === 5 ? 1 : 0), 0) + sp.filter(v => v >= 5).length;
+  const anomalies = b.filter(v => v === 1).length;
+  return { dice: over ? { w, b, s: sp, over } : { w, b, s: sp }, over, bonus: Math.floor(over / 2), succ, anomalies, stat: SN[statIdx], statVal: s[statIdx], skill, skillLv: sk };
+}
+const tierOf = (succ, diff) => succ >= Math.max(diff + 2, 4) ? 'crit' : succ >= diff ? 'ok' : succ === diff - 1 ? 'cost' : 'fail';
+const TIER_NAME = { crit: '대성공', ok: '성공', cost: '대가 있는 성공', fail: '실패' };
+
+// 진행 중인 작전 (작전 하나당 하나)
+const runs = new Map();
+let runSeq = 0;
+function lobbyOf(opId) {
+  if (!runs.has(opId)) runs.set(opId, { id: ++runSeq, op: opId, status: 'lobby', members: [], order: [], minions: [], mseq: 0, scene: 0, dist: 0, pos: 0, turn: 0, count: 0, support: 0, log: [], result: null, started: null, ended: null });
+  return runs.get(opId);
+}
+OPS.forEach(o => lobbyOf(o.id));
+const opDef = id => OPS.find(o => o.id === id);
+// 진행 중인 작전의 정의: 무작위 생성 작전(순찰)은 시작할 때 만든 정의를 쓴다
+const D = r => r.gen || opDef(r.op);
+// 대열: 살아 있는 현장 요원만 민첩 순서로 선다
+const lineOf = r => r.order.map(u => r.members.find(m => m.uid === u)).filter(m => m && !m.dead);
+function posOf(r, uid) {
+  const L = lineOf(r), i = L.findIndex(m => m.uid === String(uid));
+  if (i < 0) return null;
+  if (L.length === 1) return 'solo';
+  return i === 0 ? 'front' : i === L.length - 1 ? 'rear' : 'mid';
+}
+// 위치 조건: 혼자면 모든 자리, 중열이 없으면(2명 이하) 중열 행동은 누구나
+function posOk(r, uid, need) {
+  return true; // 단순화: 대열 위치 제한 없음(누구나 아무 행동이나)
+  if (!need) return true;
+  const p = posOf(r, uid); if (!p) return false;
+  if (p === 'solo') return true;
+  if (need === 'mid' && lineOf(r).length < 3) return true;
+  return p === need;
+}
+// 관제팀만 레이더의 정확한 값을 받는다. 현장팀과 참관자는 감지 여부만 받는다.
+function runOut(r, viewer, gm) {
+  const o = D(r), live = r.status === 'live', sc = live ? o.scenes[r.scene] : null;
+  const vm = r.members.find(m => m.uid === String(viewer));
+  const ctl = !!gm;
+  // 관제 NPC가 거리를 늘 알려 준다. 잡음이 끼면 끊긴다(GM은 계속 본다).
+  const radar = live ? (r.noise && !gm ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
+    : { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }) : null;
+  return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
+      patrol: !!o.patrol, kind: o.kind || 'explore', event: !!o.event, minName: o.minion ? o.minion.name : null, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
+    steps: live ? o.scenes.map((x, i) => o.patrol ? (x.fork ? '갈림길' : i === o.scenes.length - 1 ? '승강기' : i <= r.scene ? x.title.replace(/ \(하층.*$/, '') : '구역') : x.title) : null,
+    eta: live ? (() => { const ev = cadence(r); return Math.max(0, r.count * ev - (r.turn % ev)); })() : null,
+    cnt: live ? { every: cadence(r), next: cadence(r) - (r.turn % cadence(r)), max: o.count, fx: (r.cfx || []).filter(x => x.turn >= r.turn - 1) } : null,
+    ent: live ? (() => { const st = sightStage(r.dist), c = o.contact || {}; return { name: o.entity, threat: o.threat, stage: st, obs: o.forms.slice(0, st + 1), total: o.forms.length, contact: { hp: c.hp || 0, san: c.san || 0, count: c.count || 0 } }; })() : null,
+    status: r.status, scene: live ? { idx: r.scene, bg: sc.bg || null, title: sc.title, text: sc.text, from: sc.from,
+      choices: sc.choices.map(c => ({ id: c.id, label: c.label, pos: c.pos || null, max: c.max || null, min: c.min || null, reach: !!c.reach, adv: c.adv !== false, stat: SN[c.stat], skill: c.skill, diff: c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff, diffName: DIFF_NAME[c.adv !== false && r.fac && r.fac.ease ? Math.max(1, c.diff - 1) : c.diff], eased: c.adv !== false && !!(r.fac && r.fac.ease) })) } : null,
+    members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn, mark: live && r.mark && r.mark.until >= r.turn ? r.mark : null,
+    r1: r.r1 || null,
+    picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
+    contactWarn: live && r.contactWarn ? r.contactWarn : null,
+    gauge: live ? { v: r.gauge || 0, max: gaugeMax(r) } : null, dmgBy: r.dmgBy || {}, rewardOut: r.rewardOut || null,
+    sweep: live && sc && sc.sweep ? { kills: sweepKills(r), need: sweepNeed(r) } : null,
+    boss: live && r.boss && sc.boss ? { name: r.boss.name, hp: r.boss.hp, hpMax: r.boss.hpMax, intent: r.boss.stun ? 'stun' : r.boss.intent, intentName: r.boss.stun ? '비틀거림' : BOSS_INT[r.boss.intent], exposed: r.boss.exposedUntil >= r.turn, taunt: r.boss.taunt ? r.boss.taunt.uid : null, blocked: r.minions.some(x => x.side === 'front'), dmgRound: r.boss.dmgRound || 0, brk: BOSS_BREAK, combo: r.boss.hitTurn === r.turn - 1 ? r.boss.hitBy : null } : null,
+    ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
+    noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
+    shift: live && r.shift ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
+    shiftFx: live && r.shiftFx && r.shiftFx.turn === r.turn ? r.shiftFx : null,
+    beacon: live && r.beaconUntil > r.turn ? r.beaconUntil - r.turn : 0,
+    fork: live && sc.fork ? sc.doors.map(d => ({ id: d.id, name: d.name, hint: d.hint, peeked: d.peeked, tpl: d.peeked ? d.tpl : null, risk: d.peeked ? d.risk : null, riskName: d.peeked ? DOOR_RISK[d.risk].name : null, riskText: d.peeked ? DOOR_RISK[d.risk].text : null, from: d.peeked ? d.scene.from : null })) : null,
+    facs: live ? facsOf(r) : [], dark: live ? isDark(r) : false, ease: live ? !!(r.fac && r.fac.ease) : false,
+    sight: live ? { stage: sightStage(r.dist), text: o.forms[sightStage(r.dist)], from: sc.from } : null,
+    map: live ? { len: sc.map.len, marks: sc.map.marks, pos: r.pos } : null,
+    minions: live ? r.minions.map(x => ({ id: x.id, side: x.side, hp: x.hp, hpMax: x.hpMax, name: o.minion.name, intent: x.intent || 'bite', intentName: INTENT[x.intent || 'bite'], braced: !!x.braced, combo: x.hitTurn === r.turn - 1 ? x.hitBy : null })) : [],
+    heal: live ? r.members.filter(canHeal).map(m => ({ id: 'heal-' + m.uid, uid: m.uid, name: m.name, hp: m.hp, hpMax: m.hpMax })) : [],
+    recover: live ? r.members.filter(needsRecovery).map(m => ({ id: 'rec-' + m.uid, uid: m.uid, name: m.name, why: m.dead ? 'dead' : 'broken' })) : [],
+    attacks: live ? ['front', 'rear'].filter(sd => r.minions.some(x => x.side === sd)).map(sd => ({ id: 'atk-' + sd, side: sd, label: sd === 'front' ? `앞을 막은 ${jo(o.minion.name, '과', '와')} 싸운다` : `뒤에서 덮치는 ${jo(o.minion.name, '과', '와')} 싸운다` })) : [],
+    count: r.count, support: r.support, log: r.log.slice(-60), chat: vm ? (r.chat || []).slice(-60) : [], result: r.result, started: r.started, ended: r.ended,
+    sealedUntil: entLocked(ENTITIES.find(x => x.op === r.op)), contained: r.status === 'lobby' && opContained(r.op), escAfter: opDef(r.op) && opDef(r.op).kind === 'secure' ? escAfterOf(opDef(r.op)) : null, escaped: r.escaped || null };
+}
+const emitRun = r => { for (const s of io.sockets.sockets.values()) s.emit('op', runOut(r, s.user && s.user.id, isGM(s.user))); };
+const busyIn = uid => { for (const r of runs.values()) if (r.status !== 'done' && r.members.some(m => m.uid === String(uid))) return r; return null; };
+/* ───────── 요원 경력 ───────── */
+// 출동과 관리 작업으로 경력이 쌓이면 계급이 오르고, 계급마다 능력치 포인트 2를 받는다.
+const CAREER = { opSuccess: 20, opOther: 10, emergency: 1, task: { 30: 1, 60: 3, 120: 5, 180: 8 } }, RANK_PTS = 2;
+const rankNeed = rk => 60 + 30 * (rk - 1); // 계급 rk → rk+1 (60, 90, 120…)
+function rankOf(career) { let rk = 1, c = career; while (c >= rankNeed(rk)) { c -= rankNeed(rk); rk++; } return { rank: rk, cur: c, need: rankNeed(rk) }; }
+const setCareer = db.prepare('UPDATE agents SET career = ?, stat_pts = ? WHERE user_id = ?');
+function gainCareer(uid, n) {
+  const row = Q.agent.get(uid); if (!row) return null;
+  const before = rankOf(row.career || 0).rank, after = rankOf((row.career || 0) + n).rank, ups = after - before;
+  setCareer.run((row.career || 0) + n, (row.stat_pts || 0) + ups * RANK_PTS, uid);
+  return { n, rank: after, ups };
+}
+/* ───────── 기능 경험치 ───────── */
+// 판정에 쓴 기능에 경험치가 꾸준히 쌓인다. 다 차면 등급이 오른다. 등급 0인 기능도 쓰다 보면 익힌다.
+const SKILL_MAX = 5, XP_NEED = [20, 50, 90, 140, 200]; // 등급 n → n+1에 필요한 양
+const XP = { roll: 2, ctl: 1, emergency: 1, task: { 30: 2, 60: 4, 120: 7, 180: 10 } };
+const setSkillXp = db.prepare('UPDATE agents SET skills = ?, skill_xp = ? WHERE user_id = ?');
+function gainXp(uid, skill, n) {
+  const row = Q.agent.get(uid); if (!row || !SKILLS.includes(skill)) return null;
+  const sk = JSON.parse(row.skills), xp = JSON.parse(row.skill_xp || '{}');
+  let lv = sk[skill] || 0; if (lv >= SKILL_MAX) return { skill, n: 0, lv, ups: [] };
+  xp[skill] = (xp[skill] || 0) + n; const ups = [];
+  while (lv < SKILL_MAX && xp[skill] >= XP_NEED[lv]) { xp[skill] -= XP_NEED[lv]; lv++; ups.push(lv); }
+  if (lv >= SKILL_MAX) xp[skill] = 0;
+  if (lv) sk[skill] = lv;
+  setSkillXp.run(JSON.stringify(sk), JSON.stringify(xp), uid);
+  return { skill, n, lv, ups };
+}
+const say = (r, text, extra) => {
+  r.log.push({ t: now(), text, ...(extra || {}) });
+  // 팀 연계 게이지: 성공한 판정마다 1, 대성공은 2. 가득 차면 라운드 끝에 일제 사격.
+  if (extra && extra.kind === 'roll' && extra.uid && r.status === 'live' && (extra.tier === 'ok' || extra.tier === 'crit')) r.gauge = Math.min(gaugeMax(r), (r.gauge || 0) + (extra.tier === 'crit' ? 2 : 1));
+  // 작전 판정이면 그 기능에 경험치. 등급이 오르면 대열 정보도 새로 고친다.
+  if (extra && extra.kind === 'roll' && extra.uid && extra.skill) {
+    const g = gainXp(Number(extra.uid), extra.skill, extra.ctl ? XP.ctl : XP.roll), m = r.members.find(x => x.uid === String(extra.uid));
+    if (g && g.ups.length && m) {
+      m.sk = skAll(Q.agent.get(Number(extra.uid)));
+      r.log.push({ t: now(), kind: 'grow', uid: m.uid, text: `${m.name} 요원의 ${g.skill} 기능이 ${g.lv}등급이 되었다.` });
+      io.emit('agent', publicAgent(Q.agent.get(Number(extra.uid))));
+    }
+  }
 };
 
-// ── 실시간 (Socket.IO) ─────────────────────────────
+function opJoin(uid, opId, role) {
+  const row = Q.agent.get(uid); if (!row) return 'agent/none';
+  if (row.regen_until && row.regen_until > now()) return 'op/regen';
+  if (row.quar_until && row.quar_until > now()) return 'op/quarantine';
+  const r = runs.get(opId); if (!r) return 'op/none';
+  if (r.status !== 'lobby') return 'op/started';
+  if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
+  if (opContained(opId)) return 'op/contained';
+  { const ar = Q.agent.get(uid); if (ar && !ar.team) return 'op/no-team'; }
+  const other = busyIn(uid); if (other && other !== r) return 'op/busy';
+  role = 'field';
+  const o = opDef(opId), cap = o.field, prev = r.members.find(m => m.uid === String(uid));
+  r.members = r.members.filter(m => m.uid !== String(uid));
+  if (r.members.filter(m => m.role === role).length >= cap) return 'op/full';
+  const mx = maxes(row);
+  r.members.push({ uid: String(uid), name: row.name, num: row.num, role, hp: mx.hp, hpMax: mx.hp, san: mx.san, sanMax: mx.san, cont: 0, sk: skAll(row), cls: teamGear(row), team: row.team || 0, kitFree: 0, dead: false, broken: false, acted: false, ready: false });
+  return null;
+}
+function opLeave(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  r.members = r.members.filter(m => m.uid !== String(uid)); return null;
+}
+// 대기실 준비 완료: 참가자 전원이 준비 완료를 눌러야 작전을 개시할 수 있다.
+function opReady(uid, opId, on) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  const m = r.members.find(x => x.uid === String(uid)); if (!m) return 'op/not-member';
+  m.ready = !!on; return null;
+}
+/* ───────── 라운드: 현장 요원은 라운드마다 행동을 하나씩 고른다 ─────────
+   모두 고르거나 제한 시간이 지나면 고른 순서대로 실행하고(고르지 못한 요원은 대기), 그 뒤에 한 턴이 흐른다
+   (하수인 행동 → 개체 접근 → 귀환 신호). 관제 행동과 소모품은 고르는 즉시 일어난다. */
+/* ───────── 출발 장비: 대기실에서 작전마다 하나 챙긴다(무료) ─────────
+   역할은 정해져 있지 않다. 누구나 공격·치료·관제실 요청을 할 수 있고, 장비가 잘하는 쪽을 정한다.
+   무기: 공격 판정 주사위 +1, 맞히면 피해 +1
+   탐지기: 은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률이 늘어난다
+   구급상자: 응급처치·정신 안정 주사위 +1, 응급처치 기능이 없어도 치료할 수 있다, 구급 키트 1회분
+   통신기: 장면 행동(공격 말고 장면 카드) 판정 주사위 +1
+   (내부 필드 이름은 예전 포지션 그대로 cls를 쓴다) */
+/* ───────── RAVEN 팀 ─────────
+   요원은 다섯 팀 중 하나에 속한다. 팀마다 주력 능력치(그 능력치 판정에 주사위 +1), 팀 특성, 고유 기술이 있다.
+   팀 특성은 예전 출발 장비의 효과를 이어받았다(gear 키). 고유 기술은 3라운드에 한 번. */
+const TEAMS = {
+  1: { name: 'RAVEN-1', role: '화력 지원', gear: 'weapon', stats: [0, 2], perk: '공격 주사위 +1, 맞히면 피해 +1',
+    sk: { id: 'barrage', label: '집중 포화', stat: 2, skill: '사격', diff: 2, desc: '모든 하수인에게 성공 수만큼 피해, 개체에게는 절반' } },
+  2: { name: 'RAVEN-2', role: '정찰·추적', gear: 'detector', stats: [4, 2], perk: '은신 주사위 +1, 하수인 공격을 잘 피한다',
+    sk: { id: 'expose', label: '약점 간파', stat: 4, skill: '관찰', diff: 2, desc: '이번과 다음 라운드, 팀 공격 피해 +2(대성공 +3)' } },
+  3: { name: 'RAVEN-3', role: '봉쇄·격리', gear: 'radio', stats: [3, 5], perk: '장면 행동 주사위 +1',
+    sk: { id: 'bind', label: '구속', stat: 3, skill: '장비 운용', diff: 2, desc: '개체를 묶어 다음 행동을 끊는다. 하수인은 앞쪽(대성공이면 전부)' } },
+  4: { name: 'RAVEN-4', role: '회수·의무', gear: 'medkit', stats: [1, 3], perk: '치료 주사위 +1, 기능 없이도 치료, 구급 키트 1회분',
+    sk: { id: 'revive', label: '응급 소생', stat: 3, skill: '응급처치', diff: 2, desc: '현장 전원의 체력 회복(대성공이면 정신력도)' } },
+  5: { name: 'RAVEN-5', role: '돌격·선봉', gear: 'van', stats: [0, 1], perk: '받는 체력 피해 1 감소',
+    sk: { id: 'shield', label: '방패', stat: 1, skill: '인내', diff: 1, desc: '이번 라운드 동료에게 가는 공격을 대신 받고 절반으로(대성공이면 0)' } }
+};
+const SK_CD = +(process.env.R8_SK_CD || 3);
+const teamGear = row => (TEAMS[row.team] || {}).gear || null;
+const CLS = { weapon: '무기', detector: '탐지기', medkit: '구급상자', radio: '통신기', van: '선봉' };
+const gearDie = (m, g) => m && m.cls === g ? 1 : 0;
+function suggestCls(row) {
+  const sk = skAll(row) || {}, sc = { weapon: (sk['격투'] || 0) + (sk['사격'] || 0), detector: (sk['은신'] || 0) + (sk['관찰'] || 0), medkit: (sk['응급처치'] || 0) * 2, radio: (sk['장비 운용'] || 0) + (sk['통신'] || 0) + (sk['기록 해독'] || 0) };
+  const top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+  return top[1] ? top[0] : 'weapon';
+}
+function opCls(uid, opId, cls) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  const m = r.members.find(x => x.uid === String(uid)); if (!m) return 'op/not-member';
+  if (!CLS[cls]) return 'op/bad-choice';
+  m.cls = cls; return null;
+}
+function classAct(v) {
+  let x;
+  if (v === 'sup') return { k: 'support' };
+  if ((x = /^fac-(\w+)$/.exec(v))) return { k: 'fac', t: x[1] };
+  if ((x = /^peek-([ab])$/.exec(v))) return { k: 'peek', t: x[1] };
+  if (v === 'decode' || v === 'jam') return { k: v };
+  if ((x = /^calm-(.+)$/.exec(v))) return { k: 'stabilize', t: x[1] };
+  if (v === 'raven1') return { k: 'raven1' };
+  return null;
+}
+// 고를 때 미리 확인한다(실행은 라운드 끝에)
+function classPre(r, m, A) {
+  if (A.cls && m.cls !== A.cls) return ['op/cls'];
+  const sc = D(r).scenes[r.scene];
+  if (A.k === 'support') return [null, '관제 지원 연결'];
+  if (A.k === 'raven1') return r.r1 ? ['op/raven1-used'] : [null, 'RAVEN-1 지원 요청'];
+  if (A.k === 'decode' || A.k === 'jam') return r.noise ? [null, A.k === 'decode' ? '신호 해독' : '회선 차단'] : ['op/no-noise'];
+  if (A.k === 'peek') { const d = sc.fork && sc.doors.find(x => x.id === A.t); if (!d) return ['op/bad-choice']; if (d.peeked) return ['op/used']; if (r.noise) return ['op/noise']; return [null, `${d.name} 확인 요청`]; }
+  if (A.k === 'stabilize') { const t = r.members.find(x => x.uid === A.t && x.role === 'field' && !x.dead); return !t || t.san >= t.sanMax ? ['op/no-target'] : [null, `${t.name} 정신 안정`]; }
+  if (A.k === 'fac') { const F = facsOf(r).find(x => x.id === A.t); if (!F) return ['op/bad-choice']; if (F.on) return ['op/used']; if (F.id === 'wall' && !F.need) return ['op/no-target']; return [null, `${F.name} 조작 요청`]; }
+  return ['op/bad-choice'];
+}
+const ROUND_MS = 60 * 1000; // 라운드 선택 시간은 60초로 고정한다(환경 변수 ROUND_SECONDS는 더 이상 쓰지 않는다)
+const canPick = m => m.role === 'field' && !m.dead && !m.broken;
+function pickCheck(r, uid, kind, v) {
+  const m = fieldMember(r, uid), o = D(r), sc = o.scenes[r.scene], p = posOf(r, uid), L = lineOf(r);
+  if (sc.fork) {
+    const fm = /^fork-([ab])$/.exec(v);
+    if (kind === 'act' && fm) return [null, `${sc.doors.find(d => d.id === fm[1]).name} 쪽에 한 표`];
+    if (kind === 'move' && (v === 'fwd' || v === 'back')) return ['op/fork'];
+    if (kind === 'act' && !/^(rec-|heal-|calm-|peek-|sup$|raven1$|decode$|jam$)/.test(v)) return ['op/fork'];
+  }
+  if (kind === 'move') {
+    if (v === 'wait') return [null, '대기'];
+    if (v === 'swap') return L.findIndex(x => x.uid === m.uid) <= 0 ? ['op/no-ahead'] : [null, '자리 바꾸기'];
+    if (v === 'fwd' || v === 'back') {
+      if (r.minions.some(x => x.side === (v === 'fwd' ? 'front' : 'rear'))) return [v === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear'];
+      return [null, v === 'fwd' ? '전진' : '후퇴'];
+    }
+    return ['op/bad-choice'];
+  }
+  const CA = classAct(v); if (CA) return classPre(r, m, CA);
+  if (v === 'sk') return skillPre(r, m);
+  if (v === 'atk-boss') return !r.boss || r.boss.hp <= 0 ? ['op/no-foe'] : r.minions.some(x => x.side === 'front') ? ['op/blocked'] : [null, '개체 공격'];
+  let mt;
+  if ((mt = /^(atk|shv)-(front|rear)$/.exec(v))) {
+    const side = mt[2], foe = r.minions.find(x => x.side === side); if (!foe) return ['op/no-foe'];
+    const melee = p === 'solo' || p === side, ranged = p === 'mid' || (L.length === 2 && p !== side);
+    if (mt[1] === 'shv') return [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`];
+    return [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`];
+  }
+  if (v === 'guard') return r.minions.length || r.contactWarn ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'evade') return r.contactWarn && r.contactWarn.uid === String(uid) ? [null, '피한다'] : ['op/no-target'];
+  if (v === 'hide') return r.ambush ? [null, '숨는다'] : ['op/no-ambush'];
+  if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
+  if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
+  const c = sc.choices.find(x => x.id === v); if (!c) return ['op/bad-choice'];
+  if (!posOk(r, uid, c.pos)) return ['op/pos'];
+  if (c.reach && r.pos < sc.map.len - REACH_M) return ['op/not-there'];
+  return [null, c.label];
+}
+function opPick(uid, opId, kind, v) {
+  const r = runs.get(opId), err = canField(r, uid); if (err) return err;
+  if (r.batch) return 'op/resolving';
+  const [e, label] = pickCheck(r, uid, kind, String(v || '')); if (e) return e;
+  r.picks = r.picks || {};
+  if (r.picks[String(uid)] && r.picks[String(uid)].v === 'peek-done') return 'op/used';
+  // 문 너머 확인은 고르는 즉시 일어난다: 그래야 동료가 보고 투표할 수 있다. 이번 라운드의 행동으로 친다.
+  if (kind === 'act' && /^peek-[ab]$/.test(String(v))) {
+    const e = classExec(r, fieldMember(r, uid), 'peek', String(v).slice(5)); if (e) return e;
+    r.picks[String(uid)] = { kind, v: 'peek-done', label, at: now(), scene: r.scene };
+    if (roundReady(r)) resolveRound(r);
+    return null;
+  }
+  r.picks[String(uid)] = { kind, v: String(v), label, at: now(), scene: r.scene };
+  if (roundReady(r)) resolveRound(r);
+  return null;
+}
+// 라운드는 현장 전원이 고르고, 관제 전원이 관제 행동을 하거나 넘기면 끝난다. 시간이 다 되면 그대로 진행한다.
+function roundReady(r) {
+  const P = r.picks || {};
+  return r.members.filter(canPick).every(m => P[m.uid]);
+}
+function opUnpick(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
+  if (r.batch) return 'op/resolving';
+  if (r.picks && r.picks[String(uid)] && r.picks[String(uid)].v === 'peek-done') return 'op/used';
+  if (r.picks) delete r.picks[String(uid)];
+  return null;
+}
+function startRound(r) {
+  clearTimeout(r._timer); r.picks = {};
+  if (r.status !== 'live') return;
+  r.deadline = now() + ROUND_MS;
+  r._timer = setTimeout(() => { if (r.status === 'live') { resolveRound(r); emitRun(r); } }, ROUND_MS + 250);
+}
+const gaugeMax = r => 6 + 2 * Math.max(1, r.nf || 1);
+// 일제 사격: 개체가 있으면 큰 피해, 하수인은 모두 쓰러뜨리고, 탐사에서는 남은 시간 +1
+function burst(r) {
+  r.gauge = 0; r.bursts = (r.bursts || 0) + 1;
+  const B = r.boss && D(r).scenes[r.scene].boss ? r.boss : null, n = r.minions.length, dmg = 6 + 2 * (r.nf || 1);
+  let txt = '팀 연계 완성. RAVEN 일제 사격.';
+  if (n) { r.minions = []; txt += ` 하수인 ${n}마리를 쓸어버렸다.`; }
+  if (B && B.hp > 0) { B.hp = Math.max(0, B.hp - dmg); txt += ` 계수자에게 피해 ${dmg}.`; }
+  if (!n && !B) { countAdd(r, 1, '일제 사격'); txt += ' 길이 열렸다. 남은 시간 +1.'; }
+  say(r, txt, { kind: 'burst', dmg: B ? dmg : 0 });
+  if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 격리실로 이송을 시작한다.`, { kind: 'kill' }); checkBodies(r); opFinish(r, 'success'); }
+}
+// 소탕: 쓰러뜨린 수 = 나온 수 − 남은 수(장면이 하나뿐이라 그대로 센다)
+const sweepNeed = r => { const o = D(r); return o.sweep ? o.sweep.needBy[Math.min(4, Math.max(1, r.nf || 1))] : 0; };
+const sweepKills = r => Math.max(0, (r.spawned || 0) - r.minions.length);
+function sweepCheck(r) {
+  const o = D(r); if (r.status !== 'live' || !o.sweep) return;
+  if (sweepKills(r) >= sweepNeed(r)) { say(r, `처리 목표 ${sweepNeed(r)}마리 달성. 배양 구역 개체 수가 기준 아래로 내려갔다. 소각로가 나머지를 처리한다.`, { kind: 'kill' }); r.minions = []; checkBodies(r); opFinish(r, 'success'); }
+}
+function resolveRound(r) {
+  if (r.status !== 'live' || r.batch) return;
+  clearTimeout(r._timer);
+  const picks = r.picks || {}, sc0 = r.scene;
+  const late = r.members.filter(m => canPick(m) && !picks[m.uid]);
+  if (late.length) say(r, `시간이 다 됐다. 고르지 못한 ${late.map(m => m.name).join(', ')} 요원은 대기한다.`, { kind: 'move' });
+  r.batch = true; r._sceneChanged = false;
+  for (const [uid, p] of Object.entries(picks).sort((a, b) => a[1].at - b[1].at)) {
+    if (r.status !== 'live') break;
+    const m = r.members.find(x => x.uid === uid); if (!m) continue;
+    if (r.scene !== sc0) { say(r, `장면이 바뀌어 ${m.name} 요원의 「${p.label}」은(는) 취소됐다.`, { kind: 'move', uid }); continue; }
+    if (/^fork-[ab]$/.test(p.v) || p.v === 'peek-done') continue;
+    if (p.kind === 'move' && p.v === 'wait') { say(r, `${m.name} 요원은 자리를 지키며 기다렸다.`, { kind: 'move', uid }); continue; }
+    const e = p.kind === 'move' ? moveExec(r, uid, p.v) : actExec(r, uid, p.v);
+    if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
+    sweepCheck(r);
+  }
+  if (r.status === 'live' && r.scene === sc0 && D(r).scenes[r.scene].fork) forkResolve(r);
+  if (r.ambush && r.ambush.at === r.turn + 1) {
+    const able = r.members.filter(canPick), quietV = p => !p || (p.kind === 'move' && p.v === 'wait') || p.v === 'hide' || p.v === 'peek-done' || /^fork-/.test(p.v);
+    r.ambushQuiet = { quiet: able.every(m => quietV(picks[m.uid])), ok: able.filter(m => m.hideOk === r.turn).length, need: Math.ceil(able.length / 2) };
+  }
+  r.batch = false; r.picks = {};
+  if (r.status === 'live' && (r.gauge || 0) >= gaugeMax(r)) { burst(r); sweepCheck(r); }
+  if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
+  if (r.status === 'live') startRound(r);
+}
+function opStart(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'lobby') return 'op/started';
+  if (!r.members.some(m => m.uid === String(uid))) return 'op/not-member';
+  if (!r.members.some(m => m.role === 'field')) return 'op/no-field';
+  if (r.members.some(m => !m.ready)) return 'op/not-ready';
+  if (entLocked(ENTITIES.find(x => x.op === opId))) return 'op/sealed';
+  if (opContained(opId)) return 'op/contained';
+  const base = opDef(opId);
+  r.gen = base.patrol ? genPatrol(base) : null;
+  const o = D(r);
+  // 인원 보정 기준: 현장 인원
+  r.nf = r.members.filter(m => m.role === 'field').length; r.nt = r.nf;
+  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.rewardOut = null; r.escaped = null; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
+  const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
+  r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
+  r.members.forEach(m => { m.kitFree = m.cls === 'medkit' ? 1 : 0; m.skNext = 0; m.shield = 0; });
+  say(r, `작전 ${o.id} 개시. 현장팀 ${r.nf}명 (${r.members.map(m => `${m.name}: ${TEAMS[m.team] ? TEAMS[m.team].name : CLS[m.cls] || '소속 없음'}`).join(', ')}).`, { kind: 'sys' });
+  say(r, '관제실: 작전 개시를 승인한다. 개체 거리와 이상 징후는 이 회선으로 하달한다.', { kind: 'radio', name: '관제실' });
+  r.band = 0;
+  say(r, `대열 편성: ${lineOf(r).map(m => m.name).join(' → ')} (민첩이 높은 요원이 선두에 선다)`, { kind: 'sys' });
+  r.minions = []; r.mseq = 0; r.spawned = 0;
+  say(r, o.scenes[0].text, { kind: 'scene', title: o.scenes[0].title });
+  sceneEnter(r);
+  startRound(r);
+  return null;
+}
+/* 기능의 상시 효과 */
+const STEALTH_DODGE = 0.15, GRIT_CUT = 0.15, COMMS_ESC = 0.15; // 등급당. 5등급이면 75%
+const lvOf = (m, k) => (m && m.sk && m.sk[k]) || 0;
+// 인내: 정신력 피해를 등급당 15% 줄인다 (5등급 75%)
+const grit = (m, v) => v < 0 ? Math.min(-1, Math.round(v * (1 - Math.min(0.75, GRIT_CUT * lvOf(m, '인내'))))) : v;
+// 남은 시간(셈)을 바꾸는 곳은 모두 여기를 거친다. 무엇 때문에 바뀌었는지 화면에 잠깐 보여 주려고 남긴다.
+function countAdd(r, d, why) {
+  const before = r.count; r.count = Math.max(0, Math.min(D(r).count, r.count + d));
+  const real = r.count - before; if (!real) return;
+  r.cfx = (r.cfx || []).filter(x => x.turn >= r.turn - 1).concat({ d: real, why, turn: r.turn }).slice(-4);
+}
+/* ───────── 제압전: 보스 개체 ─────────
+   개체는 체력이 있고, 라운드마다 할 행동이 미리 보인다(하수인과 같은 방식).
+   손 뻗기 → 대상자 피하기·동료 막기 / 셈 → 이번 라운드에 4 이상 때리면 끊긴다 / 부르기 → 하수인 하나 / 웅크림 → 피해 절반 / 틈 → 피해 +2
+   앞에 하수인이 있으면 개체를 칠 수 없다. 장면 행동(급소 짚기·주의 끌기·섬광탄)으로 돕는다. */
+const BOSS_INT = { reach: '손 뻗기', count: '셈', call: '부르기', brace: '웅크림', open: '틈' };
+const BOSS_BREAK = 4;
+function bossIntent(r) {
+  const B = r.boss, x = Math.random(), full = r.minions.length >= scaleOf(r).cap;
+  B.intent = x < 0.4 ? 'reach' : x < 0.62 ? 'count' : x < 0.8 && !full ? 'call' : x < 0.92 ? 'brace' : 'open';
+  B.dmgRound = 0;
+  // 손 뻗기는 관제실이 대상자를 부른다(피하기·막기)
+  r.contactWarn = null;
+  if (B.intent === 'reach' && !B.stun) {
+    const L = lineOf(r), t = (B.taunt && r.members.find(m => m.uid === B.taunt.uid && !m.dead && !m.broken)) || L[0];
+    if (t) { r.contactWarn = { uid: t.uid, name: t.name, side: 'front', boss: true }; if (!r.noise) say(r, `관제실: 개체가 손을 뻗는다. ${t.name}, 회피 준비. 나머지는 엄호할 것.`, { kind: 'radio', name: '관제실' }); }
+  }
+}
+function bossStart(r) {
+  const o = D(r), b = o.boss || { hp: 14, perMember: 5 };
+  const hp = b.hpBy ? b.hpBy[Math.min(4, Math.max(1, r.nf || 1))] : b.hp + b.perMember * Math.max(0, (r.nf || 1) - 1);
+  r.boss = { hp, hpMax: hp, name: b.name || o.entity, stun: false, exposedUntil: -1, taunt: null, hitTurn: -9, hitBy: null };
+  r.dist = 6; bossIntent(r);
+}
+function bossAct(r) {
+  const B = r.boss; if (!B || B.hp <= 0) return;
+  const o = D(r), L = lineOf(r); if (!L.length) return;
+  if (B.stun) { B.stun = false; say(r, `${jo(B.name, '이', '가')} 비틀거리며 자세를 다시 잡는다.`, { kind: 'contact' }); bossIntent(r); return; }
+  const act = B.intent;
+  if (act === 'reach') {
+    const W = r.contactWarn, t0 = (W && r.members.find(m => m.uid === W.uid && !m.dead)) || L[0], sh = shieldOf(r), t = sh || t0;
+    if (sh && sh.shield === 2) say(r, `${t.name} 요원이 방패로 개체의 손을 정면에서 받아 냈다. 피해 없음.`, { kind: 'contact', ent: true, uid: t.uid });
+    else if (t.evadeOk === r.turn - 1) say(r, `개체의 손이 ${t.name} 요원이 있던 자리를 훑고 지나갔다. 빗나갔다.`, { kind: 'contact', ent: true, uid: t.uid });
+    else {
+      const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san); c.count = 0;
+      let half = !!sh || r.coverEnt === r.turn - 1 || (B.taunt && B.taunt.uid === t.uid && B.taunt.half);
+      if (c.hp && t.cls === 'van') c.hp = Math.min(-1, c.hp + 1);
+      if (half) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); }
+      say(r, (sh && sh !== t0 ? `${t.name} 요원이 ${t0.name} 요원 앞을 막아섰다. ` : '') + c.text.replace('{name}', t.name) + (half ? ' (절반)' : ''), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san } });
+      applyFx(r, t, c, '개체 접촉');
+    }
+    B.taunt = null;
+  } else if (act === 'count') {
+    if (B.dmgRound >= BOSS_BREAK) say(r, `셈이 끊겼다. ${jo(B.name, '이', '가')} 세던 수를 놓쳤다.`, { kind: 'kill' });
+    else { say(r, `${jo(B.name, '이', '가')} 셈을 마저 셌다. 모두의 귀에 자기 이름이 숫자로 들린다.`, { kind: 'contact', ent: true });
+      r.members.filter(m => m.role === 'field' && !m.dead).forEach(m => { const d = grit(m, sanD(-1)); m.san = Math.max(0, m.san + d); });
+      countAdd(r, -1, '계수자의 셈'); }
+  } else if (act === 'call') { say(r, `${jo(B.name, '이', '가')} 손가락 하나를 폈다. 어둠 속에서 무언가 일어선다.`, { kind: 'contact' }); spawnMinion(r, 'front', 1); }
+  else if (act === 'brace') say(r, `${jo(B.name, '이', '가')} 몸을 웅크린 채 버텼다.`, { kind: 'contact' });
+  else if (act === 'open') say(r, `${jo(B.name, '이', '가')} 셈을 잃고 휘청였다. 틈이 지나갔다.`, { kind: 'contact' });
+  bossIntent(r);
+}
+// 피해가 어떻게 나왔는지: 화면 연출에서 한 줄로 풀어 보여 준다
+const BOSS_DIFF = +(process.env.R8_BOSS_DIFF || 2);
+// 공격은 필요 수에 못 미치면 빗나간다(하나 모자라면 스치기만: 피해 1, 반격 받음은 R8_GRAZE=1일 때만)
+const atkTier = (succ, diff) => { const t = tierOf(succ, diff); return t === 'cost' && process.env.R8_GRAZE !== '1' ? 'fail' : t; };
+function dmgWhy(tier, succ, atk, bonus) {
+  if (tier === 'fail') return [];
+  const w = tier === 'cost' ? ['한 개 모자라 1만'] : [`성공 ${succ}개`]; if (tier === 'crit') w.push('대성공 +1'); if (atk) w.push('화력 +1'); if (bonus) w.push(`넘친 주사위 +${bonus}`); return w;
+}
+const OP_DICE_CAP = +(process.env.R8_DICE_CAP || 6);
+const opPool = (row, statIdx, skill, support, pen) => rollPool(row, statIdx, skill, (support || 0) + (row && TEAMS[row.team] && TEAMS[row.team].stats.includes(statIdx) ? 1 : 0), pen, OP_DICE_CAP);
+function bossFight(r, m, uid) {
+  const B = r.boss; if (!B || B.hp <= 0) return 'op/no-foe';
+  if (r.minions.some(x => x.side === 'front')) return 'op/blocked';
+  const p = posOf(r, uid), melee = p === 'front' || p === 'solo';
+  const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = BOSS_DIFF;
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const atk = m.cls === 'weapon';
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0), isDark(r) ? 1 : 0);
+  const tier = atkTier(res.succ, diff);
+  let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
+  const notes = [], why = dmgWhy(tier, res.succ, atk, res.bonus);
+  if (atk && dmg > 0) dmg += 1;
+  if (dmg > 0) dmg += res.bonus;
+  if (dmg > 0 && B.hitTurn >= r.turn - 1 && B.hitBy && B.hitBy !== m.uid) { dmg += 2; notes.push('협공 +2'); }
+  if (dmg > 0 && r.mark && r.mark.until >= r.turn) { dmg += r.mark.bonus; notes.push(`약점 간파 +${r.mark.bonus}`); }
+  if (dmg > 0 && B.exposedUntil >= r.turn) { dmg += 3; notes.push('급소 +3'); }
+  if (dmg > 0 && B.intent === 'open') { dmg += 2; notes.push('틈 +2'); }
+  if (dmg > 0 && B.intent === 'brace') { dmg = Math.ceil(dmg / 2); notes.push('웅크림 절반'); }
+  if (dmg > 0) { B.hitTurn = r.turn; B.hitBy = m.uid; }
+  B.hp = Math.max(0, B.hp - dmg); B.dmgRound = (B.dmgRound || 0) + dmg; r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + dmg;
+  if (!B.npcBind && B.hp > 0 && B.hp <= B.hpMax / 2) { B.npcBind = true; B.stun = true; r.contactWarn = null; say(r, '관제실: 구속 장치 가동. 개체를 붙잡았다. 지금 몰아칠 것.', { kind: 'radio', name: '관제실' }); }
+  const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
+  const txt = { crit: '정확히 급소를 노렸다. 개체가 크게 휘청인다.', ok: '개체를 밀어붙였다.', cost: '맞히긴 했지만 개체의 손가락이 팔을 셌다.', fail: '빗나갔다. 개체의 손가락이 팔을 셌다.' }[tier];
+  say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null, dmg, why: dmg ? why.concat(notes) : [] });
+  if (hurt) m.hp = Math.max(0, m.hp + hurt);
+  if (B.hp <= 0) {
+    say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 접힌 손가락이 더는 펴지지 않는다. 제압 완료. 격리실로 이송을 시작한다.`, { kind: 'kill', uid: m.uid });
+    checkBodies(r); return opFinish(r, 'success');
+  }
+  return endTurn(r);
+}
+function applyFx(r, m, fx, why) {
+  if (!fx) return;
+  if (fx.hp) m.hp = Math.max(0, Math.min(m.hpMax, m.hp + fx.hp));
+  if (fx.san) m.san = Math.max(0, Math.min(m.sanMax, m.san + fx.san));
+  if (fx.cont) m.cont += fx.cont;
+  if (fx.count) countAdd(r, fx.count, why || (fx.count < 0 ? '판정 실패' : '판정 성공'));
+  if (r.boss) {
+    if (fx.bossStun) { r.boss.stun = true; r.contactWarn = null; }
+    if (fx.bossExpose) r.boss.exposedUntil = Math.max(r.boss.exposedUntil, r.turn + fx.bossExpose);
+    if (fx.bossTaunt && m) { r.boss.taunt = { uid: m.uid, half: fx.bossTaunt >= 2 }; if (r.boss.intent === 'reach') r.contactWarn = { uid: m.uid, name: m.name, side: 'front', boss: true }; }
+  }
+  if (fx.clearMinions && r.minions.length) { r.minions = []; }
+  if (fx.sup) r.support = Math.min(4, r.support + fx.sup);
+  if (fx.push) r.dist = Math.min(60, r.dist + fx.push);
+}
+function checkBodies(r) {
+  r.members.forEach(m => {
+    if (!m.dead && m.hp <= 0) { m.dead = true; m.recovered = false; say(r, `${m.name} 요원의 생체 신호가 끊겼다. 동료가 회수하지 못하면 RAVEN-4가 출동한다.`, { kind: 'death', uid: m.uid }); }
+    if (!m.dead && !m.broken && m.san <= 0) { m.broken = true; m.recovered = false; say(r, `${m.name} 요원의 정신이 붕괴했다. 동료가 정신을 안정시키거나 회수해야 한다.`, { kind: 'warn', uid: m.uid }); }
+  });
+}
+const fieldMember = (r, uid) => r.members.find(x => x.uid === String(uid) && x.role === 'field');
+function canField(r, uid) {
+  if (!r || r.status !== 'live') return 'op/not-live';
+  const m = fieldMember(r, uid);
+  if (!m) return 'op/not-field';
+  if (m.dead) return 'op/dead';
+  if (m.broken) return 'op/broken';
+  return null;
+}
+// 하수인: 대열 앞(front)이나 뒤(rear)에 붙어 길을 막고, 턴마다 그쪽 끝 요원을 공격한다
+/* 인원 보정: 인원이 많을수록 압박이 커지고, 적을수록 완화된다(작전 시작 때 인원 기준). 시뮬레이터(봇 수천 판)로 맞춘 값이다.
+   관제를 NPC로 바꾸면서(현장 요원이 시설 조작에 차례를 쓴다) 3~4인 값을 다시 맞췄다.
+   시간 압박은 현장 인원으로 정한다 — every: 귀환 신호 감소 주기 배수 · speed: 개체 접근 속도 배수
+   하수인은 현장 인원으로 정한다 — hp: 하수인 체력 + · spawn: 장면·시간 경과 때 더 나오는 수 · cap: 시간 경과로 나올 때 상한
+   R8_SCALE 환경 변수(JSON, {"time":{…},"foe":{…}})로 덮어쓸 수 있다. */
+const SCALE_ENV = (() => { try { return JSON.parse(process.env.R8_SCALE || '{}'); } catch { return {}; } })();
+const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.25, speed: 0.9 }, 3: { every: 1.05, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
+const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 0, spawn: 0, cap: 2 }, 4: { hp: 1, spawn: 0, cap: 3 } }, SCALE_ENV.foe || {});
+const scaleOf = r => ({ ...SCALE_T[Math.min(4, Math.max(1, r.nt || 1))], ...SCALE_F[Math.min(4, Math.max(1, r.nf || 1))] });
+function spawnMinion(r, side, n) {
+  const o = D(r);
+  for (let i = 0; i < n && r.minions.length < MINION_CAP; i++) {
+    const hp = o.minion.hp + MINION_HP + scaleOf(r).hp;
+    const f = { id: ++r.mseq, side, hp, hpMax: hp }; setIntent(r, f); r.minions.push(f); r.spawned = (r.spawned || 0) + 1;
+    say(r, o.minion.spawn[side], { kind: 'spawn' });
+  }
+}
+/* ───────── 관제 시설 (기지의 손) ─────────
+   장면마다 시설이 세 가지 있다. 관제는 라운드마다 관제 행동 하나로 시설 하나를 조작한다(지원 주사위·바이탈 안정과 같은 몫).
+   · 구역 전원(쉬움): 켜지 않으면 구역은 비상등 — 현장은 하수인의 다음 행동을 「?」로 보고, 장면 판정 주사위가 하나 줄어든다.
+     켜는 순간 빛에 하수인이 비틀거린다. 관제가 없는 작전은 끝까지 비상등이다.
+   · 장면 시설(보통): 장면마다 하나. 목표 판정을 한 단계 쉽게 하거나(ease), 지름길로 대열을 앞당긴다(short).
+   · 격벽(어려움): 작전당 한 번. 개체를 8m(대성공 12m) 밀어낸다. */
+const FAC_SP = [
+  { name: '배수 펌프', kind: '설비', type: 'ease', eff: '목표 판정이 한 단계 쉬워진다' },
+  { name: '방화문', kind: '문', type: 'short', eff: '지름길이 열려 대열이 10m 앞당겨진다' },
+  { name: '출입 단말', kind: '단말', type: 'ease', eff: '잠금이 풀려 목표 판정이 한 단계 쉬워진다' },
+  { name: '환기 장치', kind: '설비', type: 'ease', eff: '시야를 가리던 안개가 빠져 목표 판정이 한 단계 쉬워진다' }
+];
+function facsOf(r) {
+  if (!r.fac) r.fac = {};
+  if (D(r).scenes[r.scene].fork) return [];
+  const o = D(r), boss = !!o.scenes[r.scene].boss, last = r.scene === o.scenes.length - 1, sp = boss ? { name: '구속 장치', kind: '구속', type: 'bind', eff: '격리실 구속 장치가 개체를 붙잡는다. 개체가 다음 행동을 놓친다(장면당 한 번)' } : last ? { name: '화물 승강기', kind: '이동', type: 'ease', eff: '승강기를 미리 불러 귀환 판정이 한 단계 쉬워진다' } : FAC_SP[r.scene % FAC_SP.length];
+  const from = o.scenes[r.scene].from;
+  return [
+    { id: 'pwr', name: '구역 전원', kind: '전력', diff: 1, eff: '조명이 돌아와 어둠 판정 주사위 −1이 풀리고, 켜는 순간 하수인이 비틀거린다', on: !!r.fac.pwr, state: r.fac.pwr ? '정상 전력' : '비상등', x: 20 },
+    { id: 'sp', name: sp.name, kind: sp.kind, type: sp.type, diff: 2, eff: sp.eff, on: !!r.fac.sp, state: r.fac.sp ? '작동 중' : sp.type === 'short' ? '잠김' : '정지', x: 62 },
+    ...(boss ? [] : [{ id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }])
+  ].concat(r.shift ? [{ id: 'beacon', name: '기준점 비컨', kind: '비컨', diff: 2, skill: '통신', eff: `원래 도면 좌표를 송출해 이번 변형(${SHIFT_KINDS[r.shift.kind].name})을 막는다. 심연도 이 신호를 듣는다: ${BEACON_TURNS}라운드 동안 잡음 확률 2배`, on: false, state: '대기', x: 50 }] : []);
+}
+const isDark = r => false; // 단순화: 어둠 주사위 −1 없음
+/* ───────── 하층 구조 변형 ─────────
+   하층은 기지 구조가 꼬여 있고 계속 확장·변형된다. 구역마다 한 번, 관제 계기판에 변형이 먼저 잡히고
+   다음 턴이 끝날 때 구조가 바뀐다. 관제는 그 사이에 기준점 비컨(지능 + 통신, 보통)으로 변형을 막을 수 있다.
+   비컨은 원래 도면 좌표를 송출하는 장치라 심연도 그 신호를 듣는다: 켜면 3라운드 동안 잡음 확률이 두 배가 된다. */
+const SHIFT_CHANCE = Number(process.env.R8_SHIFT ?? 0), BEACON_TURNS = 3;
+const SHIFT_KINDS = {
+  extend: { name: '복도 연장', warn: '구역 끝까지의 복도가 12m 늘어난다' },
+  marks: { name: '표지물 이동', warn: '지나온 표지물이 앞쪽으로 옮겨진다. 대열이 8m 되돌아간다' },
+  power: { name: '전원 차단', warn: '구역 회선이 끊겨 비상등으로 돌아간다' },
+  flip: { name: '방향 반전', warn: '복도의 앞뒤가 뒤집혀 개체와 하수인이 반대쪽에서 나타난다' }
+};
+function shiftTick(r) {
+  const o = D(r), sc = o.scenes[r.scene];
+  if (r.shift && r.turn >= r.shift.at) return shiftApply(r);
+  if (!o.patrol || !sc.shiftable || r.shift || r.shiftDone || r.turn - (r.sceneT0 || 0) < 2) return;
+  if (Math.random() >= SHIFT_CHANCE) return;
+  const kinds = ['extend', 'marks', 'flip'].concat(r.fac && r.fac.pwr ? ['power', 'power'] : []);
+  r.shift = { kind: pick(kinds), at: r.turn + 1 };
+  say(r, `관제실: 하층 도면 좌표 이상. 다음 라운드 종료 시 구조 변형(${SHIFT_KINDS[r.shift.kind].name}) 예상. 기준점 비컨 가동을 요청할 것.`, { kind: 'radio', name: '관제실' });
+}
+function shiftApply(r) {
+  const o = D(r), sc = o.scenes[r.scene], k = r.shift.kind; let text, fx = null;
+  r.shift = null; r.shiftDone = true;
+  if (k === 'extend') {
+    const before = Math.max(0, sc.map.len - r.pos);
+    sc.map = { ...sc.map, len: sc.map.len + 12, marks: sc.map.marks.map(x => x.at > r.pos ? { ...x, at: x.at + 12 } : x) };
+    if (sc.from === 'front') r.dist = Math.min(60, r.dist + 12);
+    text = '벽이 숨을 쉬듯 밀려났다. 구역 끝까지의 복도가 12m 늘어났다.'; fx = { before, after: before + 12, unit: '구역 끝까지' };
+  } else if (k === 'marks') {
+    const np = Math.max(0, r.pos - 8), moved = np - r.pos, before = Math.max(0, sc.map.len - r.pos);
+    r.pos = np; r.dist = Math.max(1, Math.min(60, r.dist + (sc.from === 'front' ? -moved : moved)));
+    const odd = sc.map.marks.filter(x => !x.kind), labels = shuffle(odd.map(x => x.label));
+    sc.map = { ...sc.map, marks: sc.map.marks.map(x => x.kind ? x : { ...x, label: labels.shift() }) };
+    text = '방금 지나친 표지가 다시 앞에 있다. 대열은 어느새 8m 뒤로 되돌아와 있었다.'; fx = { before, after: before - moved, unit: '구역 끝까지' };
+  } else if (k === 'power') {
+    if (r.fac) { r.fac.pwr = false; }
+    text = '배선이 벽 속으로 빨려 들어갔다. 구역이 다시 비상등으로 돌아갔다.';
+  } else {
+    sc.from = sc.from === 'rear' ? 'front' : 'rear';
+    r.minions.forEach(x => { x.side = x.side === 'front' ? 'rear' : 'front'; });
+    text = `복도의 앞과 뒤가 뒤바뀌었다. 개체의 기척이 이제 대열 ${sc.from === 'rear' ? '뒤' : '앞'}에서 들린다.`;
+  }
+  r.shiftFx = { kind: k, name: SHIFT_KINDS[k].name, text, turn: r.turn, ...(fx || {}) };
+  say(r, text, { kind: 'shift', title: SHIFT_KINDS[k].name });
+}
+function sceneEnter(r) {
+  r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.ambush = null; r.ambushQuiet = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
+  const sc0 = D(r).scenes[r.scene];
+  if (sc0.fork) { r.minions = []; const d = pick(sc0.doors); if (d && !d.peeked) { classExec(r, { uid: '0', name: '관제실', cls: null }, 'peek', d.id); } return; }
+  if (sc0.boss) bossStart(r); else r.boss = null;
+  const sp = sc0.spawn;
+  if (sp) for (const sd of ['front', 'rear']) if (sp[sd]) spawnMinion(r, sd, sp[sd] + scaleOf(r).spawn);
+}
+// 하수인의 다음 행동. 칩에 미리 보여서 요원이 막을지 칠지 고를 수 있다.
+// bite 물기(HP) · scream 비명(정신력) · call 동료 부르기 · brace 웅크리기(다음 피해 절반)
+const INTENT = { bite: '물기', scream: '비명', call: '부르기', brace: '웅크리기', stun: '비틀거림' };
+// 하수인 예고는 늘 보인다. 예고마다 맞는 대응이 다르다:
+//   물기·비명 → 막기로 절반 / 부르기 → 이번 라운드에 쓰러뜨리지 않으면 하나 더 / 웅크림 → 이번 라운드 공격 피해 절반 / 비틀거림 → 행동 없음, 몰아칠 때
+function setIntent(r, f) { f.intent = pickIntent(r); f.braced = f.intent === 'brace'; }
+function pickIntent(r) {
+  const x = Math.random(), full = r.minions.length >= MINION_CAP;
+  return x < 0.5 ? 'bite' : x < 0.7 ? 'scream' : x < 0.85 && !full ? 'call' : 'brace';
+}
+// 하수인 세기: 관제실 하달로 피할 수 있게 된 뒤로 정면으로 붙으면 더 아프게 했다
+const MINION_POW = Number(process.env.R8_MPOW ?? 1.5), MINION_HP = Number(process.env.R8_MHP ?? 1);
+function minionsAttack(r) {
+  const o = D(r), L = lineOf(r); if (!L.length) return;
+  const nm = o.minion.name;
+  for (const sd of ['front', 'rear']) {
+    // 좁은 복도라 한쪽에서 한 번에 하나만 움직인다
+    const f = r.minions.find(x => x.side === sd); if (!f) continue;
+    let t = sd === 'front' ? L[0] : L[L.length - 1];
+    const sh = shieldOf(r); if (sh && (f.intent || 'bite') !== 'call' && f.intent !== 'brace' && f.intent !== 'stun') t = sh;
+    const p = L.length === 1 ? '' : t === sh && t !== (sd === 'front' ? L[0] : L[L.length - 1]) ? '대신 막아선' : sd === 'front' ? '선두' : '후미';
+    const act = f.intent || 'bite';
+    if (act === 'stun') { say(r, `${jo(nm, '이', '가')} 비틀거리며 자세를 다시 잡는다.`, { kind: 'contact' }); }
+    else if (act === 'brace') { say(r, `${jo(nm, '이', '가')} 웅크린 채 버텼다.`, { kind: 'contact' }); }
+    else if (act === 'call') { say(r, `${jo(nm, '이', '가')} 길게 울었다. 어둠 속에서 무언가 대답한다.`, { kind: 'contact' }); spawnMinion(r, sd, 1); }
+    else if (Math.random() < STEALTH_DODGE * (lvOf(t, '은신') + (t.cls === 'detector' ? 2 : 0))) { say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었지만, 요원은 이미 그 자리에 없었다. (은신)`.replace('  ', ' '), { kind: 'contact', uid: t.uid }); }
+    else if (act === 'scream') {
+      let d = grit(t, sanD(-MINION_POW)); if (t.guard || t.shield) d = t.shield === 2 ? 0 : Math.min(-1, Math.round(d / 2));
+      say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원의 귀에 대고 비명을 질렀다.${t.shield ? (t.shield === 2 ? ' (방패로 막아 냄)' : ' (방패로 절반)') : t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { san: d } });
+      t.san = Math.max(0, t.san + d);
+    } else {
+      let d = hpD(-MINION_POW); if (t.guard || t.shield) d = t.shield === 2 ? 0 : Math.min(-1, Math.round(d / 2)); if (d < 0 && t.cls === 'van') d = Math.min(-1, d + 1);
+      say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었다.${t.shield ? (t.shield === 2 ? ' (방패로 막아 냄)' : ' (방패로 절반)') : t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { hp: d } });
+      t.hp = Math.max(0, t.hp + d);
+    }
+    setIntent(r, f);
+  }
+  r.members.forEach(x => { x.guard = false; });
+}
+// 개체가 움직인다. 거리가 0이 되면 개체 쪽 끝에 선 요원이 접촉당한다.
+function entityStep(r) {
+  const o = D(r), sc = o.scenes[r.scene];
+  // 소수 속도는 누적해서 반영한다(예: 5.25m면 네 턴에 한 번 6m)
+  r._sp = (r._sp || 0) + sc.speed * scaleOf(r).speed; const step = Math.floor(r._sp); r._sp -= step;
+  r.dist = Math.max(0, r.dist - step);
+  if (r.dist > 0) return;
+  const L = lineOf(r); if (!L.length) return;
+  const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
+  const recoil = o.recoil || RECOIL_M;
+  // 관제실 하달을 듣고 피했으면 빗나가고, 개체는 지나쳐서 더 멀리 물러난다
+  if (t.evadeOk === r.turn - 1) { say(r, `개체가 ${t.name} 요원이 있던 자리를 훑고 지나갔다. 빗나갔다.`, { kind: 'contact', ent: true, uid: t.uid }); r.dist = recoil + EVADE_PUSH; r.evaded = (r.evaded || 0) + 1; return; }
+  const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san);
+  const cov = r.coverEnt === r.turn - 1;
+  if (cov) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); }
+  say(r, c.text.replace('{name}', t.name) + (cov ? ' (동료가 막아 절반)' : ''), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
+  applyFx(r, t, c, '개체 접촉');
+  r.dist = recoil;
+}
+// 개체 접촉 예고: 이번 라운드가 끝날 때 닿을 것 같으면 관제실이 대상자를 부른다(잡음이면 못 듣는다)
+function contactPredict(r) {
+  const o = D(r), sc = o.scenes[r.scene]; if (sc && sc.boss) return; r.contactWarn = null;
+  if (r.status !== 'live' || !sc || sc.fork || !sc.speed) return;
+  const step = Math.floor((r._sp || 0) + sc.speed * scaleOf(r).speed);
+  if (r.dist - step > 0) return;
+  const L = lineOf(r); if (!L.length) return;
+  const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
+  r.contactWarn = { uid: t.uid, name: t.name, side: sc.from === 'rear' ? 'rear' : 'front' };
+  if (!r.noise) say(r, `관제실: 개체 접촉 임박. ${L.length > 1 ? (sc.from === 'rear' ? '후미 ' : '선두 ') : ''}${t.name}, 회피 준비. 나머지는 엄호할 것.`, { kind: 'radio', name: '관제실' });
+}
+function evadeExec(r, m) {
+  const row = Q.agent.get(Number(m.uid));
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 2);
+  if (tier !== 'fail') m.evadeOk = r.turn;
+  say(r, tier !== 'fail' ? `${m.name} 요원이 벽에 등을 붙이고 숨을 죽였다.` : `${m.name} 요원의 발이 미끄러졌다. 자세가 무너졌다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '피한다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
+  return endTurn(r);
+}
+// 턴 끝: 개체 이동 → 셈 감소 → 신체 확인 → 실패 판정
+/* ───────── 관제 간섭: 화면에 잡음이 끼고 알 수 없는 신호가 흘러든다 ─────────
+   잡음이 있는 동안 관제는 정확한 거리를 읽을 수 없고, 턴마다 정신력이 조금씩 깎인다.
+   해독(지능+기록 해독)하면 귀환 신호를 되찾지만 읽는 것만으로도 정신력이 깎인다. 차단하면 안전하지만 얻는 것이 없다. */
+const NOISE_TEXT = [
+  '셋. 넷. 다섯. 관제실에 있는 사람도 세어졌다. 여섯.',
+  'B3 아래에는 층이 없다. 그런데 너희는 지금 B4에 있다.',
+  '수조 3번에서 나온 것은 처음 들어간 것과 같지 않다.',
+  '레이더의 점은 하나가 아니다. 하나로 겹쳐 있을 뿐이다.',
+  '뒤를 돌아보지 마라. 관제실 유리에 비친 건 네가 아니다.',
+  '귀환 신호는 우리가 먹고 있다. 돌려받고 싶으면 읽어라.',
+  '문은 열려 있었다. 처음부터. 너희가 닫혀 있었다.'
+];
+const NOISE_CHANCE = 0; // 단순화: 잡음 끔
+const SUPPORT_MAX = 2; // 관제 지원 주사위는 2개까지 쌓인다(시뮬레이터로 맞춘 값)
+function garble(t) { return [...t].map(ch => ch === ' ' || ch === '.' ? ch : Math.random() < 0.55 ? '▒█▓░'[Math.floor(Math.random() * 4)] : ch).join(''); }
+function noiseStart(r) {
+  if (r.noise) return;
+  const text = NOISE_TEXT[Math.floor(Math.random() * NOISE_TEXT.length)];
+  r.noise = { text, shown: garble(text), turns: 0 };
+  say(r, '무전에 잡음이 끼었다. 관제 보고가 끊기고, 알 수 없는 신호가 흘러든다.', { kind: 'noise' });
+}
+function noiseTick(r) {
+  if (!r.noise) { if (r.turn >= 2 && Math.random() < NOISE_CHANCE * (r.beaconUntil >= r.turn ? 2 : 1)) noiseStart(r); return; }
+  r.noise.turns++; r.noise.shown = garble(r.noise.text);
+  if (r.noise.turns >= 3) { r.noise = null; say(r, '관제실: 회선 복구 완료. 보고를 재개한다.', { kind: 'radio', name: '관제실' }); }
+}
+// 관제 NPC: 개체가 가까워질 때마다 무전으로 거리를 알린다(잡음이 끼면 끊긴다)
+function npcRadio(r) {
+  if (D(r).scenes[r.scene].boss) return; // 제압전에서는 개체가 눈앞에 있다
+  const sc = D(r).scenes[r.scene], d = r.dist, band = d <= 5 ? 4 : d <= 10 ? 3 : d <= 20 ? 2 : d <= RADAR_RANGE ? 1 : 0;
+  if (r.noise) return;
+  if (band > (r.band || 0)) say(r, `관제실: 개체, 대열 ${sc.from === 'rear' ? '후방' : '전방'} ${d}m. ${band >= 4 ? '접촉 직전. 즉시 방어 태세.' : band >= 3 ? '곧 접촉한다. 대열을 정비할 것.' : band >= 2 ? '접근 속도 상승. 대비할 것.' : '레이더 포착. 경계 유지할 것.'}`, { kind: 'radio', name: '관제실' });
+  r.band = band;
+}
+/* ───────── 하수인 회피 ─────────
+   관제실이 출현을 한 턴 먼저 하달하면, 그 라운드에 전원이 조용히 있어야(숨는다·대기·문 확인 요청) 하수인이 지나간다.
+   숨기 성공이 인원의 절반(올림) 이상이어야 한다. 전진·공격·관제실 조작 요청 같은 행동은 소리를 내서 들킨다. */
+function ambushTick(r) {
+  const A = r.ambush; if (!A || r.turn < A.at) return;
+  r.ambush = null;
+  const Q = r.ambushQuiet; r.ambushQuiet = null;
+  if (A.scene !== r.scene) return; // 장면을 벗어났다
+  if (Q && Q.quiet && Q.ok >= Q.need) { say(r, '관제실: 하수인 반응, 대열 곁을 통과했다. 이동 재개해도 좋다.', { kind: 'radio', name: '관제실' }); r.dodged = (r.dodged || 0) + 1; return; }
+  say(r, Q && Q.quiet ? `관제실: 은폐 실패(${Q.ok}/${Q.need}). 발견됐다, 교전 대비.` : '관제실: 소음 감지. 놈들이 들었다, 교전 대비.', { kind: 'radio', name: '관제실' });
+  if (r.minions.length < scaleOf(r).cap) spawnMinion(r, A.side, A.n);
+}
+function hideExec(r, m) {
+  const row = Q.agent.get(Number(m.uid));
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 1);
+  if (tier !== 'fail') m.hideOk = r.turn;
+  say(r, tier !== 'fail' ? `${m.name} 요원이 그림자 속에 몸을 붙였다.` : `${m.name} 요원의 발밑에서 무언가 굴러가는 소리가 났다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '숨는다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
+  return endTurn(r);
+}
+const cadence = r => Math.max(2, Math.round((D(r).countEvery || COUNT_EVERY) * scaleOf(r).every));
+function endTurn(r, moved) {
+  if (r.batch) { if (moved === false) r._sceneChanged = true; return null; }
+  const o = D(r);
+  r.turn++;
+  if (moved !== false) { minionsAttack(r); if (r.boss && D(r).scenes[r.scene].boss) bossAct(r); else entityStep(r); r.members.forEach(x => { x.shield = 0; }); }
+  const SC = scaleOf(r);
+  const ev = cadence(r); // 정수 주기: ev 라운드마다 한 칸(언제 줄지 화면에 미리 보여 줄 수 있게)
+  if (r.turn % ev === 0) {
+    countAdd(r, -1, '시간 경과'); say(r, o.tickText, { kind: 'warn' });
+    if (o.tickSpawn !== false && !o.scenes[r.scene].boss && r.minions.length < SC.cap && !r.ambush) {
+      const side = o.scenes[r.scene].from, n = 1 + (SC.spawn && Math.random() < 0.5 ? SC.spawn : 0);
+      // 관제실이 한 턴 먼저 하달한다. 잡음이 끼면 경고 없이 바로 나온다.
+      if (r.noise) spawnMinion(r, side, n);
+      else { r.ambush = { side, n, at: r.turn + 1, scene: r.scene }; say(r, `관제실: ${side === 'rear' ? '후방' : '전방'} 배관에서 하수인 반응${n > 1 ? ` ${n}` : ''}. 다음 라운드 출현 예상. 전원 정지하고 숨을 것.`, { kind: 'radio', name: '관제실', ambush: true }); }
+    }
+  }
+  if (o.scenes[r.scene].sweep && r.status === 'live') {
+    // 소탕: 라운드마다 몰려온다. 3인 이상이면 가끔 둘. 앞뒤를 번갈아.
+    const n = 1 + ((r.nf || 1) >= 3 && r.turn % 2 ? 1 : 0), cap = Math.min(MINION_CAP, 1 + (r.nf || 1));
+    for (let i = 0; i < n && r.minions.length < cap; i++) spawnMinion(r, (r.turn + i) % 3 === 0 ? 'rear' : 'front', 1);
+  }
+  ambushTick(r);
+  noiseTick(r);
+  if (moved !== false) shiftTick(r);
+  npcRadio(r);
+  contactPredict(r);
+  r.members.forEach(x => { x.acted = false; x.radioed = false; x.passed = false; });
+  checkBodies(r);
+  if (r.count <= 0) {
+    say(r, o.endText, { kind: 'death' });
+    r.members.filter(x => x.role === 'field' && !x.dead).forEach(x => { x.hp = Math.max(0, x.hp + hpD(o.endHp)); });
+    checkBodies(r);
+    return opFinish(r, 'fail');
+  }
+  if (!r.members.some(x => x.role === 'field' && !x.dead)) return opFinish(r, 'fail');
+  // 관제팀이 없는데 현장팀이 모두 붕괴하면 더 진행할 수 없다
+  if (!r.members.some(x => x.role === 'field' && !x.dead && !x.broken)) { say(r, '현장팀 전원의 정신이 붕괴했다. 응답할 요원이 없다.', { kind: 'death' }); return opFinish(r, 'fail'); }
+  return null;
+}
+const POS_NAME = { front: '선두', mid: '중열', rear: '후미' };
+function actExec(r, uid, choiceId) {
+  const err = canField(r, uid); if (err) return err;
+  const m = fieldMember(r, uid);
+  const o = D(r), sc = o.scenes[r.scene];
+  if (choiceId === 'atk-boss') return bossFight(r, m, uid);
+  if (/^atk-(front|rear)$/.test(choiceId)) return opFight(r, m, uid, choiceId.slice(4));
+  if (/^shv-(front|rear)$/.test(choiceId)) return opShove(r, m, uid, choiceId.slice(4));
+  if (choiceId === 'guard') return opGuard(r, m, uid);
+  if (choiceId === 'sk') return skillExec(r, m, uid);
+  if (choiceId === 'hide') return r.ambush ? hideExec(r, m) : 'op/no-ambush';
+  if (choiceId === 'evade') return evadeExec(r, m);
+  const CA = classAct(choiceId);
+  if (CA) { const [pe] = classPre(r, m, CA); if (pe) return pe; const e = classExec(r, m, CA.k, CA.t); if (e) return e; checkBodies(r); return endTurn(r); }
+  if (choiceId.startsWith('rec-')) return opRecover(r, m, uid, choiceId.slice(4));
+  if (choiceId.startsWith('heal-')) return opHeal(r, m, uid, choiceId.slice(5));
+  const c = sc.choices.find(x => x.id === choiceId);
+  if (!c) return 'op/bad-choice';
+  if (!posOk(r, uid, c.pos)) return 'op/pos';
+  if (c.reach && r.pos < sc.map.len - REACH_M) return 'op/not-there';
+  // 거리가 맞지 않으면 판정 없이 턴만 흐른다 (현장팀은 정확한 거리를 모른다)
+  if (false && ((c.max && r.dist > c.max) || (c.min && r.dist < c.min))) {
+    say(r, `${m.name} 요원이 「${c.label}」을(를) 시도했지만 ${c.max && r.dist > c.max ? '개체가 아직 멀었다' : '개체가 너무 가까웠다'}. 아무 일도 일어나지 않았다.`, { kind: 'miss', uid: m.uid });
+    return endTurn(r);
+  }
+  const row = Q.agent.get(uid);
+  const sup = r.support; r.support = 0;
+  const ease = c.adv !== false && r.fac && r.fac.ease ? 1 : 0, diff = Math.max(1, c.diff - ease);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0) + gearDie(m, 'radio'), isDark(r) ? 1 : 0);
+  const tier = tierOf(res.succ, diff);
+  const raw = c[tier], out = scaleFx(typeof raw === 'string' ? { text: raw } : raw); if (out.san) out.san = grit(m, out.san);
+  const fx = ['hp', 'san', 'cont', 'count', 'sup', 'push'].some(k => out[k]) ? { hp: out.hp, san: out.san, cont: out.cont, count: out.count, sup: out.sup, push: out.push } : null;
+  say(r, out.text, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: c.label, stat: res.stat, statVal: res.statVal, skill: c.skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx });
+  applyFx(r, m, out);
+  if (tier === 'crit' && c.adv !== false) countAdd(r, 1, '대성공');
+  for (let i = 0; i < res.anomalies; i++) { const d = grit(m, sanD(-1)); m.san = Math.max(0, m.san + d); say(r, `오염 주사위에서 1이 나왔다. ${m.name} 요원의 귀에 이상한 소리가 하나 더 들린다.`, { kind: 'warn', uid: m.uid, fx: { san: d } }); }
+  if (tier !== 'fail' && c.adv !== false) {
+    r.scene++;
+    if (r.scene >= o.scenes.length) { checkBodies(r); return opFinish(r, 'success'); }
+    r.dist = o.scenes[r.scene].dist; r.pos = o.scenes[r.scene].map.start;
+    say(r, o.scenes[r.scene].text, { kind: 'scene', title: o.scenes[r.scene].title });
+    sceneEnter(r);
+    return endTurn(r, false);
+  }
+  return endTurn(r);
+}
+// 교전: 끝자리는 근접(근력 + 격투), 중열은 사격(민첩 + 사격). 성공 개수만큼 피해를 준다.
+function opFight(r, m, uid, side) {
+  const o = D(r), foe = r.minions.find(x => x.side === side);
+  if (!foe) return 'op/no-foe';
+  const p = posOf(r, uid), L = lineOf(r);
+  const melee = p === 'solo' || (side === 'front' ? p === 'front' : p === 'rear');
+  const ranged = p === 'mid' || (L.length === 2 && p !== (side === 'front' ? 'front' : 'rear'));
+  const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const atk = m.cls === 'weapon';
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
+  const tier = atkTier(res.succ, diff);
+  let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
+  const why = dmgWhy(tier, res.succ, atk, res.bonus);
+  if (atk && dmg > 0) dmg += 1;
+  if (dmg > 0) dmg += res.bonus;
+  // 협공: 바로 앞 차례에 다른 요원이 친 하수인을 이어 치면 +2
+  const combo = dmg > 0 && foe.hitTurn >= r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
+  if (combo) { dmg += 2; why.push('협공 +2'); }
+  if (dmg > 0 && r.mark && r.mark.until >= r.turn) { dmg += r.mark.bonus; why.push(`약점 간파 +${r.mark.bonus}`); }
+  const braced = dmg > 0 && foe.braced; if (braced) { dmg = Math.ceil(dmg / 2); why.push('웅크림 절반'); }
+  if (dmg > 0) { foe.hitTurn = r.turn; foe.hitBy = m.uid; }
+  const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
+  foe.hp = Math.max(0, foe.hp - dmg); r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + dmg;
+  const nm = o.minion.name, txt = { crit: `정확히 급소를 노렸다. ${jo(nm, '이', '가')} 크게 휘청인다.`, ok: `${jo(nm, '을', '를')} 밀어붙였다.`, cost: `맞히긴 했지만 ${nm}의 반격이 스쳤다.`, fail: `빗나갔다. ${jo(nm, '이', '가')} 틈을 파고들었다.` }[tier];
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + (side === 'front' ? ' (앞)' : ' (뒤)'), stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: { foe: dmg, hp: hurt || undefined }, dmg, why: dmg ? why : [] });
+  if (combo) say(r, `협공. ${jo(o.minion.name, '이', '가')} 연달아 맞아 피해 +2.`, { kind: 'kill', uid: m.uid });
+  if (braced) say(r, `${jo(o.minion.name, '이', '가')} 웅크리고 있어 피해가 절반으로 줄었다.`, { kind: 'warn' });
+  if (hurt) m.hp = Math.max(0, m.hp + hurt);
+  for (let i = 0; i < res.anomalies; i++) { const d = grit(m, sanD(-1)); m.san = Math.max(0, m.san + d); say(r, `오염 주사위에서 1이 나왔다. ${m.name} 요원의 귀에 이상한 소리가 하나 더 들린다.`, { kind: 'warn', uid: m.uid, fx: { san: d } }); }
+  if (foe.hp <= 0) { r.minions = r.minions.filter(x => x !== foe); say(r, o.minion.kill.replace('{name}', m.name), { kind: 'kill', uid: m.uid }); }
+  return endTurn(r);
+}
+// 밀쳐내기: 끝자리 요원이 근력 + 격투, 쉬움(1). 성공하면 하수인이 다음 행동을 놓친다.
+function opShove(r, m, uid, side) {
+  const o = D(r), foe = r.minions.find(x => x.side === side); if (!foe) return 'op/no-foe';
+  const p = posOf(r, uid);
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 0, '격투', sup);
+  const tier = tierOf(res.succ, 1), nm = o.minion.name;
+  if (tier !== 'fail') { foe.intent = 'stun'; foe.braced = false; if (tier === 'crit') { foe.hp = Math.max(0, foe.hp - 1); } }
+  const txt = { crit: `${jo(nm, '을', '를')} 벽으로 세게 밀쳐 냈다. 다음 행동을 놓치고 피해 1.`, ok: `${jo(nm, '을', '를')} 밀쳐 냈다. 다음 행동을 놓친다.`, cost: `${jo(nm, '을', '를')} 겨우 밀쳐 냈다. 다음 행동을 놓친다.`, fail: `밀쳐 내지 못했다. ${jo(nm, '이', '가')} 버틴다.` }[tier];
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: '밀쳐내기' + (side === 'front' ? ' (앞)' : ' (뒤)'), stat: res.stat, statVal: res.statVal, skill: '격투', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
+  if (foe.hp <= 0) { r.minions = r.minions.filter(x => x !== foe); say(r, o.minion.kill.replace('{name}', m.name), { kind: 'kill', uid: m.uid }); }
+  return endTurn(r);
+}
+// ───────── 팀 고유 기술 ─────────
+const shieldOf = r => r.members.find(x => x.shield && x.role === 'field' && !x.dead && !x.broken) || null;
+function skillPre(r, m) {
+  const T = TEAMS[m.team]; if (!T) return ['op/no-team'];
+  if ((m.skNext || 0) > r.turn) return ['op/sk-cd'];
+  const k = T.sk.id, B = r.boss && D(r).scenes[r.scene].boss && r.boss.hp > 0 ? r.boss : null;
+  if (k === 'barrage' && !r.minions.length && !B) return ['op/no-foe'];
+  if (k === 'bind' && !r.minions.length && !B) return ['op/no-foe'];
+  if (k === 'revive' && !r.members.some(x => x.role === 'field' && !x.dead && (x.hp < x.hpMax || x.san < x.sanMax))) return ['op/no-target'];
+  if (k === 'shield' && !r.minions.length && !B && !r.contactWarn) return ['op/no-foe'];
+  return [null, T.sk.label];
+}
+function skillExec(r, m, uid) {
+  const [pe] = skillPre(r, m); if (pe) return pe;
+  const T = TEAMS[m.team], S = T.sk, o = D(r), B = r.boss && o.scenes[r.scene].boss && r.boss.hp > 0 ? r.boss : null;
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, S.stat, S.skill, sup);
+  const tier = tierOf(res.succ, S.diff), hit = tier !== 'fail';
+  m.skNext = r.turn + SK_CD;
+  let txt = '', dmg = 0, why = [];
+  if (S.id === 'barrage') {
+    dmg = !hit ? 0 : tier === 'crit' ? res.succ + 1 : tier === 'cost' ? 1 : res.succ; if (dmg) why = [`성공 ${res.succ}개`, ...(tier === 'crit' ? ['대성공 +1'] : []), '모든 하수인에게'];
+    let kills = 0;
+    r.minions.forEach(f => { const d = f.braced ? Math.ceil(dmg / 2) : dmg; f.hp = Math.max(0, f.hp - d); if (f.hp <= 0) kills++; });
+    const tot = dmg * r.minions.length; r.minions = r.minions.filter(f => f.hp > 0);
+    let bd = 0; if (B && dmg) { bd = Math.ceil(dmg / 2); B.hp = Math.max(0, B.hp - bd); B.dmgRound = (B.dmgRound || 0) + bd; }
+    r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + tot + bd;
+    txt = !dmg ? '탄막이 허공을 갈랐다. 아무것도 맞히지 못했다.' : `RAVEN-1 집중 포화. 하수인 모두에게 피해 ${dmg}${bd ? `, ${B.name}에게 ${bd}` : ''}.${kills ? ` ${kills}마리가 쓰러졌다.` : ''}`;
+  } else if (S.id === 'expose') {
+    const bonus = tier === 'crit' ? 3 : 2;
+    if (hit) { r.mark = { bonus, until: r.turn + 1 }; txt = `약점을 짚었다. 이번과 다음 라운드, 팀의 공격 피해 +${bonus}.`; } else txt = '움직임을 읽어 내지 못했다.';
+  } else if (S.id === 'bind') {
+    if (hit) {
+      const parts = [];
+      if (B) { B.stun = true; r.contactWarn = null; parts.push(`${jo(B.name, '이', '가')} 구속 장치에 붙들렸다. 다음 행동을 놓친다`); }
+      const tg = tier === 'crit' ? r.minions : r.minions.filter(x => x.side === 'front').slice(0, 1).concat(r.minions.length && !r.minions.some(x => x.side === 'front') ? [r.minions[0]] : []);
+      tg.forEach(f => { f.intent = 'stun'; f.braced = false; }); if (tg.length) parts.push(`하수인 ${tg.length}마리가 묶였다`);
+      txt = parts.join('. ') + '.';
+    } else txt = '구속 장치가 빗나갔다.';
+  } else if (S.id === 'revive') {
+    const h = { crit: hpD(3), ok: hpD(2), cost: hpD(1), fail: 0 }[tier], sn = tier === 'crit' ? sanD(1) : 0;
+    if (h) r.members.filter(x => x.role === 'field' && !x.dead).forEach(x => { x.hp = Math.min(x.hpMax, x.hp + h); if (sn) { x.san = Math.min(x.sanMax, x.san + sn); if (x.broken && x.san > 0) x.broken = false; } });
+    txt = h ? `응급 소생. 현장 전원 체력 +${h}${sn ? `, 정신력 +${sn}` : ''}.` : '손이 모자랐다. 아무도 일으키지 못했다.';
+  } else if (S.id === 'shield') {
+    if (hit) { m.shield = tier === 'crit' ? 2 : 1; txt = tier === 'crit' ? '방패를 세웠다. 이번 라운드 동료에게 오는 공격을 모두 받아 낸다(피해 없음).' : '방패를 세웠다. 이번 라운드 동료에게 오는 공격을 대신 받고 절반으로 줄인다.'; }
+    else txt = '자리를 잡지 못했다.';
+  }
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: `${T.name} ${S.label}`, stat: res.stat, statVal: res.statVal, skill: S.skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: S.diff, tier, tierName: TIER_NAME[tier], dmg, why, team: m.team });
+  for (let i = 0; i < res.anomalies; i++) { const d = grit(m, sanD(-1)); m.san = Math.max(0, m.san + d); }
+  if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 격리실로 이송을 시작한다.`, { kind: 'kill', uid: m.uid }); checkBodies(r); return opFinish(r, 'success'); }
+  return endTurn(r);
+}
+// 막기: 판정 없이 이번 차례 하수인에게 받는 피해(물기·비명)를 절반으로 줄인다.
+function opGuard(r, m, uid) {
+  if (!r.minions.length && !r.contactWarn) return 'op/no-foe';
+  m.guard = true; if (r.contactWarn) r.coverEnt = r.turn;
+  say(r, `${m.name} 요원이 자세를 낮추고 막을 준비를 했다.`, { kind: 'sys', uid: m.uid });
+  return endTurn(r);
+}
+// 회수: 쓰러진(사망·붕괴) 동료를 데리고 간다. 체력 + 운반, 쉬움(1). 회수하지 못한 채 작전이 끝나면 RAVEN-4가 출동한다.
+const needsRecovery = m => m.role === 'field' && !m.recovered && (m.dead || m.broken);
+// 응급처치: 기능이 있는 현장 요원이 다친 동료(자기 자신 포함)의 체력을 회복한다. 지능 + 응급처치, 보통(2).
+const canHeal = t => t.role === 'field' && !t.dead && t.hp < t.hpMax;
+function opHeal(r, m, uid, target) {
+  if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return 'op/no-skill';
+  const t = r.members.find(x => x.uid === String(target));
+  if (!t || !canHeal(t)) return 'op/no-target';
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 3, '응급처치', sup + gearDie(m, 'medkit'));
+  const tier = tierOf(res.succ, 2), heal = { crit: hpD(3), ok: hpD(2), cost: hpD(1), fail: 0 }[tier], who = t === m ? '자기' : `${t.name} 요원의`;
+  const txt = { crit: `${who} 상처를 빠르게 봉합했다. 출혈이 멎었다.`, ok: `${who} 상처를 지혈했다.`, cost: `${who} 상처를 감았지만 붕대가 금세 젖는다.`, fail: `손이 떨려 ${who} 상처를 제대로 감지 못했다.` }[tier];
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: t === m ? '자가 응급 처치' : `${t.name} 응급 처치`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: heal ? { hp: heal } : null });
+  if (heal) t.hp = Math.min(t.hpMax, t.hp + heal);
+  return endTurn(r);
+}
+function opRecover(r, m, uid, target) {
+  const t = r.members.find(x => x.uid === String(target));
+  if (!t || !needsRecovery(t)) return 'op/no-target';
+  if (t.uid === m.uid) return 'op/bad-target';
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 1, '운반', sup);
+  const tier = tierOf(res.succ, 1), hurt = tier === 'cost' ? hpD(-1) : 0;
+  const txt = { crit: `${t.name} 요원을 둘러메고 대열에 합류했다. 흔들림이 없다.`, ok: `${t.name} 요원을 회수했다.`, cost: `${t.name} 요원을 회수했지만 무게에 어깨가 꺾였다.`, fail: `${t.name} 요원에게 손이 닿지 않았다.` }[tier];
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: `${t.name} 회수`, stat: res.stat, statVal: res.statVal, skill: '운반', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier], fx: tier === 'cost' ? { hp: hurt } : null });
+  if (tier !== 'fail') t.recovered = true;
+  if (tier === 'cost') m.hp = Math.max(0, m.hp + hurt);
+  return endTurn(r);
+}
+// 이동: 전진은 선두, 후퇴는 후미, 대기와 자리 바꾸기는 누구나
+function moveExec(r, uid, kind) {
+  const err = canField(r, uid); if (err) return err;
+  const m = fieldMember(r, uid), sc = D(r).scenes[r.scene], p = posOf(r, uid);
+  if ((kind === 'fwd' || kind === 'back') && sc.sweep) return 'op/no-move';
+  if (kind === 'fwd' || kind === 'back') {
+    if (r.minions.some(x => x.side === (kind === 'fwd' ? 'front' : 'rear'))) return kind === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear';
+    // 대열은 지형 위에서 움직인다. 진행 방향(fwd)은 지형의 끝 쪽.
+    const np = Math.max(0, Math.min(sc.map.len, r.pos + (kind === 'fwd' ? STEP_M : -STEP_M))), moved = np - r.pos;
+    if (!moved) return kind === 'fwd' ? 'op/map-end' : 'op/map-start';
+    r.pos = np;
+    r.dist = Math.max(0, Math.min(60, r.dist + (sc.from === 'front' ? -moved : moved)));
+    say(r, kind === 'fwd' ? `${m.name} 요원의 신호로 대열이 앞으로 나아갔다.` : `${m.name} 요원의 신호에 대열이 뒤로 물러났다.`, { kind: 'move', uid: m.uid });
+  } else if (kind === 'wait') {
+    say(r, `${m.name} 요원의 신호로 대열이 제자리에서 숨을 죽였다.`, { kind: 'move', uid: m.uid });
+  } else if (kind === 'swap') {
+    const L = lineOf(r), i = L.findIndex(x => x.uid === m.uid);
+    if (i <= 0) return 'op/no-ahead';
+    const a = L[i - 1], ia = r.order.indexOf(a.uid), ib = r.order.indexOf(m.uid);
+    r.order[ia] = m.uid; r.order[ib] = a.uid;
+    say(r, `${m.name} 요원이 ${a.name} 요원과 자리를 바꿨다. 대열: ${lineOf(r).map(x => x.name).join(' → ')}`, { kind: 'move', uid: m.uid });
+  } else return 'op/bad-choice';
+  return endTurn(r);
+}
+// 작전 중 소모품: 현장 요원만, 차례마다 한 번. 차례를 쓰지 않는다.
+function opItem(uid, opId, id) {
+  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
+  const m = r.members.find(x => x.uid === String(uid) && x.role === 'field'); if (!m) return 'op/not-field';
+  if (m.dead) return 'op/dead'; if (m.broken) return 'op/broken';
+  if (m.itemTurn === r.turn) return 'op/item-wait';
+  const row = Q.agent.get(uid), v = invOf(row), it = SHOP_BY[id];
+  const free = id === 'kit' && m.kitFree > 0; // 구급상자에 든 구급 키트 1회분
+  if (!it || it.kind !== 'use' || !(free || v.items[id] > 0)) return 'shop/none';
+  const team = r.members.filter(x => x.role === 'field' && !x.dead);
+  if (id === 'kit') { const t = team.filter(x => x.hp < x.hpMax).sort((a, b) => a.hp / a.hpMax - b.hp / b.hpMax)[0]; if (!t) return 'op/no-need';
+    const h = Math.min(30, t.hpMax - t.hp); t.hp += h; say(r, `${m.name} 요원이 구급 키트를 썼다. ${t.name} 요원 HP +${h}.`, { kind: 'sys' }); }
+  else if (id === 'calm') { const t = team.filter(x => x.san < x.sanMax).sort((a, b) => a.san / a.sanMax - b.san / b.sanMax)[0]; if (!t) return 'op/no-need';
+    const h = Math.min(30, t.sanMax - t.san); t.san += h; if (t.broken && t.san > 0) t.broken = false; say(r, `${m.name} 요원이 진정제를 썼다. ${t.name} 요원 정신력 +${h}.`, { kind: 'sys' }); }
+  else if (id === 'flare') { if (!r.minions.length) return 'op/no-need'; const n = r.minions.length; r.minions = []; say(r, `${m.name} 요원이 섬광탄을 던졌다. 하수인 ${n}마리가 빛을 피해 흩어졌다.`, { kind: 'sys' }); }
+  if (free) m.kitFree--; else { v.items[id]--; saveInv(uid, v); }
+  m.itemTurn = r.turn; m.items = v.items;
+  pushAgent(uid);
+  return null;
+}
+// 포지션 행동: 기술(관제 요청) · 치유(정신 안정) · 누구나(RAVEN-1). 관제실은 NPC가 맡고, 현장 요원의 요청을 받아 움직인다.
+function classExec(r, m, kind, target) {
+  const o2 = D(r), row = Q.agent.get(Number(m.uid));
+  if (kind === 'support') {
+    const res = opPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
+    r.support = Math.min(SUPPORT_MAX, r.support + add); 
+    say(r, add ? `관제 회선 연결. 다음 판정에 지원 주사위 ${add}개를 보탠다.` : '지원 신호가 잡음에 묻혔다.', { kind: 'roll', uid: m.uid, name: m.name, label: '관제 지원 연결', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
+  } else if (kind === 'stabilize') {
+    const t = r.members.find(x => x.uid === String(target) && !x.dead && (x.role === 'field'));
+    if (!t) return 'op/bad-target';
+    if (t.san >= t.sanMax) return 'op/no-need';
+    const res = opPool(row, 5, '응급처치', gearDie(m, 'medkit')), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
+    t.san = Math.min(t.sanMax, t.san + heal); if (t.broken && t.san > 0) t.broken = false; 
+    say(r, heal ? `${t.name} 요원의 호흡이 가라앉았다. (정신력 +${heal})` : `${t.name} 요원은 아직 눈의 초점이 돌아오지 않는다.`, { kind: 'roll', uid: m.uid, name: m.name, label: `${t.name} 정신 안정`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
+  } else if (kind === 'raven1') {
+    // RAVEN-1 지원: 작전당 한 번. 하수인 소탕, 개체 밀어냄, 셈·귀환 신호 회복. 대가는 작전이 끝날 때 치른다.
+    if (r.r1) return 'op/raven1-used';
+    const o = D(r);
+    r.r1 = { by: m.name, at: now() };
+    const n = r.minions.length; r.minions = [];
+    r.dist = Math.min(60, r.dist + 25);
+    countAdd(r, 2, 'RAVEN-1');
+    
+    say(r, `${m.name} 요원이 RAVEN-1 지원을 요청했다. RAVEN-1이 투입됐다.${n ? ` ${jo(o.minion.name, '이', '가')} 모두 제거됐다.` : ''} 개체는 크게 물러났다. ${o.countLabel} +2.`, { kind: 'raven', uid: m.uid });
+    // 고위험 개체라면 RAVEN-1이 관찰 기록을 남긴다
+    const e = ENTITIES.find(x => x.op === r.op);
+    if (e && e.observe && !QS.unlocks.all().some(u => u.entity === e.id && u.section === 'observe')) {
+      QS.unlock.run(e.id, 'observe', 'RAVEN-1', now());
+      say(r, `RAVEN-1이 ${e.id}의 반응을 기록해 갔다. 개체 문서의 관찰 기록이 열렸다.`, { kind: 'sys' });
+      emitSector();
+    }
+    return null;
+  } else if (kind === 'decode' || kind === 'jam') {
+    if (!r.noise) return 'op/no-noise';
+    
+    if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제실 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
+    const read = grit(m, sanD(-0.5)); m.san = Math.max(0, m.san + read);
+    const res = opPool(row, 3, '기록 해독', gearDie(m, 'radio')), tier = tierOf(res.succ, 2);
+    let txt, extra = 0;
+    if (tier === 'fail') { extra = grit(m, sanD(-0.6)); txt = '읽어 내지 못했다. 글자들이 눈 안쪽에서 계속 움직인다.'; }
+    else {
+      txt = `신호를 해독했다: 「${r.noise.text}」 잡음이 걷히며 귀환 신호가 돌아온다. ${o2.countLabel} +1.`;
+      countAdd(r, 1, '잡음 해독');
+      if (tier === 'crit') { r.support = Math.min(SUPPORT_MAX, r.support + 1); txt += ' 해독한 주파수로 지원 주사위 1개를 보탠다.'; }
+      if (tier === 'cost') extra = grit(m, sanD(-0.4));
+      r.noise = null;
+    }
+    m.san = Math.max(0, m.san + extra);
+    say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: '신호 해독', stat: res.stat, statVal: res.statVal, skill: '기록 해독', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: { san: read + extra } });
+    checkBodies(r);
+  } else if (kind === 'peek') {
+    const sc = o2.scenes[r.scene], d = sc.fork && sc.doors.find(x => x.id === target);
+    if (!d) return 'op/bad-choice';
+    if (d.peeked) return 'op/used';
+    if (r.noise) return 'op/noise';
+    d.peeked = true; 
+    const R = DOOR_RISK[d.risk], ns = d.scene;
+    say(r, `관제실: ${m.uid === '0' ? '' : `${m.name} 요원 요청 확인. `}${d.name} 너머 감시 카메라 판독. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '후방' : '전방'}에서 접근 예상.`, { kind: 'radio', uid: m.uid, name: '관제실', peek: d.id });
+    return null;
+  } else if (kind === 'fac') {
+    const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
+    if (F.id === 'beacon') {
+      r.beaconUntil = r.turn + BEACON_TURNS;
+      const res = opPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
+      let txt;
+      if (tier === 'fail') txt = '비컨 신호가 하층의 잡음에 묻혔다. 좌표를 붙들지 못했다. 심연은 신호를 들었다.';
+      else { const k = SHIFT_KINDS[r.shift.kind].name; r.shift = null; r.shiftDone = true; txt = `기준점 비컨이 원래 도면 좌표를 송출했다. 구조가 제자리에 붙들렸다(${k} 차단). 심연도 그 신호를 들었다.`; }
+      say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: '기준점 비컨', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
+      return null;
+    }
+    if (F.on) return 'op/used';
+    if (F.id === 'wall' && !F.need) return 'op/no-target';
+    
+    const res = opPool(row, 3, '장비 운용', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
+    let txt;
+    if (F.id === 'pwr') {
+      if (tier === 'fail') { txt = '구역 전원을 올리다 회로가 튀었다. 비상등만 깜빡이고, 관제 화면에 잡음이 번진다.'; noiseStart(r); }
+      else { r.fac.pwr = true; r.minions.forEach(x => { x.intent = 'stun'; x.braced = false; }); txt = `구역 전원을 올렸다. 조명이 돌아왔다.${r.minions.length ? ` ${jo(o2.minion.name, '이', '가')} 빛에 눈이 멀어 비틀거린다.` : ''}`; }
+    } else if (F.id === 'sp') {
+      if (tier === 'fail') txt = `${F.name}이(가) 반응하지 않는다.`;
+      else { r.fac.sp = true; if (F.type === 'bind') { if (r.boss) { r.boss.stun = true; r.contactWarn = null; } txt = `${F.name}이 작동했다. 개체의 팔이 벽에 붙들렸다. 다음 행동을 놓친다.`; } else if (F.type === 'short') { const sc = o2.scenes[r.scene]; r.pos = Math.min(sc.map.len, r.pos + 10); txt = `${F.name}을(를) 원격으로 열었다. 대열이 지름길로 10m 앞당겨졌다.`; } else { r.fac.ease = true; txt = `${F.name}을(를) 원격으로 가동했다. ${F.eff}.`; } }
+    } else {
+      r.doorUsed = true;
+      if (tier === 'fail') txt = '격벽이 반쯤 내려오다 멈췄다. 개체는 틈으로 그대로 다가온다.';
+      else { const push = tier === 'crit' ? 12 : 8; r.dist = Math.min(60, r.dist + push); txt = `원격으로 격벽을 내렸다. 개체가 돌아가는 길을 찾느라 ${push}m 멀어졌다.`; }
+    }
+    say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, label: F.name + ' 조작', stat: res.stat, statVal: res.statVal, skill: '장비 운용', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: F.diff, tier, tierName: TIER_NAME[tier] });
+  } else return 'op/bad-choice';
+  return null;
+}
+function opAbort(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'live') return 'op/not-live';
+  if (!r.members.some(m => m.uid === String(uid))) return 'op/not-member';
+  const m = r.members.find(x => x.uid === String(uid));
+  say(r, `${m.name} 요원이 철수를 요청했다. 작전을 중단한다.`, { kind: 'sys' });
+  return opFinish(r, 'abort');
+}
+function addTrait(traits) {
+  const id = die(25), has = traits.find(t => t.id === id);
+  if (has) { has.lv = Math.min(TRAIT_MAX_LV, (has.lv || 1) + 1); return { id, deepen: true }; }
+  if (traits.length < MAX_TRAITS) { traits.push({ id, lv: 1 }); return { id, deepen: false }; }
+  const pick = traits[die(traits.length) - 1]; pick.lv = Math.min(TRAIT_MAX_LV, (pick.lv || 1) + 1); return { id: pick.id, deepen: true };
+}
+const R1_COST = 20, R4_COST = 15, R4_CONT = 10, R4_DELAY_MS = Number(process.env.RAVEN4_DELAY_HOURS || 2) * 3600000;
+const TEAM_BONUS = +(process.env.R8_TEAM_BONUS || 25), TEAM_BONUS_MAX = +(process.env.R8_TEAM_BONUS_MAX || 50);
+function opFinish(r, result) {
+  const o = D(r); clearTimeout(r._timer); r.picks = {}; r.deadline = null;
+  r.status = 'done'; r.result = result; r.ended = now();
+  // 함께 출동 보너스: 출동한 현장 인원 1명 늘 때마다 +25%(최대 +50%). 쓰러진 동료도 인원에 든다.
+  const crew = r.members.filter(m => m.role === 'field').length, bonusPct = Math.min(TEAM_BONUS_MAX, TEAM_BONUS * Math.max(0, crew - 1));
+  const base0 = r.r1 ? { supply: Math.floor(o.reward.supply / 2), research: Math.floor(o.reward.research / 2) } : o.reward;
+  const reward = result === 'success' ? { supply: Math.round(base0.supply * (100 + bonusPct) / 100), research: Math.round(base0.research * (100 + bonusPct) / 100) } : { supply: 0, research: 0 };
+  r.rewardOut = result === 'success' ? { ...reward, bonusPct, crew } : null;
+  // 회수하지 못한 요원 → RAVEN-4 출동. 남겨진 요원은 재생이 늦어지고 오염이 깊어지며, 참가자 전원이 회수 비용을 낸다.
+  const left = r.members.filter(m => m.role === 'field' && (m.dead || m.broken) && !m.recovered);
+  transaction(() => {
+    r.members.forEach(m => {
+      const row = Q.agent.get(Number(m.uid)); if (!row) return;
+      let cont = (row.contamination || 0) + m.cont;
+      const traits = traitsOf(row), res = JSON.parse(row.res);
+      let regen = row.regen_until || null;
+      const abandoned = left.includes(m);
+      if (m.dead) {
+        cont = Math.min(100, cont + 10 + (abandoned ? R4_CONT : 0)); regen = now() + REGEN_MS + (abandoned ? R4_DELAY_MS : 0);
+        const t = addTrait(traits); m.newTrait = t;
+        say(r, `${m.name} 요원 재생 절차 예약. 오염도 +${10 + (abandoned ? R4_CONT : 0)}%, 변질 ${t.deepen ? '심화' : '발현'}${abandoned ? `, RAVEN-4 회수 지연으로 재생 ${R4_DELAY_MS / 3600000}시간 추가` : ''}.`, { kind: 'sys', uid: m.uid });
+      } else {
+        if (abandoned) { cont = Math.min(100, cont + R4_CONT); say(r, `${m.name} 요원은 붕괴한 채 RAVEN-4에 회수됐다. 오염도 +${R4_CONT}%.`, { kind: 'sys', uid: m.uid }); }
+        if (result === 'success') { res.supply += reward.supply; res.research += reward.research; }
+      }
+      if (left.length) res.supply = Math.max(0, res.supply - R4_COST);
+      if (r.r1) res.supply = Math.max(0, res.supply - R1_COST);
+      // 오염 한계 초과 → 폭주 징후. RAVEN-3이 회수해 격리 관찰, 변질이 진행되고 오염도는 한계의 절반으로 정화된다.
+      let quar = row.quar_until || null;
+      const lim = contLimit(row);
+      if (cont >= lim) {
+        const t = addTrait(traits); cont = Math.round(lim / 2 / 5) * 5; quar = Math.max(now(), regen || 0) + QUAR_MS;
+        say(r, `${m.name} 요원의 오염도가 한계(${lim})에 이르렀다. 폭주 징후. RAVEN-3이 회수해 격리 관찰한다. 변질 ${t.deepen ? '심화' : '발현'}, 오염도 ${cont}로 정화.`, { kind: 'death', uid: m.uid });
+        QS.addEvent.run(now(), 'overflow', null, `${m.num} ${m.name} 요원 오염 한계 초과. RAVEN-3 회수, ${Math.round(QUAR_MS / 3600000)}시간 격리 관찰.`, '벌처: ' + VULTURE_OVER[die(VULTURE_OVER.length) - 1]);
+      }
+      Q.afterOp.run({ uid: Number(m.uid), cont, traits: JSON.stringify(traits), trait: traits[0] ? traits[0].id : row.trait, res: JSON.stringify(res), regen, quar, ops: (row.ops_done || 0) + 1 });
+    });
+    if (r.r1) QS.addEvent.run(now(), 'assault', ENTITIES.find(x => x.op === r.op)?.id || null, `작전 ${o.id}에 RAVEN-1 지원 투입(요청: ${r.r1.by}). 작전 참가자 전원 보급품 −${R1_COST}${result === 'success' ? ', 성공 보상 절반' : ''}.`, null);
+    if (left.length) QS.addEvent.run(now(), 'retrieval', ENTITIES.find(x => x.op === r.op)?.id || null, `작전 ${o.id}에서 회수되지 못한 요원 ${left.map(m => m.name).join(', ')}. RAVEN-4 출동, 회수 완료. 작전 참가자 전원 보급품 −${R4_COST}.`, null);
+    Q.addRun.run({ op: r.op, title: o.title, result, started: r.started || now(), ended: r.ended, members: JSON.stringify(r.members.map(m => ({ uid: m.uid, name: m.name, num: m.num, role: m.role, dead: m.dead }))), log: JSON.stringify(r.log) });
+  });
+  if (r.r1) say(r, `RAVEN-1 지원 비용 정산. 작전 참가자 전원 보급품 −${R1_COST}${result === 'success' ? ', 성공 보상 절반' : ''}.`, { kind: 'warn' });
+  if (left.length) say(r, `RAVEN-4 출동. 회수되지 못한 요원 ${left.map(m => m.name).join(', ')}을(를) 회수했다. 작전 참가자 전원 보급품 −${R4_COST}.`, { kind: 'warn' });
+  say(r, result === 'success' ? `작전 ${o.id} 완료. 생존 요원 보상: ${[reward.supply ? `보급품 ${reward.supply}` : '', reward.research ? `연구 자료 ${reward.research}` : ''].filter(Boolean).join(', ') || '없음'}${bonusPct ? ` (함께 출동 보너스 +${bonusPct}%)` : ''}.${D(r).patrol ? ` 수용 개체 격리 안정도 +${PATROL_STAB}%.` : ''}` : result === 'abort' ? `작전 ${o.id} 중단. 보상은 지급되지 않는다.` : `작전 ${o.id} 실패. ${o.failText}`, { kind: 'end' });
+  r.escaped = null;
+  if (sectorOnOp(r.op, result, r.members.map(m => m.name).join(', ')) === 'escaped') {
+    const e = ENTITIES.find(x => x.op === r.op); r.escaped = true;
+    say(r, `이송 중 경보. ${e ? `${e.id} 「${e.name}」` : '개체'}가 구속을 풀고 다시 빠져나갔다. 보상은 그대로 지급된다. 확보 작전은 계속 열려 있다.`, { kind: 'contact', ent: true });
+    QS.addEvent.run(now(), 'escape', e ? e.id : null, `${e ? `${e.id} 「${e.name}」` : '개체'} 이송 중 탈출. 작전 ${o.id} 재개 대기.`, null);
+  } else if (result === 'success' && o.kind === 'secure') say(r, '개체를 격리실로 이송했다. 격리 완료. 이 확보 작전은 개체가 다시 빠져나가기 전까지 닫힌다.', { kind: 'sys' });
+  for (const m of r.members) { const g = gainCareer(Number(m.uid), result === 'success' ? CAREER.opSuccess : CAREER.opOther); if (g && g.ups) say(r, `${m.name} 요원 계급 ${g.rank} 승급. 능력치 포인트 +${g.ups * RANK_PTS}.`, { kind: 'grow', uid: m.uid }); }
+  r.members.forEach(m => bumpAch(m.uid, { ops: 1, ctrlOps: m.cls === 'radio' ? 1 : 0, success: result === 'success' ? 1 : 0, deaths: m.dead ? 1 : 0, clutch: result === 'success' && m.role === 'field' && !m.dead && m.hp <= m.hpMax * 0.2 ? 1 : 0 }));
+  r.members.forEach(m => { const row = Q.agent.get(Number(m.uid)); if (row) io.emit('agent', publicAgent(row)); });
+  emitSector();
+  return null;
+}
+function opClose(uid, opId) {
+  const r = runs.get(opId); if (!r || r.status !== 'done') return 'op/not-done';
+  runs.delete(opId); lobbyOf(opId); return null;
+}
+
+
+/* ───────── 기지와 개체 문서 (섹터 전체가 함께 쓰는 상태) ───────── */
+// 격리 안정도는 시간마다 떨어진다. 요원이 보급품으로 점검하면 오르고, 작전에 성공하면 100%가 된다.
+const DECAY_PER_H = Number(process.env.DECAY_PER_HOUR || 2);
+const COST = { maintain: { supply: 10 }, purge: { research: 2 }, hasten: { supply: 30 }, observe: { research: 3 }, sealed: { pass: 1 } };
+const ENTITIES = [
+  { id: 'AO-212', name: '계수자', icon: 'hand', threat: 'Ⅲ', cell: '격리동 B-3', op: 'R8-14',
+    summary: '인간형 개체. 손가락을 하나씩 접으며 수를 센다. 셈이 끝나면 셈의 대상이 된 공간에서 모든 소리가 사라진다.',
+    procedure: ['격리실 네 모서리에 소리 차단 장치를 1기씩 설치한다. 하나라도 꺼지면 즉시 재격리 작전을 편성한다.', '출입 인원은 격리실 안팎에서 숫자를 소리 내어 읽지 않는다.', '복도 벽의 숫자는 매 근무 교대마다 기록한다. 숫자가 줄어들면 관제실에 보고한다.'],
+    observe: ['셈의 시작 값은 격리실 반경 30m 안에 있는 인원 수와 일치한다.', '개체는 가장 최근에 들은 목소리를 흉내 내어 수를 센다. 흉내 낸 목소리의 주인은 그날 밤 숫자가 나오는 꿈을 꾼다.', '요원이 개체보다 먼저 수를 세면 개체가 그 셈을 따라 한다. 이때 셈은 거꾸로 흐를 수 있다.'],
+    sealed: 'AO-212의 첫 발견 보고서에는 당시 격리동 B-3 근무자가 4명이었다고 적혀 있다. 같은 날의 출입 기록에는 3명만 남아 있다. 나머지 한 명의 넘버는 현재 재생 수조 명부에 올라 있다.' },
+  { id: 'AO-118', name: '습도', icon: 'droplets', threat: 'Ⅳ', cell: '격리동 D-1', op: null,
+    summary: '형체가 없는 개체로 추정된다. 개체가 머무는 구역은 습도가 100%로 고정되고, 종이 기록이 스스로 젖어 번진다.' },
+  { id: 'AO-047', name: '젖은 손님', icon: 'door-open', threat: 'Ⅱ', cell: '격리동 A-2', op: null,
+    summary: '비 오는 밤에만 섹터 정문 앞에 나타나는 인간형 개체. 들여보내 달라고 정중히 부탁하며, 이름을 물으면 마지막으로 문을 열어 준 직원의 이름을 댄다.' },
+  { id: 'AO-019', name: '잠든 동료', icon: 'bed', threat: 'Ⅰ', cell: '격리동 A-1', op: null,
+    summary: '섹터 직원 제복을 입고 간이침대에서 잠든 인간형 개체. 깨어난 기록이 없다. 곁에서 1시간 넘게 지켜본 사람은 그날 밤 개체의 꿈을 함께 꾸며, 꿈속 복도는 지금의 섹터 R-8과 구조가 같다.' },
+  { id: 'AO-033', name: '빈 액자', icon: 'frame', threat: 'Ⅱ', cell: '격리동 A-3', op: null,
+    summary: '금박을 두른 액자. 들여다보면 지금 서 있는 방이 비치지만, 그 방에는 보는 사람이 없다. 오래 들여다본 직원은 이후 거울에 자기 모습이 반 박자 늦게 비친다고 보고한다.' },
+  { id: 'AO-089', name: '세 번째 계단', icon: 'footprints', threat: 'Ⅱ', cell: '격리동 C-2', op: null,
+    summary: '섹터 동쪽 비상계단. 자정부터 새벽 4시 사이에는 2층과 3층 사이 계단이 한 칸 늘어난다. 늘어난 칸을 밟은 사람은 계단을 끝까지 올라도 3층에 도착하지 않는다.' },
+  { id: 'AO-156', name: '교환원', icon: 'phone-call', threat: 'Ⅲ', cell: '격리동 C-4', op: null,
+    summary: '수동식 전화 교환대. 연결된 회선이 없는데도 섹터 내선으로 전화를 건다. 수화기 너머의 목소리는 이미 사망한 직원의 것이며, 받는 사람의 넘버를 정확히 알고 있다.' },
+  { id: 'AO-201', name: '등불지기', icon: 'lamp', threat: 'Ⅲ', cell: '격리동 D-3', op: null,
+    summary: '꺼지지 않는 석유등. 등불이 비추는 범위 안의 복도는 도면에 없는 방향으로 이어진다. 등을 들고 나간 직원이 돌아오지 못한 기록이 2건 있다.' },
+  { id: 'AO-264', name: '낱장', icon: 'scroll-text', threat: 'Ⅳ', cell: '격리동 B-1', op: null,
+    summary: '누렇게 바랜 종이 한 장. 같은 방에 보관된 문서에 하룻밤마다 한 줄씩 문장을 덧붙인다. 덧붙은 문장은 언제나 아직 일어나지 않은 일을 과거형으로 적고 있다.' },
+  { id: 'AO-307', name: '깊은 우물', icon: 'waves-horizontal', threat: 'Ⅴ', cell: '격리동 E-1, 지하 7층', op: null,
+    summary: '섹터 지하 7층 바닥에 뚫린 원형 수직굴. 바닥은 확인되지 않았다. 굴에 대고 말하면 메아리가 돌아오는데, 돌아오는 말은 말한 사람이 아직 하지 않은 말이다.' },
+  { id: 'AO-330', name: '이름 없는 별', icon: 'sparkle', threat: 'Ⅳ', cell: '관측동 옥상', op: null,
+    summary: '관측동 옥상에서만 보이는 별. 어느 성도에도 실려 있지 않다. 관측 기록상 이 별은 해마다 조금씩 가까워지고 있으며, 관측자들은 하나같이 별이 이쪽을 내려다본다고 적는다.' }
+];
+const NOTES = {"AO-019": ["개체의 호흡 주기는 섹터 경보 시험 주기와 일치한다.","개체의 명찰은 볼 때마다 다른 이름을 표시한다. 기록된 이름은 모두 재생 수조 명부에 있다.","개체가 뒤척인 날에는 재생 수조 하나가 예정보다 일찍 열린다."],"AO-033": ["액자 속 방은 관찰자가 마지막으로 잠든 방이다.","두 사람이 함께 들여다보면 액자 속 방에는 한 사람만 비친다. 비치지 않은 쪽은 다음 날 결근한다.","액자 뒷면의 제작 일자는 섹터 설립보다 앞선다."],"AO-047": ["개체가 나타난 밤의 강수량은 언제나 0이다.","개체가 대는 이름은 문을 열어 준 직원이 아니라, 다음에 문을 열 직원의 것이다.","정문 감시 기록 속 개체는 우산을 들고 있지만, 우산은 한 번도 젖어 있지 않다."],"AO-089": ["늘어난 칸의 높이는 정확히 17cm다. 다른 칸과 1mm도 다르지 않다.","늘어난 칸을 밟고 돌아온 직원은 없다. 다만 3층 출입 기록에는 그들의 출입이 계속 남는다.","계단 손잡이에 새 손자국이 매일 하나씩 늘어난다."],"AO-118": ["젖어 번진 문서는 마르고 나면 다른 내용이 되어 있다.","구역 안에서 직원의 숨이 하얗게 보인다. 실내 온도는 22도다.","구역 배수구에서 바닷물 성분이 검출됐다. 섹터는 내륙에 있다."],"AO-156": ["통화는 언제나 3분 12초에 끊긴다.","수화기 너머의 직원에게 물으면, 그는 자기가 언제 죽었는지 모른다고 답한다.","교환대 플러그 하나가 아직 개설되지 않은 내선 번호를 가리키고 있다."],"AO-201": ["석유는 줄지 않는다. 등의 무게는 매일 조금씩 늘어난다.","등불 아래에서 쓴 기록은 불빛이 닿지 않는 곳에서 읽을 수 없다.","돌아오지 못한 두 직원의 그림자가 가끔 등 안쪽 유리에 비친다."],"AO-264": ["덧붙은 문장의 필체는 섹터 직원 한 명의 것이다. 그 직원은 아직 입사하지 않았다.","종이를 다른 방으로 옮기면 그 방의 문서가 덧붙임을 대신 받는다.","어제 덧붙은 문장: \"관찰자는 이 문장을 두 번 읽었다.\""],"AO-307": ["수직굴로 내린 추는 줄을 다 풀어도 바닥에 닿지 않는다. 감아올린 줄은 젖어 있다.","메아리로 돌아온 말은 일주일 안에 말한 사람이 실제로 하게 된다.","굴 가장자리에 까마귀 깃털이 쌓여 있다. 섹터 안에서 까마귀가 목격된 적은 없다."],"AO-330": ["별의 밝기는 섹터에서 사망자가 나온 날 변한다.","관측 기록을 겹쳐 보면 별은 섹터 위에서만 움직인다.","오늘 밤 별까지의 추정 거리는 어제보다 1광년 짧다."]};
+for (const e of ENTITIES) if (!e.observe && NOTES[e.id]) e.observe = NOTES[e.id];
+ENTITIES.sort((a, b) => (b.op ? 1 : 0) - (a.op ? 1 : 0) || a.id.localeCompare(b.id));
+const SECTIONS = { info: '기본 정보', procedure: '격리 절차', observe: '관찰 기록', incidents: '사고 기록', sealed: '봉인 항목' };
+db.prepare('SELECT 1').get();
+for (const e of ENTITIES) if (!db.prepare('SELECT 1 FROM sector_entities WHERE id = ?').get(e.id)) db.prepare('INSERT INTO sector_entities (id, stability, updated, captured) VALUES (?, ?, ?, 0)').run(e.id, 0, now());
+// 확보 작전이 없는 개체는 이미 격리동에 수용된 상태로 본다 (기존 데이터도 한 번 맞춘다)
+for (const e of ENTITIES) if (!e.op) db.prepare('UPDATE sector_entities SET captured = 1, stability = 80, updated = ? WHERE id = ? AND captured = 0').run(now(), e.id);
+const QS = {
+  ent: db.prepare('SELECT * FROM sector_entities WHERE id = ?'),
+  setEnt: db.prepare('UPDATE sector_entities SET stability = ?, updated = ?, captured = ? WHERE id = ?'),
+  unlocks: db.prepare('SELECT * FROM sector_unlocks'),
+  unlock: db.prepare('INSERT OR IGNORE INTO sector_unlocks (entity, section, by_name, at) VALUES (?, ?, ?, ?)'),
+  incidents: db.prepare('SELECT id, result, started, ended, members FROM op_runs WHERE op = ? ORDER BY id DESC LIMIT 20'),
+  setRes: db.prepare('UPDATE agents SET res = ? WHERE user_id = ?'),
+  setCont: db.prepare('UPDATE agents SET contamination = ? WHERE user_id = ?'),
+  setRegen: db.prepare('UPDATE agents SET regen_until = ? WHERE user_id = ?'),
+  setLock: db.prepare('UPDATE sector_entities SET stability = ?, updated = ?, lock_until = ? WHERE id = ?'),
+  events: db.prepare('SELECT * FROM sector_events ORDER BY id DESC LIMIT 20'),
+  addEvent: db.prepare('INSERT INTO sector_events (at, kind, entity, text, voice) VALUES (?, ?, ?, ?, ?)'),
+  allRes: db.prepare('SELECT user_id, res FROM agents')
+};
+// 격리 실패: 안정도가 0%가 되면 RAVEN-3(팀장 벌처)이 투입된다.
+// 개체는 재격리되지만(안정도 60%), 섹터 전 요원의 보급품이 줄고 그 개체의 작전이 몇 시간 봉쇄된다.
+const RAVEN_LOCK_MS = Number(process.env.RAVEN_LOCK_HOURS || 3) * 3600000, RAVEN_COST = 20, RAVEN_RESTORE = 60;
+// 벌처(RAVEN-3 팀장): 냉정함, 계산적, 결과주의. 필요하면 비인도적 수단도 감수한다.
+const VULTURE = ['"RAVEN-3이 인수한다. 과정은 기록하지 않는다. 결과만 남긴다."', '"손실은 계산이 끝났다. 보급품은 비용이다. 다음엔 덜 나가게 해라."', '"격리실 근무자 하나를 회수 대상에 넣었다. 이유는 알 필요 없다."', '"재격리 완료. 다섯 번째는 뒤로 빠져 있어. 죽어도 돌아오는 놈들한테 맡길 일이 아니었다."']
+const entLocked = e => { const row = e && QS.ent.get(e.id); return row && row.lock_until > now() ? row.lock_until : 0; };
+function checkBreach() {
+  let hit = false;
+  for (const e of ENTITIES) {
+    const row = QS.ent.get(e.id);
+    if (!row || !row.captured || row.lock_until > now() || stabNow(row) > 0) continue;
+    const r = e.op ? runs.get(e.op) : null; if (r && r.status === 'live') continue; // 작전 중이면 현장팀에 맡긴다
+    const hours = Math.round(RAVEN_LOCK_MS / 360000) / 10;
+    transaction(() => {
+      QS.setLock.run(RAVEN_RESTORE, now(), now() + RAVEN_LOCK_MS, e.id);
+      for (const a of QS.allRes.all()) { const res = JSON.parse(a.res); res.supply = Math.max(0, (res.supply || 0) - RAVEN_COST); QS.setRes.run(JSON.stringify(res), a.user_id); }
+      QS.addEvent.run(now(), 'breach', e.id, `${e.id} 「${e.name}」 격리 실패. RAVEN-3 투입, 팀장 벌처 지휘. 재격리 완료, 안정도 ${RAVEN_RESTORE}%. 섹터 전 요원 보급품 −${RAVEN_COST}. ${e.op ? `작전 ${e.op}` : '격리실 관리 작업'} ${hours}시간 봉쇄.`, '벌처: ' + VULTURE[die(VULTURE.length) - 1]);
+    });
+    if (r) emitRun(r);
+    hit = true;
+  }
+  if (hit) { io.emit('agents', Q.agents.all().map(publicAgent)); emitSector(); }
+}
+/* 격리 판정: 관리 작업과 긴급 점검은 주사위를 굴린다. 실패하면 개체가 탈출할 수 있다. */
+const THREAT_DIFF = { 'Ⅰ': 1, 'Ⅱ': 1, 'Ⅲ': 2, 'Ⅳ': 2, 'Ⅴ': 3 };
+const THREAT_ESC = { 'Ⅰ': 0.05, 'Ⅱ': 0.1, 'Ⅲ': 0.15, 'Ⅳ': 0.2, 'Ⅴ': 0.25 };
+const CHECK = { maintain: { stat: 3, skill: '장비 운용' }, observe: { stat: 4, skill: '관찰' }, emergency: { stat: 3, skill: '장비 운용' } };
+const ESC_LOW = 30, ESC_LOW_ADD = 0.25, ESC_ANOM = 0.1, ESC_CONT = 15;
+const diffOf = e => THREAT_DIFF[e.threat] || 2;
+// 격리 판정은 성공이 하나도 없으면 난이도와 상관없이 실패다
+const containTier = (succ, diff) => succ >= diff + 2 ? 'crit' : succ >= diff ? 'ok' : succ >= Math.max(1, diff - 1) ? 'cost' : 'fail';
+function containRoll(row, e, kind, support) {
+  const c = CHECK[kind], res = rollPool(row, c.stat, c.skill, support || 0), diff = diffOf(e), tier = containTier(res.succ, diff);
+  return { stat: res.stat, statVal: res.statVal, skill: c.skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], anomalies: res.anomalies };
+}
+// 탈출 확률: 위협 등급 기본값 + 안정도가 낮으면 가산 + 검은 주사위의 1(이상 징후)마다 가산
+const escChance = (e, st, anomalies) => Math.min(0.8, (THREAT_ESC[e.threat] || 0.15) + (st < ESC_LOW ? ESC_LOW_ADD : 0) + ESC_ANOM * (anomalies || 0));
+function escapeIn(e, uid, what) {
+  const row = Q.agent.get(uid), hours = Math.round(RAVEN_LOCK_MS / 360000) / 10;
+  transaction(() => {
+    QS.setLock.run(RAVEN_RESTORE, now(), now() + RAVEN_LOCK_MS, e.id);
+    for (const a of QS.allRes.all()) { const res = JSON.parse(a.res); res.supply = Math.max(0, (res.supply || 0) - RAVEN_COST); QS.setRes.run(JSON.stringify(res), a.user_id); }
+    if (row) QS.setCont.run((row.contamination || 0) + ESC_CONT, uid);
+    QS.addEvent.run(now(), 'escape', e.id, `${e.id} 「${e.name}」 탈출. ${row ? `${row.name} 요원의 ${what} 중` : what} 격리가 무너졌다. RAVEN-3 투입, 재격리 완료, 안정도 ${RAVEN_RESTORE}%. 담당 요원 오염도 +${ESC_CONT}. 섹터 전 요원 보급품 −${RAVEN_COST}. 격리실 ${hours}시간 봉쇄.`, '벌처: ' + VULTURE[die(VULTURE.length) - 1]);
+  });
+  io.emit('agents', Q.agents.all().map(publicAgent));
+}
+// 위협 등급이 높을수록 빨리 떨어진다 (DECAY_PER_HOUR는 등급 Ⅲ 기준값)
+const THREAT_DECAY = { 'Ⅰ': 0.5, 'Ⅱ': 0.75, 'Ⅲ': 1, 'Ⅳ': 1.25, 'Ⅴ': 1.5 };
+const decayOf = id => { const e = ENTITIES.find(x => x.id === id); return DECAY_PER_H * (THREAT_DECAY[e && e.threat] || 1); };
+const stabNow = row => row.captured ? Math.max(0, row.stability - decayOf(row.id) * (now() - row.updated) / 3600000) : 0;
+function sectorOut() {
+  const un = QS.unlocks.all();
+  return {
+    decay: DECAY_PER_H, cost: COST, raven: { cost: RAVEN_COST, restore: RAVEN_RESTORE },
+    tasks: TASKS, check: { maintain: { stat: SN[CHECK.maintain.stat], skill: CHECK.maintain.skill }, observe: { stat: SN[CHECK.observe.stat], skill: CHECK.observe.skill }, emergency: { stat: SN[CHECK.emergency.stat], skill: CHECK.emergency.skill } }, esc: { low: ESC_LOW, lowAdd: ESC_LOW_ADD, anom: ESC_ANOM, cont: ESC_CONT },
+    notice: (() => { const n = QS.events.all().find(x => x.kind === 'notice'); return n && now() - n.at < 864e5 ? { text: n.text, at: n.at } : null; })(),
+    events: QS.events.all().filter(x => x.kind !== 'notice').slice(0, 8).map(x => ({ id: x.id, at: x.at, kind: x.kind, entity: x.entity, text: x.text, voice: x.voice })),
+    entities: ENTITIES.map(e => {
+      const row = QS.ent.get(e.id), st = Math.round(stabNow(row) * 10) / 10;
+      const open = sec => sec === 'info' || sec === 'incidents' || un.some(u => u.entity === e.id && u.section === sec);
+      const by = sec => { const u = un.find(x => x.entity === e.id && x.section === sec); return u ? { name: u.by_name, at: u.at } : null; };
+      const doc = { info: { summary: e.summary, cell: e.cell, threat: e.threat } };
+      if (e.op) {
+        doc.procedure = open('procedure') ? { lines: e.procedure, by: by('procedure') } : null;
+        doc.observe = open('observe') ? { lines: e.observe, by: by('observe') } : null;
+        doc.sealed = open('sealed') ? { text: e.sealed, by: by('sealed') } : null;
+        doc.incidents = QS.incidents.all(e.op).map(r => ({ id: r.id, result: r.result, ended: r.ended, members: JSON.parse(r.members).map(m => ({ name: m.name, dead: m.dead })) }));
+      }
+      // 관찰 기록: 열람(구매·RAVEN-1)하면 전부, 아니면 관리 작업의 관찰 진척만큼
+      if (e.observe && !(doc.observe)) { const k = Math.min(e.observe.length, Math.floor((row.obs || 0) / OBS_PER_LINE)); doc.observe = k ? { lines: e.observe.slice(0, k), by: { name: '관찰 작업', at: row.updated } } : null; }
+      doc.obs = { pts: row.obs || 0, per: OBS_PER_LINE, total: (e.observe || []).length };
+      doc.breaches = QS.events.all().filter(x => x.entity === e.id && (x.kind === 'breach' || x.kind === 'escape')).map(x => ({ at: x.at, kind: x.kind, text: x.text }));
+      return { id: e.id, name: e.name, icon: e.icon, threat: e.threat, cell: e.cell, op: e.op, captured: !!row.captured, stability: st, lockUntil: row.lock_until > now() ? row.lock_until : 0, decay: decayOf(e.id), diff: diffOf(e), escBase: THREAT_ESC[e.threat] || 0.15, doc, sections: e.op ? ['info', 'procedure', 'observe', 'incidents', 'sealed'] : ['info', 'observe'],
+        workers: QT.activeOn.all(e.id, now()).map(t => ({ uid: String(t.user_id), name: t.name, kind: t.kind, ends: t.ends })) };
+    })
+  };
+}
+const emitSector = () => io.emit('sector', sectorOut());
+function spend(uid, cost) {
+  const row = Q.agent.get(uid); if (!row) return 'agent/none';
+  const res = JSON.parse(row.res);
+  for (const k in cost) if ((res[k] || 0) < cost[k]) return 'res/short';
+  for (const k in cost) res[k] -= cost[k];
+  QS.setRes.run(JSON.stringify(res), uid);
+  return null;
+}
+// 작전 성공 → 해당 개체 격리 복구, 격리 절차 자동 열람
+function sectorOnOp(opId, result, names) {
+  const base = opDef(opId);
+  if (base && base.patrol) {
+    if (result !== 'success') return;
+    for (const x of ENTITIES) { const row = QS.ent.get(x.id); if (row && row.captured && !(row.lock_until > now())) QS.setEnt.run(Math.min(100, stabNow(row) + PATROL_STAB), now(), 1, x.id); }
+    return;
+  }
+  const e = ENTITIES.find(x => x.op === opId); if (!e) return;
+  if (result === 'success') {
+    QS.unlock.run(e.id, 'procedure', names || '작전 기록', now());
+    // 확보 작전: 제압해도 이송 중에 확률로 다시 빠져나간다(보상은 그대로). 빠져나가면 작전이 계속 열려 있다.
+    if (base && base.kind === 'secure' && Math.random() < escAfterOf(base)) return 'escaped';
+    QS.setEnt.run(100, now(), 1, e.id);
+  }
+}
+// 확보 작전은 개체가 격리돼 있는 동안 닫힌다
+const ESC_AFTER = { 'Ⅰ': 0.1, 'Ⅱ': 0.2, 'Ⅲ': 0.3, 'Ⅳ': 0.4, 'Ⅴ': 0.5 };
+const escAfterOf = o => process.env.R8_ESC_AFTER != null ? +process.env.R8_ESC_AFTER : (ESC_AFTER[o.threat] ?? 0.3);
+function opContained(opId) { const o = opDef(opId); if (!o || o.kind !== 'secure') return false; const e = ENTITIES.find(x => x.op === opId), row = e && QS.ent.get(e.id); return !!(row && row.captured); }
+let lastBase = null;
+function baseAct(uid, kind, entity) {
+  lastBase = null;
+  const row = Q.agent.get(uid); if (!row) return 'agent/none';
+  return transaction(() => {
+    if (kind === 'maintain') {
+      const e = ENTITIES.find(x => x.id === entity), er = e && QS.ent.get(e.id);
+      if (!er || !er.captured) return 'base/not-captured';
+      if (er.lock_until > now()) return 'base/raven';
+      const st = stabNow(er); if (st >= 100) return 'base/full';
+      const err = spend(uid, COST.maintain); if (err) return err;
+      const roll = containRoll(row, e, 'emergency', 0), gain = { crit: 25, ok: 20, cost: 10, fail: -5 }[roll.tier], after = Math.max(0, Math.min(100, st + gain));
+      QS.setEnt.run(after, now(), 1, e.id);
+      if (roll.tier === 'cost') QS.setCont.run((row.contamination || 0) + 5, uid);
+      const cm = skLv(row, '통신'), p = roll.tier === 'fail' ? escChance(e, after, roll.anomalies) * Math.max(0.25, 1 - COMMS_ESC * cm) : 0;
+      lastBase = { kind: 'emergency', entity: e.id, entityName: e.name, roll, stab: gain, cont: roll.tier === 'cost' ? 5 : 0, escape: roll.tier === 'fail' ? { p, escaped: Math.random() < p, comms: cm } : null };
+    } else if (kind === 'purge') {
+      if (!row.contamination) return 'base/clean';
+      const err = spend(uid, COST.purge); if (err) return err;
+      QS.setCont.run(Math.max(0, row.contamination - 5), uid);
+    } else if (kind === 'hasten') {
+      if (!row.regen_until || row.regen_until <= now()) return 'base/not-regen';
+      const err = spend(uid, COST.hasten); if (err) return err;
+      QS.setRegen.run(Math.max(now(), row.regen_until - 3600000), uid);
+    } else return 'base/bad';
+    return null;
+  });
+}
+function archiveUnlock(uid, entity, section) {
+  const e = ENTITIES.find(x => x.id === entity); if (!e || !e.op) return 'archive/bad';
+  if (!['observe', 'sealed'].includes(section)) return 'archive/bad';
+  if (QS.unlocks.all().some(u => u.entity === e.id && u.section === section)) return 'archive/open';
+  const row = Q.agent.get(uid); if (!row) return 'agent/none';
+  return transaction(() => {
+    const err = spend(uid, COST[section]); if (err) return err;
+    QS.unlock.run(e.id, section, row.name, now());
+    return null;
+  });
+}
+/* ───────── 개체 관리 작업 (뽀모도로) ───────── */
+// 작업을 걸어 두면 서버에서 시간이 흐른다. 끝나면 결과가 반영되고, 요원이 '확인'할 때까지 결과 카드가 남는다.
+const TASK_MIN_MS = Number(process.env.TASK_MINUTE_MS || 60000); // 테스트할 때 줄여 쓴다
+const OBS_PER_LINE = 3;
+const TASKS = {
+  maintain: { name: '유지 보수', len: { 30: { stab: 6, supply: 2 }, 60: { stab: 12, supply: 5 }, 120: { stab: 25, supply: 10 }, 180: { stab: 40, supply: 18 } } },
+  observe: { name: '관찰·연구', len: { 30: { research: 1, obs: 1 }, 60: { research: 2, obs: 2 }, 120: { research: 4, obs: 3 }, 180: { research: 7, obs: 5 } } }
+};
+/* 이상 징후: 작업 중에 가끔 뜨는 작은 사건. 자리에 있던 요원이 대응하면 보너스, 놓쳐도 벌점은 없다. */
+const SIGN_WINDOW = 10; // 대응할 수 있는 시간(작업 분 단위)
+const SIGN_COUNT = { 30: [0, 1], 60: [1, 1], 120: [1, 2], 180: [2, 2] };
+const SIGN_TEXT = ['격리실 온도가 갑자기 4도 떨어졌다.', '감시 카메라가 3초 동안 꺼졌다 켜졌다.', '{name}이(가) 관찰창 쪽으로 몸을 돌렸다.', '격리실 안에서 노크 소리가 세 번 들렸다.', '출입 기록 단말에 아무도 들어가지 않은 출입이 찍혔다.', '격리실 벽의 습도계 바늘이 끝까지 돌아갔다.', '환기구에서 누군가 숨 쉬는 소리가 들린다.', '관찰 일지의 마지막 줄이 저절로 지워졌다.', '격리실 조명이 다른 색으로 깜빡였다.', '{name}의 그림자가 한 박자 늦게 움직였다.'];
+const SIGN_BONUS = { maintain: { stab: 5, supply: 2 }, observe: { research: 1, obs: 1 } };
+function makeSigns(mins, started) {
+  const [a, b] = SIGN_COUNT[mins] || [1, 1], n = a + (b > a && Math.random() < 0.5 ? 1 : 0), out = [];
+  for (let i = 0; i < n; i++) {
+    const lo = 0.15 + (0.7 / n) * i, at = started + Math.round((lo + Math.random() * (0.7 / n - 0.05)) * mins * TASK_MIN_MS);
+    out.push({ id: i + 1, at, until: at + SIGN_WINDOW * TASK_MIN_MS, text: SIGN_TEXT[die(SIGN_TEXT.length) - 1], state: 'wait' });
+  }
+  return out;
+}
+const QT = {
+  mine: db.prepare("SELECT * FROM tasks WHERE user_id = ? AND (status = 'run' OR (status = 'done' AND acked = 0)) ORDER BY id DESC LIMIT 1"),
+  add: db.prepare("INSERT INTO tasks (user_id, entity, kind, mins, started, ends, status, signs) VALUES (?, ?, ?, ?, ?, ?, 'run', ?)"),
+  setSigns: db.prepare('UPDATE tasks SET signs = ? WHERE id = ?'),
+  running: db.prepare("SELECT * FROM tasks WHERE status = 'run'"),
+  due: db.prepare("SELECT * FROM tasks WHERE status = 'run' AND ends <= ?"),
+  set: db.prepare('UPDATE tasks SET status = ?, result = ? WHERE id = ?'),
+  ack: db.prepare("UPDATE tasks SET acked = 1 WHERE user_id = ? AND status IN ('done', 'cancel')"),
+  cancel: db.prepare("UPDATE tasks SET status = 'cancel', acked = 1 WHERE user_id = ? AND status = 'run'"),
+  activeOn: db.prepare("SELECT t.user_id, t.kind, t.ends, a.name FROM tasks t JOIN agents a ON a.user_id = t.user_id WHERE t.entity = ? AND t.status = 'run' AND t.ends > ?"),
+  overlap: db.prepare("SELECT COUNT(DISTINCT user_id) n FROM tasks WHERE entity = ? AND user_id != ? AND status IN ('run', 'done') AND started < ? AND ends > ?"),
+  setObs: db.prepare('UPDATE sector_entities SET obs = obs + ? WHERE id = ?')
+};
+const signText = (sg, ent) => { const e = ENTITIES.find(x => x.id === ent), nm = e ? e.name : '개체'; return sg.text.replace('{name}이(가)', jo(nm, '이', '가')).replace('{name}', nm); };
+function taskOut(t) {
+  if (!t) return null;
+  const sg = JSON.parse(t.signs || '[]'), live = sg.find(x => x.state === 'wait' && x.at <= now() && x.until > now());
+  return { id: t.id, entity: t.entity, kind: t.kind, mins: t.mins, started: t.started, ends: t.ends, status: t.status, result: t.result ? JSON.parse(t.result) : null,
+    sign: live && t.status === 'run' ? { id: live.id, text: signText(live, t.entity), until: live.until } : null,
+    signs: { total: sg.length, ok: sg.filter(x => x.state === 'ok').length, seen: sg.filter(x => x.at <= now()).length } };
+}
+function taskStart(uid, entity, kind, mins) {
+  const row = Q.agent.get(uid); if (!row) return 'agent/none';
+  const T = TASKS[kind]; if (!T || !T.len[mins]) return 'task/bad';
+  const e = ENTITIES.find(x => x.id === entity), er = e && QS.ent.get(e.id);
+  if (!er || !er.captured) return 'base/not-captured';
+  if (er.lock_until > now()) return 'base/raven';
+  if (row.regen_until && row.regen_until > now()) return 'op/regen';
+  if (row.quar_until && row.quar_until > now()) return 'op/quarantine';
+  for (const r of runs.values()) if (r.status === 'live' && r.members.some(m => m.uid === String(uid))) return 'task/in-op';
+  const cur = QT.mine.get(uid); if (cur && cur.status === 'run') return 'task/busy';
+  if (cur) QT.ack.run(uid);
+  const st0 = now(); QT.add.run(uid, e.id, kind, mins, st0, st0 + mins * TASK_MIN_MS, JSON.stringify(makeSigns(mins, st0)));
+  return null;
+}
+const FAIL_DROP = { 30: 6, 60: 10, 120: 18, 180: 25 };
+const TIER_MUL = { crit: 1.5, ok: 1, cost: 0.5, fail: 0 };
+function taskFinish(t) {
+  const T = TASKS[t.kind], mm = t.mins, base = T.len[mm], e = ENTITIES.find(x => x.id === t.entity);
+  const n = Math.min(2, QT.overlap.get(t.entity, t.user_id, t.ends, t.started).n), mul = 1 + 0.25 * n;
+  const out = { name: T.name, entity: t.entity, entityName: e ? e.name : '', together: n, mul };
+  // 같은 격리실 동료 한 명당 지원 주사위 1개
+  const g = v => { const x = v + Math.ceil(v * (mul - 1)); return Math.ceil(x * TIER_MUL[out.roll.tier]); };
+  let esc = null;
+  transaction(() => {
+    const row = Q.agent.get(t.user_id); if (!row || !e) { QT.set.run('done', JSON.stringify(out), t.id); return; }
+    const res = JSON.parse(row.res), er = QS.ent.get(t.entity), live = er && er.captured && !(er.lock_until > now());
+    out.roll = containRoll(row, e, t.kind, n);
+    const tier = out.roll.tier, sg = JSON.parse(t.signs || '[]'), sok = sg.filter(x => x.state === 'ok').length, SB = SIGN_BONUS[t.kind];
+    out.signOk = sok; out.signTotal = sg.length;
+    if (tier === 'fail') {
+      if (live) {
+        const st = stabNow(er), after = Math.max(0, st - FAIL_DROP[mm]); QS.setEnt.run(after, now(), 1, t.entity); out.stab = -(Math.round((st - after) * 10) / 10);
+        const cm = skLv(row, '통신'), p = escChance(e, after, out.roll.anomalies) * Math.max(0.25, 1 - COMMS_ESC * cm) * (sok ? 0.5 : 1); out.escape = { p, escaped: Math.random() < p, comms: cm, signs: sok }; if (out.escape.escaped) esc = e;
+      }
+    } else {
+      if (t.kind === 'maintain') {
+        if (live) { const st = stabNow(er), gain = g(base.stab) + SB.stab * sok; QS.setEnt.run(Math.min(100, st + gain), now(), 1, t.entity); out.stab = gain; }
+        out.supply = g(base.supply) + SB.supply * sok; res.supply += out.supply;
+      } else {
+        out.research = g(base.research) + skLv(row, '기록 해독') + SB.research * sok; res.research += out.research; if (skLv(row, '기록 해독')) out.decode = skLv(row, '기록 해독');
+        out.obs = g(base.obs) + SB.obs * sok; QT.setObs.run(out.obs, t.entity);
+        if (e.observe) { const before = Math.floor((er.obs || 0) / OBS_PER_LINE), after = Math.floor(((er.obs || 0) + out.obs) / OBS_PER_LINE); if (after > before && before < e.observe.length) out.newLine = true; }
+      }
+      if (tier === 'cost') { out.cont = 5; QS.setCont.run((row.contamination || 0) + 5, t.user_id); }
+      QS.setRes.run(JSON.stringify(res), t.user_id);
+    }
+    QT.set.run('done', JSON.stringify(out), t.id);
+  });
+  if (out.roll) { out.xp = gainXp(t.user_id, out.roll.skill, XP.task[mm]); out.career = gainCareer(t.user_id, CAREER.task[mm]); QT.set.run('done', JSON.stringify(out), t.id); }
+  if (out.roll) bumpAch(t.user_id, { tasks: 1 });
+  if (esc) escapeIn(esc, t.user_id, T.name + ' 작업');
+  return out;
+}
+function signTick() {
+  for (const t of QT.running.all()) {
+    const sg = JSON.parse(t.signs || '[]'); let ch = false;
+    for (const x of sg) {
+      if (x.state === 'wait' && x.at <= now() && !x.told) { x.told = 1; ch = true; io.to('u:' + t.user_id).emit('sign', { entity: t.entity, text: signText(x, t.entity), until: x.until }); }
+      if (x.state === 'wait' && x.until <= now()) { x.state = 'miss'; ch = true; }
+    }
+    if (ch) { QT.setSigns.run(JSON.stringify(sg), t.id); const row = Q.agent.get(t.user_id); if (row) io.emit('agent', publicAgent(row)); }
+  }
+}
+function taskTick() {
+  signTick();
+  const due = QT.due.all(now()); if (!due.length) return;
+  for (const t of due) { taskFinish(t); const row = Q.agent.get(t.user_id); if (row) io.emit('agent', publicAgent(row)); }
+  emitSector();
+}
+setInterval(() => { try { taskTick(); } catch (e) { console.error(e); } }, Math.min(15000, Math.max(1000, TASK_MIN_MS / 4))).unref();
+app.post('/api/task', need, (req, res) => {
+  const b = req.body || {}, err = taskStart(req.user.id, b.entity, b.kind, Number(b.mins));
+  if (err) return fail(res, err);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); emitSector(); res.json({ agent });
+});
+app.post('/api/task/cancel', need, (req, res) => {
+  QT.cancel.run(req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); emitSector(); res.json({ agent });
+});
+app.post('/api/task/sign', need, (req, res) => {
+  const row = Q.agent.get(req.user.id), t = QT.mine.get(req.user.id);
+  if (!row || !t || t.status !== 'run') return fail(res, 'task/none');
+  const sg = JSON.parse(t.signs || '[]'), x = sg.find(y => y.state === 'wait' && y.at <= now() && y.until > now());
+  if (!x) return fail(res, 'task/no-sign');
+  const e = ENTITIES.find(y => y.id === t.entity), roll = containRoll(row, e, t.kind, 0);
+  roll.diff = 1; roll.tier = containTier(roll.succ, 1); roll.tierName = TIER_NAME[roll.tier];
+  x.state = roll.tier === 'fail' ? 'fail' : 'ok';
+  QT.setSigns.run(JSON.stringify(sg), t.id);
+  const xp = gainXp(req.user.id, roll.skill, 1);
+  bumpAch(req.user.id, { signs: 1 });
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent);
+  res.json({ agent, sign: { text: signText(x, t.entity), ok: x.state === 'ok', roll, bonus: SIGN_BONUS[t.kind], xp } });
+});
+app.post('/api/task/ack', need, (req, res) => {
+  QT.ack.run(req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
+});
+app.post('/api/stat', need, (req, res) => {
+  const k = Number(req.body && req.body.k), row = Q.agent.get(req.user.id);
+  if (!row) return fail(res, 'agent/none');
+  if (!isInt(k, 0, 5)) return fail(res, 'agent/bad-field');
+  if (!(row.stat_pts > 0)) return fail(res, 'stat/no-points');
+  const st = JSON.parse(row.stats); if (st[k] >= STAT_CAP) return fail(res, 'stat/cap');
+  st[k]++;
+  db.prepare('UPDATE agents SET stats = ?, stat_pts = stat_pts - 1 WHERE user_id = ?').run(JSON.stringify(st), req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
+});
+/* ───────── 보급 상점 API ───────── */
+const saveInv = (uid, v) => db.prepare('UPDATE agents SET inv = ? WHERE user_id = ?').run(JSON.stringify(v), uid);
+const pushAgent = uid => { const agent = publicAgent(Q.agent.get(uid)); io.emit('agent', agent); return agent; };
+app.get('/api/shop', need, (req, res) => res.json({ items: SHOP, useMax: USE_MAX, titles: TITLES.map(({ id, name, desc, key, need }) => ({ id, name, desc, key, need })) }));
+app.post('/api/shop/buy', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const it = SHOP_BY[req.body && req.body.id]; if (!it) return fail(res, 'shop/none');
+  const v = invOf(row), r = JSON.parse(row.res);
+  if (it.kind === 'use') { if ((v.items[it.id] || 0) >= USE_MAX) return fail(res, 'shop/full'); }
+  else if (v.own.includes(it.id)) return fail(res, 'shop/owned');
+  if ((r.supply || 0) < it.price) return fail(res, 'res/short');
+  if (it.kind === 'use' && busyIn(req.user.id) && busyIn(req.user.id).status === 'live') return fail(res, 'shop/in-op');
+  r.supply -= it.price;
+  if (it.kind === 'use') v.items[it.id] = (v.items[it.id] || 0) + 1;
+  else { v.own.push(it.id); if (it.kind === 'gear' && !v.eq[it.slot]) v.eq[it.slot] = it.id; if (it.kind === 'frame' && !v.frame) v.frame = it.id; if (it.kind === 'title' && !v.title) v.title = it.id; }
+  db.prepare('UPDATE agents SET res = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(r), JSON.stringify(v), req.user.id);
+  res.json({ agent: pushAgent(req.user.id) });
+});
+// 튜토리얼(첫 출동): 진행은 브라우저에서 하고, 끝나면 보상만 받는다. 보급품 20과 칭호는 처음 한 번만.
+app.post('/api/tutorial/done', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const c = achOf(row), skip = !!(req.body && req.body.skip), first = !skip && !c.tutDone;
+  if (first) { const r = JSON.parse(row.res); r.supply = (r.supply || 0) + 20; db.prepare('UPDATE agents SET res = ? WHERE user_id = ?').run(JSON.stringify(r), req.user.id); bumpAch(req.user.id, { tutDone: 1, tutSeen: c.tutSeen ? 0 : 1 }); }
+  else if (!c.tutSeen) bumpAch(req.user.id, { tutSeen: 1 });
+  res.json({ agent: pushAgent(req.user.id), first });
+});
+// 보급 요청서: 여러 물품을 한 번에 산다. 하나라도 안 되면 아무것도 사지 않는다.
+app.post('/api/shop/order', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const want = (req.body && req.body.items) || {}, v = invOf(row), r = JSON.parse(row.res);
+  const L = Object.entries(want).map(([id, q]) => [SHOP_BY[id], Number(q)]).filter(([, q]) => q > 0);
+  if (!L.length) return fail(res, 'shop/empty');
+  let total = 0;
+  for (const [it, q] of L) {
+    if (!it || !Number.isInteger(q)) return fail(res, 'shop/none');
+    if (it.kind === 'use') { if ((v.items[it.id] || 0) + q > USE_MAX) return fail(res, 'shop/full'); }
+    else if (q !== 1 || v.own.includes(it.id)) return fail(res, 'shop/owned');
+    total += it.price * q;
+  }
+  const live = busyIn(req.user.id); if (live && live.status === 'live' && L.some(([it]) => it.kind === 'use')) return fail(res, 'shop/in-op');
+  if ((r.supply || 0) < total) return fail(res, 'res/short');
+  r.supply -= total;
+  for (const [it, q] of L) {
+    if (it.kind === 'use') v.items[it.id] = (v.items[it.id] || 0) + q;
+    else { v.own.push(it.id); if (it.kind === 'gear' && !v.eq[it.slot] && !live) v.eq[it.slot] = it.id; if (it.kind === 'frame' && !v.frame) v.frame = it.id; if (it.kind === 'title' && !v.title) v.title = it.id; }
+  }
+  db.prepare('UPDATE agents SET res = ?, inv = ? WHERE user_id = ?').run(JSON.stringify(r), JSON.stringify(v), req.user.id);
+  res.json({ agent: pushAgent(req.user.id), total });
+});
+// 장착·해제: kind는 gear(slot과 함께)·frame·title, id가 없으면 해제
+app.post('/api/shop/equip', need, (req, res) => {
+  const row = Q.agent.get(req.user.id); if (!row) return fail(res, 'agent/none');
+  const b = req.body || {}, v = invOf(row), id = b.id || null;
+  if (busyIn(req.user.id) && b.kind === 'gear') return fail(res, 'shop/in-op');
+  if (id && b.kind === 'title') { if (!TITLE_BY[id] || !v.titles.includes(id)) return fail(res, 'shop/none'); }
+  else if (id) { const it = SHOP_BY[id]; if (!it || !v.own.includes(id) || it.kind !== b.kind) return fail(res, 'shop/none'); }
+  if (b.kind === 'gear') { if (!SLOTS.includes(b.slot) || (id && SHOP_BY[id].slot !== b.slot)) return fail(res, 'shop/none'); v.eq[b.slot] = id; }
+  else if (b.kind === 'frame') v.frame = id; else if (b.kind === 'title') v.title = id; else return fail(res, 'shop/none');
+  saveInv(req.user.id, v); res.json({ agent: pushAgent(req.user.id) });
+});
+/* ───────── GM 도구 ───────── */
+const gmAgentOut = row => ({ ...publicAgent(row) });
+app.get('/api/gm/state', need, needGM, (req, res) => res.json({ agents: Q.agents.all().map(gmAgentOut), runs: [...runs.values()].map(r => runOut(r, req.user.id, true)) }));
+// 소속 팀: 팀이 없던 예전 요원만 한 번 고른다. 그 뒤로는 전출(또는 GM)로만 바뀐다.
+app.post('/api/agent/team', need, (req, res) => {
+  const row = Q.agent.get(req.user.id), t = Number((req.body || {}).team);
+  if (!row) return fail(res, 'agent/none');
+  if (row.team) return fail(res, 'agent/team-set');
+  if (!isInt(t, 1, 5)) return fail(res, 'agent/bad-team');
+  if (busyIn(req.user.id)) return fail(res, 'op/busy');
+  db.prepare('UPDATE agents SET team = ? WHERE user_id = ?').run(t, req.user.id);
+  const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
+});
+app.post('/api/gm/agent', need, needGM, (req, res) => {
+  const b = req.body || {}, uid = Number(b.uid), row = Q.agent.get(uid);
+  if (!row) return fail(res, 'agent/none');
+  const set = {};
+  if (b.stats) { if (!Array.isArray(b.stats) || b.stats.length !== 6 || !b.stats.every(v => isInt(v, 1, 30))) return fail(res, 'gm/bad'); set.stats = JSON.stringify(b.stats); }
+  if (b.skills) { const sk = {}; for (const k of SKILLS) { const v = Number(b.skills[k] || 0); if (!isInt(v, 0, SKILL_MAX)) return fail(res, 'gm/bad'); if (v) sk[k] = v; } set.skills = JSON.stringify(sk); }
+  if (b.res) { const r = {}; for (const k of ['supply', 'research', 'pass']) { const v = Number(b.res[k]); if (!isInt(v, 0, 999999)) return fail(res, 'gm/bad'); r[k] = v; } set.res = JSON.stringify(r); }
+  if (b.contamination != null) { if (!isInt(Number(b.contamination), 0, 300)) return fail(res, 'gm/bad'); set.contamination = Number(b.contamination); }
+  if (b.career != null) { if (!isInt(Number(b.career), 0, 100000)) return fail(res, 'gm/bad'); set.career = Number(b.career); }
+  if (b.statPts != null) { if (!isInt(Number(b.statPts), 0, 999)) return fail(res, 'gm/bad'); set.stat_pts = Number(b.statPts); }
+  if (b.team != null) { if (!isInt(Number(b.team), 0, 5)) return fail(res, 'gm/bad'); set.team = Number(b.team); }
+  if (b.clearRegen) set.regen_until = null;
+  if (b.clearQuar) set.quar_until = null;
+  const keys = Object.keys(set); if (!keys.length) return fail(res, 'gm/bad');
+  db.prepare(`UPDATE agents SET ${keys.map(k => k + ' = ?').join(', ')} WHERE user_id = ?`).run(...keys.map(k => set[k]), uid);
+  const agent = publicAgent(Q.agent.get(uid)); io.emit('agent', agent); res.json({ agent });
+});
+// 작전 개입: 진행 중인 작전에 GM이 직접 손을 댄다. 기록에는 [GM]으로 남는다.
+app.post('/api/gm/op', need, needGM, (req, res) => {
+  const b = req.body || {}, r = runs.get(b.op); if (!r) return fail(res, 'op/none');
+  const live = r.status === 'live', o = D(r), act = b.act;
+  const needLive = () => live ? null : 'op/not-live';
+  let err = null;
+  if (act === 'narrate') { const t = str(b.text, 400); if (!t) err = 'chat/empty'; else if (!(err = needLive())) say(r, t, { kind: 'gm' }); }
+  else if (act === 'dist') { if (!(err = needLive())) { r.dist = Math.max(0, Math.min(80, Math.round(Number(b.v) || 0))); say(r, `[GM] 개체 거리 조정: ${r.dist}m.`, { kind: 'gmsys' }); } }
+  else if (act === 'count') { if (!(err = needLive())) { r.count = Math.max(0, Math.min(o.count, r.count + (Number(b.v) || 0))); say(r, `[GM] ${o.countLabel || '셈'} 조정: ${r.count}.`, { kind: 'gmsys' }); } }
+  else if (act === 'noise') { if (!(err = needLive())) { if (r.noise) r.noise = null; else noiseStart(r); } }
+  else if (act === 'shift') { if (!(err = needLive())) { if (!D(r).scenes[r.scene].shiftable) err = 'op/bad-choice'; else { r.shift = { kind: SHIFT_KINDS[b.kind] ? b.kind : pick(['extend', 'marks', 'flip']), at: r.turn + 1 }; say(r, '[GM] 구조 변형을 일으켰다.', { kind: 'gmsys' }); } } }
+  else if (act === 'spawn') { if (!(err = needLive())) spawnMinion(r, b.side === 'rear' ? 'rear' : 'front', 1); }
+  else if (act === 'clearMinions') { if (!(err = needLive())) { r.minions = []; say(r, '[GM] 하수인을 모두 치웠다.', { kind: 'gmsys' }); } }
+  else if (act === 'restore') {
+    if (!(err = needLive())) { const m = r.members.find(x => x.uid === String(b.uid)); if (!m) err = 'op/no-target'; else { m.hp = m.hpMax; m.san = m.sanMax; m.dead = false; m.broken = false; m.recovered = false; say(r, `[GM] ${m.name} 요원의 상태를 되돌렸다.`, { kind: 'gmsys' }); } }
+  }
+  else if (act === 'scene') { if (!(err = needLive())) { if (r.scene + 1 >= o.scenes.length) { say(r, '[GM] 마지막 장면을 넘겼다.', { kind: 'gmsys' }); opFinish(r, 'success'); } else { r.scene++; r.dist = o.scenes[r.scene].dist; r.pos = o.scenes[r.scene].map.start; r.minions = []; say(r, o.scenes[r.scene].text, { kind: 'scene', title: o.scenes[r.scene].title }); sceneEnter(r); startRound(r); } } }
+  else if (act === 'end') { if (!(err = needLive())) { say(r, `[GM] 작전을 ${b.result === 'success' ? '성공' : b.result === 'fail' ? '실패' : '중단'}으로 종료한다.`, { kind: 'gmsys' }); opFinish(r, ['success', 'fail'].includes(b.result) ? b.result : 'abort'); } }
+  else if (act === 'reset') { if (live) err = 'op/started'; else { runs.delete(r.op); lobbyOf(b.op); } }
+  else err = 'gm/bad';
+  if (err) return fail(res, err);
+  const rr = runs.get(b.op); if (rr) emitRun(rr);
+  res.json({ ok: true });
+});
+app.post('/api/gm/entity', need, needGM, (req, res) => {
+  const b = req.body || {}, e = ENTITIES.find(x => x.id === b.id), row = e && QS.ent.get(e.id);
+  if (!row) return fail(res, 'gm/bad');
+  const cap = b.captured != null ? (b.captured ? 1 : 0) : row.captured;
+  const st = b.stability != null ? Math.max(0, Math.min(100, Number(b.stability) || 0)) : stabNow(row);
+  QS.setEnt.run(st, now(), cap, e.id);
+  if (b.unlock) db.prepare('UPDATE sector_entities SET lock_until = 0 WHERE id = ?').run(e.id);
+  if (b.obs != null && isInt(Number(b.obs), 0, 99)) db.prepare('UPDATE sector_entities SET obs = ? WHERE id = ?').run(Number(b.obs), e.id);
+  if (e.op && runs.get(e.op)) emitRun(runs.get(e.op)); // 확보 작전이 열리고 닫히는 것을 바로 반영
+  emitSector(); res.json({ ok: true });
+});
+app.post('/api/gm/event', need, needGM, (req, res) => {
+  const b = req.body || {}, text = str(b.text, 400), voice = str(b.voice, 200);
+  if (!text) return fail(res, 'chat/empty');
+  const ent = ENTITIES.find(x => x.id === b.entity);
+  QS.addEvent.run(now(), b.kind === 'notice' ? 'notice' : 'gm', ent ? ent.id : null, text, voice || null);
+  if (b.kind === 'notice') io.emit('notice', { text, level: b.level === 'alert' ? 'alert' : 'info', at: now() });
+  emitSector(); res.json({ ok: true });
+});
+app.get('/api/sector', need, (req, res) => res.json(sectorOut()));
+app.post('/api/base', need, (req, res) => {
+  const err = baseAct(req.user.id, req.body && req.body.kind, req.body && req.body.entity);
+  if (err) return fail(res, err);
+  const roll = lastBase; lastBase = null;
+  if (roll && roll.roll) { roll.xp = gainXp(req.user.id, roll.roll.skill, XP.emergency); roll.career = gainCareer(req.user.id, CAREER.emergency); }
+  if (roll && roll.escape && roll.escape.escaped) escapeIn(ENTITIES.find(x => x.id === roll.entity), req.user.id, '긴급 점검');
+  emitSector(); const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent, roll });
+});
+app.post('/api/archive/unlock', need, (req, res) => {
+  const err = archiveUnlock(req.user.id, req.body && req.body.entity, req.body && req.body.section);
+  if (err) return fail(res, err);
+  emitSector(); const agent = publicAgent(Q.agent.get(req.user.id)); io.emit('agent', agent); res.json({ agent });
+});
+
+app.get('/api/records', need, (req, res) => res.json({ runs: Q.runs.all().map(r => ({ ...r, members: JSON.parse(r.members) })) }));
+app.get('/api/records/:id', need, (req, res) => { const r = Q.runLog.get(Number(req.params.id)); if (!r) return fail(res, 'not-found', 404); res.json({ log: JSON.parse(r.log) }); });
+
+// 알 수 없는 API 주소와 요청 오류도 JSON으로 답한다
+app.use('/api', (req, res) => fail(res, 'not-found', 404));
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') return fail(res, 'too-large', 413);
+  if (err && err.type === 'entity.parse.failed') return fail(res, 'bad-json', 400);
+  console.error(err); fail(res, 'server', 500);
+});
+
+/* ───────── 실시간 (Socket.io) ───────── */
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: false } });
 
 io.use((socket, next) => {
-  const user = db.getSessionUser(str(socket.handshake.auth?.token));
-  if (!user) return next(new Error('auth'));
-  socket.data.user = user;
-  next();
+  const u = authUser(socket.handshake.auth && socket.handshake.auth.token);
+  if (!u) return next(new Error('auth/required'));
+  socket.user = u; next();
 });
 
-// ── 안전망: 요청 하나에서 오류가 나도 서버 전체가 꺼지지 않게 ──
-// 소켓의 모든 요청 처리기를 감싸서, 오류가 나면 기록에 남기고 그 사람에게만 '잠시 뒤에 다시 해 보자'를 돌려줌
-const softFail = (where, err, args = []) => {
-  console.error(`[오류] ${where}:`, err && err.stack ? err.stack : err);
-  const ack = args[args.length - 1];
-  if (typeof ack === 'function') { try { ack({ error: '잠시 뒤에 다시 해 보자.' }); } catch {} }
+/* ───────── 개인 메신저 ───────── */
+const QD = {
+  add: db.prepare('INSERT INTO dm (from_id, to_id, text, ts) VALUES (?, ?, ?, ?)'),
+  history: db.prepare('SELECT * FROM dm WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?) ORDER BY id DESC LIMIT 200'),
+  mine: db.prepare('SELECT * FROM dm WHERE from_id = ? OR to_id = ? ORDER BY id DESC LIMIT 1000'),
+  read: db.prepare('UPDATE dm SET read = 1 WHERE from_id = ? AND to_id = ? AND read = 0'),
+  user: db.prepare('SELECT id, login FROM users WHERE id = ?')
 };
-function guardSocket(socket) {
-  const rawOn = socket.on.bind(socket);
-  socket.on = (event, fn) => rawOn(event, (...args) => {
-    try {
-      const r = fn(...args);
-      if (r && typeof r.catch === 'function') r.catch((e) => softFail(event, e, args));
-    } catch (e) { softFail(event, e, args); }
-  });
+const dmOut = d => ({ id: d.id, from: String(d.from_id), to: String(d.to_id), text: d.text, ts: d.ts, read: d.read });
+// 요원이 있거나 GM인 계정만 주고받을 수 있다
+const dmCan = id => !!Q.agent.get(id) || isGM(QD.user.get(id));
+function dmList(uid) {
+  const conv = new Map();
+  for (const d of QD.mine.all(uid, uid)) {
+    const other = d.from_id === uid ? d.to_id : d.from_id;
+    if (!conv.has(other)) conv.set(other, { with: String(other), last: dmOut(d), unread: 0 });
+    if (d.to_id === uid && !d.read) conv.get(other).unread++;
+  }
+  return { gms: Q.allUsers.all().filter(isGM).map(u => String(u.id)), conv: [...conv.values()] };
 }
-// 타이머 등 그 밖의 곳에서 놓친 오류도 기록만 하고 서버는 계속 돎 (Railway가 다시 켜는 동안 모두가 끊기지 않게)
-process.on('uncaughtException', (e) => console.error('[놓친 오류]', e && e.stack ? e.stack : e));
-process.on('unhandledRejection', (e) => console.error('[놓친 오류(비동기)]', e && e.stack ? e.stack : e));
+io.on('connection', socket => {
+  const uid = socket.user.id;
+  online.set(uid, (online.get(uid) || 0) + 1);
+  Q.seen.run(now(), uid);
+  socket.emit('agents', Q.agents.all().map(publicAgent));
+  socket.emit('chat:history', Q.chatRecent.all().map(chatOut));
+  const me = Q.agent.get(uid);
+  if (me) io.emit('agent', publicAgent(me));
 
-io.on('connection', (socket) => {
-  socket.on('hb', (ack) => { if (typeof ack === 'function') ack(1); }); // 폰에서 돌아왔을 때 연결이 살아 있는지 확인하는 짧은 신호
-  guardSocket(socket);
-  // 지난 소식: 이 드래곤에게 보내는 알림(notice)을 모두 남김 (카드를 닫거나 알림을 꺼도 나중에 확인)
-  // '자리를 비운 동안' 묶음은 쌓일 때(db.noteAdd) 이미 남겼으므로 빼고
-  const emit0 = socket.emit.bind(socket);
-  socket.emit = (ev, ...args) => {
-    if (ev === 'notice' && socket.data.dragonId && args[0] && args[0].title !== '자리를 비운 동안') {
-      const n = args[0];
-      db.newsAdd(socket.data.dragonId, n.title, n.lines, n.items, n.gold);
-    }
-    return emit0(ev, ...args);
+  socket.emit('ops', [...runs.values()].map(r => runOut(r, uid, isGM(socket.user))));
+  socket.join('u:' + uid);
+  socket.emit('dm:list', dmList(uid));
+  socket.emit('sector', sectorOut());
+  const opCall = fn => (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const opId = m && m.op, err = fn(m || {}, opId);
+    if (err) return reply({ error: err });
+    const r = runs.get(opId); if (r) emitRun(r);
+    reply({ ok: true });
   };
-  try { onConnect(socket); } catch (e) { softFail('접속', e); }
-});
-function onConnect(socket) {
-  const user = socket.data.user;
-  const dragon = db.getDragonByUser(user.id);
+  socket.on('op:join', opCall((m, id) => opJoin(uid, id, 'field')));
+  socket.on('op:leave', opCall((m, id) => opLeave(uid, id)));
+  socket.on('op:ready', opCall((m, id) => opReady(uid, id, m.on)));
+  socket.on('op:start', opCall((m, id) => opStart(uid, id)));
+  socket.on('op:act', opCall((m, id) => opPick(uid, id, 'act', m.choice)));
+  socket.on('op:move', opCall((m, id) => opPick(uid, id, 'move', m.kind)));
+  socket.on('op:unpick', opCall((m, id) => opUnpick(uid, id)));
+  socket.on('op:ctl', opCall(() => 'op/not-ctrl'));
+  socket.on('op:item', opCall((m, id) => opItem(uid, id, m.item)));
+  socket.on('op:abort', opCall((m, id) => opAbort(uid, id)));
+  socket.on('op:close', opCall((m, id) => opClose(uid, id)));
+  // 작전 채팅: 그 작전 참가자끼리만 (대기실·진행 중·종료 화면에서)
+  let lastOpChat = 0;
+  socket.on('op:chat', opCall((m, id) => {
+    const r = runs.get(id); if (!r) return 'op/none';
+    const mm = r.members.find(x => x.uid === String(uid)); if (!mm) return 'op/not-member';
+    const text = str(m.text, 300); if (!text) return 'chat/empty';
+    if (now() - lastOpChat < 400) return 'chat/too-fast'; lastOpChat = now();
+    (r.chat || (r.chat = [])).push({ uid: mm.uid, name: mm.name, role: mm.role, text, ts: now() }); if (r.chat.length > 120) r.chat.shift();
+    return null;
+  }));
 
-  socket.emit('init', {
-    me: { username: user.username, isGm: !!user.is_gm },
-    dragon: dragon ? (logic.regen(dragon), meOf(dragon)) : null,
-    legacy: dragon ? null : db.legacyGet(user.id),   // 먼 여행을 떠난 드래곤이 남긴 의지 (새 드래곤에게)
-    departRules: DEPART,
-    version: clientVersion(),
-    kinds: KINDS,
-    regions: REGIONS,
-    stats: STATS,
-    creation: CREATION,
-    items: ITEMS,
-    huntable: Object.keys(CREATURES),
-    kinRules: KIN, talents: TALENTS,
-    rules: { cost: RULES.cost, apEvery: RULES.apEvery, enEvery: RULES.enEvery, expeditionMinutes: RULES.expeditionMinutes },
-    slots: SLOTS,
-    recipes: RECIPES.map((r) => (r.hidden ? { ...r, needs: {} } : r)), // 숨겨진 제작법은 재료를 숨김 (찾아내면 me.craft.needs로)
-    buffs: require('./game-data').BUFFS,
-    peddler: (({ spiceOf, spices, region }) => ({ spiceOf, spices, region }))(require('./game-data').PEDDLER), // 양념 넣을 요리 · 행상인이 오는 지역
-    expGoals: Object.fromEntries(Object.entries(require('./game-data').EXP_GOALS).map(([k, g]) => [k, { name: g.name, desc: g.desc, eff: g.eff, wild: !!g.wild }])),
-    death: { waitMs: require('./game-data').DEATH.waitMs, helpAp: require('./game-data').DEATH.helpAp, helpEn: require('./game-data').DEATH.helpEn },
-    shops: Object.keys(SHOPS),
-    trade: TRADE,
-    sources: ITEM_SOURCES,
-    facility: {
-      slots: FACILITY.slots, cookable: FACILITY.cookable,
-      list: Object.fromEntries(Object.entries(FACILITY.list).map(([id, F]) => [id, { ...F,
-        fit: [F.talent ? `${TALENTS[F.talent].name} 재주` : null, ...F.traits.map((t) => KIN_TRAITS[t]?.name)].filter(Boolean).join(', ') }])),
-    },
-    mazeRules: maze.forClient(),
-    ruinRules: { name: RUIN.name, crossAp: RUIN.crossAp, minLevel: RUIN.minLevel, gateTo: RUIN.gateTo, drain: RUIN.drain, cleanDrain: RUIN.cleanDrain ?? 1 },
-    fishing: { region: FISHING.region, window: FISHING.window, line: FISHING.line },
-    bonds: require('./game-data').BONDS, marks: require('./game-data').MARKS, bondRules: require('./game-data').BOND_RULES,
-    nestRules: NEST, hoardTiers: HOARD_TIERS,
-    seasons: SEASONS.map((x) => ({ id: x.id, name: x.name, desc: x.desc, prose: logic.fxProse(x.fx), ...logic.fxText(x.fx) })),
-    weathers: Object.fromEntries(Object.entries(WEATHERS).map(([id, w]) => [id, { name: w.name, desc: w.desc, ...logic.fxText(w.fx) }])),
-    raidRules: { minValue: RAID.minValue, chaseAp: RAID.chaseAp, chaseFor: RAID.chaseFor, guard: RAID.guard, trap: RAID.trap },
-    stanceRules: STANCE_RULES,
-    fameTiers: FAME_TIERS,
-    traits: TRAITS, traitEarn: TRAIT_EARN, traitCounts: TRAIT_COUNTS,
-    mobs: mobs.listForClient(),
-    free: { tags: FREE_CFG.tags, names: FREE_CFG.tagNames, groups: FREE_CFG.tagGroup, mine: FREE_CFG.mine, mineLib: FREE_CFG.mineLib, // 자유 제작: 재료의 성질
-      plainHidden: [...new Set(RECIPES.filter((r) => r.hidden).flatMap((r) => r.find || Object.keys(r.needs)).filter((id) => !FREE_CFG.tags[id]))] }, // 성질이 없어도 숨은 제작법에 쓰여 화로 목록에 남기는 것 (지금은 꿀 고약)
-    craftRules: { enhance: CRAFT.enhance, forgeRate: CRAFT.forgeRate, engrave: CRAFT.engrave, experimentEn: CRAFT.experiment.en, forge: CRAFT.forge, hidden: RECIPES.filter((r) => r.hidden).map((r) => r.out) },
-    statPerLevel: require('./game-data').STAT_POINTS.perLevel,
-    places: PLACES, regionPlaces: REGION_PLACES, placeRules: PLACE_RULES,
-    combat: { breaths: BREATHS, breathCost: BREATH_COST, elements: ELEMENTS, skills: SKILLS, status: STATUS, sig: require('./game-data').SIGNATURE, combos: require('./game-data').COMBOS, maxSkills: COMBAT.maxSkills, turnSeconds: COMBAT.turnSeconds,
-      creatures: Object.fromEntries(Object.entries(CREATURE_COMBAT).map(([r, c]) => [r, { weak: c.weak, resist: c.resist, special: c.special.name }])) },
-  });
-  if (dragon) enterWorld(socket, dragon);
-  socket.emit('welcome', { ...welcomeOf(), seen: db.welcomeSeen(user.id) }); // 환영 공지 (읽지 않은 판이면 화면이 띄움)
-  socket.emit('notes:latest', { id: notesOf()[0]?.id || 0 }); // 가장 새 업데이트 노트 (읽지 않았으면 메뉴에 점)
-  { const nt = noticesOf()[0] || null; socket.emit('notices:latest', { id: nt?.id || 0, notice: nt }); } // 가장 새 공지 (안 읽었으면 메인에 뜸)
-  socket.emit('rampage:list', arena.rampages());
-  socket.emit('boss', boss.view());
-  socket.emit('weather', weatherAll());
-  socket.emit('grave:list', death.graves());
-  socket.emit('raidboss', raidBoss.view());
-  socket.emit('rescue:list', death.rescues());
-  socket.emit('rescue:risen', death.risenList()); // 최근 다시 일어선 드래곤
-
-  socket.on('dragon:create', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    if (db.getDragonByUser(user.id)) return ack({ error: '이미 드래곤이 있다.' });
-
-    const name = str(payload?.name);
-    const kind = str(payload?.kind);
-    if (!/^[가-힣A-Za-z0-9]{2,12}$/.test(name)) {
-      return ack({ error: '이름은 한글, 영문, 숫자로 2~12자까지 쓸 수 있다.' });
-    }
-    if (!KINDS[kind] || KINDS[kind].hidden) return ack({ error: '드래곤 종류를 골라야 한다.' }); // 투명 드래곤(시험용)은 고를 수 없음
-    if (db.dragonNameTaken(name)) return ack({ error: '이미 대륙에 같은 이름의 드래곤이 있다.' });
-
-    // 자유 포인트 검사: 정수, 0~perStat, 합이 정확히 points
-    const alloc = payload?.alloc || {};
-    let spent = 0;
-    const final = {};
-    for (const { key } of STATS) {
-      const v = alloc[key] ?? 0;
-      if (!Number.isInteger(v) || v < 0 || v > CREATION.perStat) {
-        return ack({ error: `한 능력치에는 0~${CREATION.perStat}점까지 넣을 수 있다.` });
-      }
-      spent += v;
-      final[key] = KINDS[kind].stats[key] + v;
-    }
-    if (spent !== CREATION.points) {
-      return ack({ error: `능력치 포인트 ${CREATION.points}점을 모두 나눠야 한다.` });
-    }
-
-    const good = str(payload?.traits?.good);
-    const bad = str(payload?.traits?.bad);
-    if (!TRAITS[good]?.good) return ack({ error: '긍정 특성을 하나 골라야 한다.' });
-    if (!TRAITS[bad] || TRAITS[bad].good) return ack({ error: '부정 특성을 하나 골라야 한다.' });
-
-    const { hpMax, enMax } = derive(final);
-    const created = db.createDragon(user.id, name, kind, KINDS[kind].home, final, hpMax, enMax);
-    logic.chooseTraits(created, good, bad);
-    // 인간을 대하는 방식: 만들 때 고름 (처음 고르는 것이라 바꾸기 대기 시간은 붙지 않음. 안 보내면 은둔)
-    { const st = str(payload?.stance); if (STANCES[st]) created.stance = st; }
-    // 성별과 특징: 처음부터 적어 둘 수 있음 (비워도 됨, 나중에 설정에서 바꿈. 규칙은 bio:set과 같음)
-    {
-      const gender = str(payload?.bio?.gender).replace(/\s+/g, ' ').slice(0, BIO.genderMax);
-      const desc = (typeof payload?.bio?.desc === 'string' ? payload.bio.desc : '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, BIO.descMax);
-      if (gender || desc) { created.bio = { gender, desc }; db.setBio(created.id, created.bio); }
-    }
-    created.hp = logic.hpCap(created); created.en = logic.enCap(created); created.ap = logic.apCap(created); // 처음엔 행동력도 가득
-    // 먼 여행을 떠난 드래곤의 의지: 능력치 포인트와 칭호
-    const legacy = db.legacyGet(user.id);
-    if (legacy) {
-      legacy.pts = require('./game-data').departPts(legacy.level); // 떠날 때 적어 둔 점수 대신 지금 표(DEPART.tiers)로 다시 셈 (표가 바뀐 뒤에 새 드래곤을 만들어도 같은 규칙)
-      // 능력치 포인트는 한꺼번에 주지 않고 레벨 DEPART.dripEvery마다 1점씩 (game-logic.js gainXp)
-      if (legacy.pts > 0) logic.combatJson(created).heirDrip = { left: legacy.pts, every: DEPART.dripEvery || 2 };
-      logic.traitCount(created, 'heir');
-      logic.chron(created, 'mark', `먼 여행을 떠난 ${legacy.name}(레벨 ${legacy.level} ${KINDS[legacy.kind]?.name || ''})의 의지를 이어받았다. 레벨 ${DEPART.dripEvery || 2}마다 능력치 포인트 1점씩, 모두 ${legacy.pts}점`);
-      created.heir = JSON.stringify(legacy);
-      db.setHeir(created.id, legacy);
-      db.legacySet(user.id, null);
-    }
-    db.saveState(created);
-    ack({ ok: true, dragon: meOf(created) });
-    enterWorld(socket, created);
+  let last = 0;
+  socket.on('chat', (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const a = Q.agent.get(uid);
+    if (!a) return reply({ error: 'agent/none' });
+    const text = str(m && m.text, 300), channel = CHANNELS.includes(m && m.channel) ? m.channel : 'all';
+    if (!text) return reply({ error: 'chat/empty' });
+    if (now() - last < 400) return reply({ error: 'chat/too-fast' });
+    last = now();
+    const ts = now(), info = Q.addChat.run(uid, a.num, a.name, a.role, channel, text, ts);
+    io.emit('chat', { id: Number(info.lastInsertRowid), uid: String(uid), num: a.num, name: a.name, role: a.role, channel, text, ts });
+    reply({ ok: true });
   });
 
-  socket.on('move', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-
-    const d = entry.dragon;
-    if (d.exp_end) return ack({ error: '원정을 떠나 있는 동안에는 날아갈 수 없다.' });
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중에는 날아갈 수 없다.' });
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    if (d.rest_at) return ack({ error: '둥지에서 쉬는 중이다. 먼저 깨어나야 한다.' });
-    const from = d.region;
-    const to = str(payload?.to);
-    if (!REGIONS[to]) return ack({ error: '없는 지역이다.' });
-    if (!REGIONS[from].links.includes(to)) return ack({ error: '그곳은 여기서 바로 날아갈 수 없다.' });
-    // 멸망한 대륙: 아직 정화도가 모자라 닫혀 있는 땅
-    if (!ruin.unlocked(to)) return ack({ error: `${REGIONS[to].name}${josa(REGIONS[to].name, '은', '는')} 아직 오염이 짙어 들어갈 수 없다. (모두의 정화도 ${Math.round(REGIONS[to].unlock * 100)}%에 열림)` });
-    // 바다 건너기: 본 대륙 ↔ 멸망한 대륙 (조건은 먼저 보고, 행동력은 실제로 떠날 때 씀)
-    const cross = logic.isRuin(from) !== logic.isRuin(to);
-    if (cross) {
-      if (logic.isRuin(to) && d.level < RUIN.minLevel) return ack({ error: `바다 건너의 땅은 너무 위험하다. 레벨 ${RUIN.minLevel}부터 건널 수 있다.` });
-      logic.regen(d, Date.now());
-      if (d.ap < RUIN.crossAp) return ack({ error: `바다를 건너려면 행동력 ${RUIN.crossAp}${numJosa(RUIN.crossAp, '이', '가')} 필요하다.` });
-    }
-
-    const now = Date.now();
-    if (now - (socket.data.lastMove || 0) < MOVE_COOLDOWN) {
-      return ack({ error: '날개를 잠깐 쉬고 다시 날아야 한다.' });
-    }
-    socket.data.lastMove = now;
-
-    const ga = josa(d.name, '이', '가');
-    logic.regen(d, now);
-    if (cross) logic.spendAp(d, RUIN.crossAp);
-    socket.leave(from);
-    d.region = to;
-    d.place = REGION_PLACES[to]?.[0] || null; // 새 지역에서는 입구에 내려앉음
-    db.setRegion(d.id, to);
-    const arrows = logic.townArrows(d); // 적대 드래곤이 인간 마을에 날아들면
-    system(from, `${d.name}${ga} ${REGIONS[to].name} 쪽으로 날아갔다.`);
-    socket.join(to);
-    system(to, `${d.name}${ga} ${REGIONS[from].name} 쪽에서 날아왔다.`, socket);
-
-    broadcastPresence(from);
-    broadcastPresence(to);
-    rivalNear(d);
-    broadcastCounts();
-    sendRegionState(socket, d);
-    social.onMove(d.id);
-    if (arrows) {
-      db.saveState(d);
-      system(to, `${d.name}${ga} 나타나자 성벽 위에서 화살이 쏟아졌다.`, socket);
-    }
-    let crossed = null;
-    if (cross) {
-      db.saveState(d); // 바다를 건너며 쓴 행동력
-      crossed = logic.isRuin(to)
-        ? { title: '바다 건너기', lines: [`검은 바다를 건너 ${RUIN.name}에 내려앉았다. (행동력 −${RUIN.crossAp})`, '공기가 무겁다. 이 땅에서는 정신이 훨씬 빨리 깎인다. 정신 보호 장신구가 있다면 꼭 차 두자.'] }
-        : { title: '바다 건너기', lines: [`검은 바다를 건너 ${REGIONS[to].name}${josa(REGIONS[to].name, '으로', '로')} 돌아왔다. (행동력 −${RUIN.crossAp})`, '맑은 바람이 비늘 사이로 스민다.'] };
-    }
-    sendMe(socket, d);
-    ack({ ok: true, notice: arrows, crossed });
+  // 개인 메신저: 1:1. GM도 남의 대화는 볼 수 없다.
+  let lastDm = 0;
+  socket.on('dm:send', (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const to = Number(m && m.to), text = str(m && m.text, 500);
+    if (!dmCan(uid)) return reply({ error: 'agent/none' });
+    if (!to || to === uid || !dmCan(to)) return reply({ error: 'dm/bad-target' });
+    if (!text) return reply({ error: 'chat/empty' });
+    if (now() - lastDm < 400) return reply({ error: 'chat/too-fast' });
+    lastDm = now();
+    const ts = now(), info = QD.add.run(uid, to, text, ts);
+    const msg = { id: Number(info.lastInsertRowid), from: String(uid), to: String(to), text, ts, read: 0 };
+    io.to('u:' + uid).to('u:' + to).emit('dm', msg);
+    reply({ ok: true, msg });
   });
-
-  // 즐겨찾기 저장: { kind: 'items'|'recipes'|'titles', list: [id…] } (기기를 바꾸거나 브라우저 기록을 지워도 남도록 서버에)
-  socket.on('fav:set', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const kind = str(payload?.kind);
-    if (!['items', 'recipes', 'titles', 'lock'].includes(kind)) return ack({ error: '알 수 없는 즐겨찾기다.' }); // lock: 판매 잠금한 물건
-    const list = [...new Set((Array.isArray(payload?.list) ? payload.list : []).map((x) => str(x)).filter((x) => x && x.length <= 60))].slice(0, 300);
-    const c = logic.combatJson(entry.dragon);
-    c.favs = { ...(c.favs || {}), [kind]: list };
-    db.saveState(entry.dragon);
-    ack({ ok: true });
+  socket.on('dm:history', (m, ack) => {
+    const reply = typeof ack === 'function' ? ack : () => {};
+    const w = Number(m && m.with); if (!w) return reply({ error: 'dm/bad-target' });
+    reply({ ok: true, list: QD.history.all(uid, w, w, uid).reverse().map(dmOut) });
   });
-  // 읽음 표시 저장: { key: 'notes'|'slate', value: 숫자 } 또는 { key: 'risen', value: ['id:at'…] } (브라우저가 아니라 드래곤마다 기억)
-  // ── 자유 제작: 실험 노트 · 내 제작법 · 창작 도감 · 이름 짓기 ──
-  const freeMax = (d) => (d.nest && logic.nestInfo(d).fac?.library ? FREE_CFG.mineLib : FREE_CFG.mine); // 둥지에 서고가 있으면 더
-  // GM: 빚은 물건 수 보기 · 지금 정리하기
-  socket.on('gm:custom:stats', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    if (p?.run) customGC();
-    ack({ ok: true, stats: customStats() });
-  });
-  socket.on('craft:free:get', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const c = logic.combatJson(entry.dragon);
-    const me = entry.dragon.id;
-    // 재료는 공개한 칸이나 내가 처음 빚은 칸에만 보냄
-    const cr = Object.values(CREATIONS).sort((a, b) => b.at - a.at).map((c) => ({ ...c, mats: c.open || c.by === me ? c.mats || [] : null, mine: c.by === me }));
-    ack({ ok: true, notes: c.freeNotes || [], mine: c.myRecipes || [], mineMax: freeMax(entry.dragon), creations: cr });
-  });
-  // 창작 도감: 처음 빚은 드래곤이 넣은 재료를 공개하거나 다시 숨김
-  socket.on('craft:creation:open', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const c = CREATIONS[str(p?.key)];
-    if (!c) return ack({ error: '그런 칸이 없다.' });
-    if (c.by !== entry.dragon.id) return ack({ error: '처음 빚은 드래곤만 정할 수 있다.' });
-    c.open = p?.open === true;
-    db.worldSet('creations', CREATIONS);
-    ack({ ok: true, open: c.open });
-  });
-  socket.on('craft:keep', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon, c = logic.combatJson(d);
-    const mats = [...new Set((Array.isArray(p?.mats) ? p.mats : []).filter((x) => typeof x === 'string' && ITEMS[x]))];
-    if (mats.length < 2 || mats.length > 3) return ack({ error: '재료 2~3가지 조합만 남길 수 있다.' });
-    const l = (c.myRecipes ||= []);
-    const k = mats.slice().sort().join('+');
-    if (l.some((m) => m.mats.slice().sort().join('+') === k && !!m.gift === (p?.gift === true) && !!m.meal === (p?.meal === true))) return ack({ error: '이미 남긴 제작법이다.' });
-    if (l.length >= freeMax(d)) return ack({ error: `내 제작법은 ${freeMax(d)}개까지 남길 수 있다. 안 쓰는 것을 먼저 지우자.${freeMax(d) < FREE_CFG.mineLib ? ' (둥지에 서고가 있으면 더 남길 수 있다)' : ''}` });
-    l.push({ mats, id: str(p?.id) && ITEMS[str(p.id)] ? str(p.id) : null, gift: p?.gift === true, meal: p?.meal === true, at: Date.now() });
-    db.saveState(d);
-    ack({ ok: true, mine: l, mineMax: freeMax(d) });
-  });
-  socket.on('craft:forget', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon, l = logic.combatJson(d).myRecipes || [];
-    const i = Number(p?.idx);
-    if (!(i >= 0 && i < l.length)) return ack({ error: '그런 제작법이 없다.' });
-    l.splice(i, 1);
-    db.saveState(d);
-    ack({ ok: true, mine: l, mineMax: freeMax(d) });
-  });
-  // 빚은 물건의 이름·설명: 빚은 드래곤(또는 GM)만. 모두에게 그대로 보임
-  socket.on('craft:name', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const id = str(p?.id), def = ITEMS[id];
-    if (!def?.custom) return ack({ error: '직접 빚은 물건만 이름을 붙일 수 있다.' });
-    if (def.custom.by !== entry.dragon.id && !socket.data.user?.is_gm) return ack({ error: '빚은 드래곤만 이름을 붙일 수 있다.' });
-    const name = str(p?.name).replace(/\s+/g, ' ');
-    if (!free.NAME_RE.test(name)) return ack({ error: '이름은 한글·영문·숫자로 2~12자까지 쓸 수 있다.' });
-    const desc = str(p?.desc).replace(/\s+/g, ' ').replace(/[<>]/g, '').slice(0, 60); // 꺾쇠는 빼 둠 (화면에 그대로 끼어들지 않게)
-    const nd = { ...def, name, desc: desc || def.desc, custom: { ...def.custom, named: true } };
-    // 같은 조합으로 예전에 빚어 둔 것(내 소지품·보물더미, 남에게 준 것)이 있으면 그것들은 예전 이름 그대로 두고,
-    // 방금 빚은 것(qty)만 새 이름의 물건으로 옮김. 앞으로 같은 조합으로 빚으면 새 이름으로 나옴 (custom.renamedTo)
-    const d = entry.dragon, mine = db.itemCount(d.id, id), qty = Math.max(1, Math.min(999, Math.floor(Number(p?.qty)) || 1)), move = Math.min(qty, mine);
-    if (db.itemTotal(id) <= move) { customSave(id, nd); return ack({ ok: true, item: nd, id }); } // 다른 것이 없음: 그대로 이름만 바꿈
-    let nid = free.hashId(`${def.custom.sig}#name:${name}`), n = 0;
-    while (ITEMS[nid] && !(ITEMS[nid].custom?.sig === def.custom.sig && ITEMS[nid].name === name)) nid = free.hashId(`${def.custom.sig}#name:${name}#${++n}`);
-    customSave(nid, { ...nd, custom: { ...nd.custom, from: id, at: Date.now(), renamedTo: undefined } });
-    customSave(id, { ...def, custom: { ...def.custom, renamedTo: nid } });
-    if (move > 0) db.saveState(d, [{ id, qty: -move }, { id: nid, qty: move }]);
-    ack({ ok: true, item: ITEMS[nid], id: nid, moved: move });
-  });
-  socket.on('seen:set', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const key = str(payload?.key);
-    const c = logic.combatJson(entry.dragon);
-    const seen = { ...(c.seen || {}) };
-    if (key === 'notes' || key === 'slate' || key === 'notices') {
-      const v = Number(payload?.value);
-      if (!Number.isFinite(v) || v < 0) return ack({ error: '이상한 값이다.' });
-      if (v <= (seen[key] || 0)) return ack({ ok: true }); // 뒤로 돌아가지 않음
-      seen[key] = v;
-    } else if (key === 'risen') {
-      // 받은 목록으로 덮어쓰지 않고 이미 있던 것과 합침 (다른 기기에서 확인한 것이 지워지지 않게).
-      // 지금 떠 있는 '다시 일어선 드래곤' 카드의 것만 남겨, 지난 표시가 쌓여 새 표시를 밀어내지 않게 함
-      const live = new Set(death.risenList().map((x) => `${x.id}:${x.at}`));
-      const got = (Array.isArray(payload?.value) ? payload.value : []).map((x) => str(x)).filter((x) => x && x.length <= 40);
-      seen.risen = [...new Set([...(Array.isArray(seen.risen) ? seen.risen : []), ...got])].filter((x) => live.has(x)).slice(-30);
-    } else return ack({ error: '알 수 없는 읽음 표시다.' });
-    c.seen = seen;
-    db.saveState(entry.dragon);
-    ack({ ok: true });
-  });
-  socket.on('dragon:avatar', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-
-    const m = /^data:image\/(webp|jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(str(payload?.dataUrl));
-    if (!m) return ack({ error: '그림 파일을 읽지 못했다. 다른 그림으로 해 보자.' });
-    if (m[2].length > AVATAR_MAX) return ack({ error: '그림이 너무 크다.' });
-
-    const now = Date.now();
-    if (now - (socket.data.lastAvatar || 0) < AVATAR_COOLDOWN) {
-      return ack({ error: '그림은 잠시 뒤에 다시 바꿀 수 있다.' });
-    }
-    socket.data.lastAvatar = now;
-
-    const d = entry.dragon;
-    d.avatar_ver = db.setAvatar(d.id, Buffer.from(m[2], 'base64'), `image/${m[1]}`);
-    d.has_avatar = 1;
-    socket.emit('me', meOf(d));
-    broadcastPresence(d.region);
-    ack({ ok: true });
-  });
-
-  socket.on('dragon:avatar:delete', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    if (!d.has_avatar) return ack({ ok: true });
-    d.avatar_ver = db.clearAvatar(d.id);
-    d.has_avatar = 0;
-    socket.emit('me', meOf(d));
-    broadcastPresence(d.region);
-    ack({ ok: true });
-  });
-
-  // ── 단발 행동: 탐사·채집·사냥 ──
-  const ACTIONS = { explore: logic.explore, gather: logic.gather, hunt: combat.hunt }; // 사냥은 자동 전투 (game-combat.js)
-  socket.on('act', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const fn = ACTIONS[str(payload?.type)];
-    if (!fn) return ack({ error: '알 수 없는 행동이다.' });
-
-    const now = Date.now();
-    if (now - (socket.data.lastAct || 0) < 400) return ack({ error: '숨을 고르는 중이다.' });
-    socket.data.lastAct = now;
-
-    const d = entry.dragon;
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중이다. 먼저 싸움을 끝내자.' });
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    logic.regen(d, now);
-    const kin = syncKin(socket, d, now);
-    const res = fn(d);
-    if (res.error) return ack(res);
-    if (res.elite) {
-      // 강적: 직접 싸우는 전투를 열고, 결과는 싸움이 끝날 때 줌
-      res.battle = arena.startElite(d, res.battle);
-      db.saveState(d);
-      sendMe(socket, d);
-      return ack({ ok: true, result: res });
-    }
-    if (res.hunt) {
-      // 사냥: 직접 싸우는 전투. 끝나면 특성 횟수·이벤트·정신을 살핌 (arena.js가 부름)
-      const place = logic.placeOf(d);
-      const c = { name: PLACES[place].creature, level: PLACES[place].level };
-      res.battle = arena.startHunt(d, res.battle, c, (dd, r) => {
-        if (logic.isCorrupted(dd.region)) r.lines.push(...logic.traitCount(dd, 'corrupt'));
-        r.lines.push(...logic.traitCount(dd, 'hunt'));
-        if (r.wound) r.lines.push(...logic.traitCount(dd, 'wound'));
-        if (r.win) contest.drop(dd, 'hunt', r); // 풍어 요리 잔치: 이긴 사냥에서도 가끔
-        if (!r.fall) r.event = life.rollEvent(dd, db.kinLoad(dd.id), (id) => db.itemCount(dd.id, id), 'hunt');
-      });
-      db.saveState(d);
-      sendMe(socket, d);
-      return ack({ ok: true, result: res });
-    }
-    // 오염된 땅: 탐사·채집은 정신이 깎이고, 오염 결정이 나오기도 함 (사냥은 몬스터가 깎음)
-    const type = str(payload?.type);
-    if (logic.isCorrupted(d.region)) {
-      if (type !== 'hunt') {
-        if (Math.random() < MIND.crystal[type]) { res.items = [...(res.items || []), { id: 'corrupt_crystal', qty: 1 }]; res.lines.push('검붉게 빛나는 오염 결정을 주웠다.'); }
-        if (Math.random() < (MIND.scale[type] || 0)) { res.items = [...(res.items || []), { id: 'blackened_scale', qty: 1 }]; res.lines.push('검게 물든 비늘 한 장이 바위틈에 박혀 있었다.'); }
-        res.lines.push(...logic.loseMind(d, MIND.drain[type] * logic.corruptMul(d)));
-        res.lines.push(...logic.hooks.purify(d, type));
-        const sh = logic.isRuin(d.region) && RUIN.shard[type];
-        if (sh && Math.random() < sh[0]) { res.items = [...(res.items || []), { id: 'purify_shard', qty: sh[1] }]; res.lines.push('잿빛 먼지 사이에서 맑게 빛나는 정화의 결정을 찾았다.'); }
-      }
-      res.lines.push(...logic.traitCount(d, 'corrupt'));
-    }
-    // 바랜 제작서: 탐사하다 가끔 (숨겨진 제작법)
-    if (type === 'explore' && Math.random() < CRAFT.scrollChance.explore) { res.items = [...(res.items || []), { id: 'recipe_scroll', qty: 1 }]; res.lines.push('무너진 돌 틈에 낡은 양피지가 끼어 있었다. 바랜 제작서다!'); }
-    contest.drop(d, type, res); // 풍어 요리 잔치: 대회 동안 지역마다 귀한 재료
-    // 특성: 행동을 세고, 쓰러지기 직전까지 몰린 사냥은 상처로 셈
-    res.lines.push(...logic.traitCount(d, type));
-    if (type === 'gather' || type === 'explore') logic.traitCount(d, `${type}:${d.region}`); // 모브 드래곤 의뢰: 지역별
-    if (res.wound) res.lines.push(...logic.traitCount(d, 'wound'));
-    res.event = life.rollEvent(d, kin, (id) => db.itemCount(d.id, id), str(payload?.type), now);
-    db.saveState(d, res.items);
-    sendMe(socket, d);
-    ack({ ok: true, result: res });
-    arena.checkMind(d); // 정신이 다 깎였으면 광폭화
-  });
-
-  // ── 원정 ──
-  socket.on('exp:start', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    logic.regen(d);
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    const kin = syncKin(socket, d);
-    const res = logic.startExpedition(d, Number(payload?.minutes), str(payload?.goal) || 'gather');
-    if (res.error) return ack(res);
-    const went = life.expStart(kin, Date.now(), payload?.stay); // stay: 이번엔 둥지에 두고 갈 식구
-    logic.planExpedition(d, life.companions(kin)); // 길 위의 일을 미리 정해 둠 (팝업에 보여 주고, 돌아오면 그대로 받음)
-    logic.expInfo(d).went = life.expWent(kin); // 함께 간 식구 (이름과 나잇대: 원정 길 이야기에)
-    refreshKin(d, kin);
-    db.saveState(d);
-    sendMe(socket, d);
-    broadcastPresence(d.region);
-    system(d.region, `${d.name}${josa(d.name, '이', '가')} 원정을 떠났다.`, socket);
-    ack({ ok: true, went });
-  });
-
-  // 원정 떠나기 창: 데려갈 수 있는 식구 목록
-  socket.on('exp:who', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const kin = syncKin(socket, entry.dragon);
-    ack({ ok: true, kin: life.expCandidates(kin) });
-  });
-
-  // 도감 (상태 화면에서 열 때 받아 감). 도감이 생기기 전의 기록도 이때 옮겨 옴
-  socket.on('dex:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    logic.dexBackfill(d, [...db.inventory(d.id), ...db.hoard(d.id)].map((x) => x.item));
-    const view = logic.dexView(d); // '새로' 표시는 지난번에 연 뒤로 생긴 것
-    logic.dexSeen(d);
-    db.saveState(d);
-    ack({ ok: true, dex: view });
-  });
-
-  // 떠돌이 야바위꾼과 한 판 (홀짝)
-  socket.on('yabawi:play', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const now = Date.now();
-    if (now - (socket.data.lastYabawi || 0) < 800) return ack({ error: '야바위꾼이 조약돌을 다시 모으는 중이다.' });
-    socket.data.lastYabawi = now;
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    if (d.rest_at) return ack({ error: '둥지에서 쉬는 중이다. 먼저 깨어나야 한다.' });
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중에는 할 수 없다.' });
-    const res = yabawi.play(d, payload?.bet, str(payload?.pick), now);
-    if (res.error) return ack(res);
-    db.saveState(d);
-    sendMe(socket, d);
-    ack(res);
-  });
-  // 야바위꾼에게 말 걸기 (만난 횟수) · 소문 듣기
-  for (const [ev, fn] of [['yabawi:talk', yabawi.talk], ['yabawi:rumor', yabawi.rumor]]) {
-    socket.on(ev, (payload, ack) => {
-      if (typeof ack !== 'function') return;
-      const entry = entryOf(socket);
-      if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-      const d = entry.dragon;
-      if (logic.berserkOf(d)) return ack({ error: BERSERK });
-      if (logic.isFallen(d)) return ack({ error: FALLEN });
-      const res = fn(d);
-      if (res.error) return ack(res);
-      if (res.first || res.id) { db.saveState(d); sendMe(socket, d); } // 칭호·업적 확인도 여기서
-      ack(res);
-    });
-  }
-  // GM: 야바위꾼을 지금 바로 부름 (시험용). 어디에 있는지도 알려 줌
-  socket.on('gm:peddler', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    if (p?.summon) peddler.summon(Number(p.minutes) || undefined);
-    const nowS = peddler.slotNow();
-    ack({ ok: true, now: nowS ? { until: nowS.end } : null, today: peddler.daySlots(logic.dayIdx()).map((x) => ({ start: x.start, end: x.end })) });
-  });
-  // GM 도구 '한눈에 보기': 지금 대륙 (접속 · 진행 중인 이벤트 · 곧 일어날 일 · 최근 기록)
-  // GM: 한 드래곤의 지난 소식 (알림·이벤트 결과) — "받았는데 안 들어왔다" 같은 문의 확인용
-  socket.on('gm:newslog', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const id = Number(p?.id);
-    if (!Number.isInteger(id) || !db.getDragon(id)) return ack({ error: '그런 드래곤이 없다.' });
-    ack({ ok: true, list: db.newsList(id) });
-  });
-  socket.on('gm:overview', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const now = Date.now(), day = logic.dayIdx();
-    const nextSlot = (slots) => slots.flat().filter((s) => s.start > now).sort((a, b) => a.start - b.start)[0] || null;
-    const ys = yabawi.slotNow(now), yn = nextSlot([yabawi.daySlots(day), yabawi.daySlots(day + 1)]);
-    const ps = peddler.slotNow(now), pn = nextSlot([peddler.daySlots(day), peddler.daySlots(day + 1)]);
-    const bk = boss.active();
-    const bv = bk ? boss.view() : null;
-    const cc = contest.gmView ? contest.gmView() : null;
-    const se = logic.seasonAt(now);
-    const reqs = (db.worldGet('pwreq', []) || []).length;
-    // 진행 중인 싸움 (한눈에 보기): 레이드는 팀 수, 그 밖의 싸움은 종류별 마리 수
-    const FK = { hunt: '사냥', elite: '강적', boss: '대륙의 재앙', duel: '결투', bet: '내기 결투', calm: '광폭화 진정' };
-    const rv = raidBoss?.gmView?.() || { lobbies: [], fights: [] };
-    const fk = {};
-    for (const k of Object.values(liveFights.now())) if (k !== 'raid') fk[FK[k] || k] = (fk[FK[k] || k] || 0) + 1;
-    const fights = { raids: (rv.fights || []).length, lobbies: (rv.lobbies || []).length, kinds: fk };
-    ack({ ok: true, now, fights,
-      online: online.size, total: db.dragonIds().length, reqs,
-      yabawi: ys ? { open: true, until: ys.end, region: REGIONS[ys.region]?.name || '' } : { open: false, next: yn?.start || 0, region: yn ? REGIONS[yn.region]?.name || '' : '' },
-      peddler: ps ? { open: true, until: ps.end } : { open: false, next: pn?.start || 0 },
-      markets: marketFall.list().map((x) => ({ town: x.town, name: REGIONS[x.town]?.name || x.town, at: x.at })),
-      boss: bv ? { name: bv.name, region: REGIONS[bv.region]?.name || '', until: bv.until, hp: bv.hp, hpMax: bv.hpMax } : null,
-      bossNext: bk ? 0 : boss.nextAt() || 0, bossNextKraken: !!(cc && cc.phase === 'on' && cc.nextIsKraken),
-      contest: cc && cc.phase !== 'done' ? cc : null,
-      season: { name: se.name, until: se.until },
-      log: db.gmLogList(6),
-    });
-  });
-  socket.on('gm:yabawi', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    if (p?.summon) yabawi.summon(str(p?.region));
-    ack({ ok: true, where: yabawi.where(), today: yabawi.daySlots(logic.dayIdx()).map((s) => ({ start: s.start, end: s.end, region: REGIONS[s.region].name, place: PLACES[s.place]?.name })) });
-  });
-
-  // 업적 (상태 화면에서 열 때 받아 감)
-  socket.on('ach:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const view = logic.achView(d); // '새로' 표시는 지난번에 연 뒤로 이룬 것
-    logic.achSeen(d);
-    db.saveState(d);
-    ack({ ok: true, ach: view });
-  });
-
-  // 지나온 이야기 (상태 화면에서 열 때 받아 감)
-  socket.on('chron:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    ack({ ok: true, list: logic.chronOf(entry.dragon).slice().reverse() });
-  });
-
-  // 원정 중 갈림길에서 길 고르기
-  socket.on('exp:fork', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const res = logic.chooseFork(d, str(payload?.pick));
-    if (res.error) return ack(res);
-    db.saveState(d);
-    sendMe(socket, d);
-    ack(res);
-  });
-
-  // 도착 뒤 결과 받기, 또는 일찍 불러들이기 (서버가 시각으로 판단)
-  socket.on('exp:finish', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    logic.regen(d);
-    if (logic.expInfo(d).goal === 'fishline') { // 줄 걸어 두기를 거둠
-      const res = logic.finishFishLine(d, Date.now());
-      db.saveState(d, res.items);
-      sendMe(socket, d);
-      broadcastPresence(d.region);
-      return ack({ ok: true, result: res });
-    }
-    const kin = syncKin(socket, d);
-    const expRegion = d.exp_region;
-    const res = logic.finishExpedition(d, Date.now(), life.companions(kin));
-    if (res.error) return ack(res);
-    if (expRegion && logic.isCorrupted(expRegion) && res.minutes >= 10) {
-      res.lines.push('오염된 땅을 오래 헤맨 탓에 머릿속이 무겁다.', ...logic.loseMind(d, MIND.drain.expedition * Math.floor(res.minutes / 10) * logic.corruptMul(d, expRegion)));
-    }
-    res.lines.push(...life.expFinish(kin, res.minutes));
-    if (res.minutes >= 10) res.lines.push(...logic.traitCount(d, 'expedition'));
-    if (res.minutes >= 10) res.event = life.rollEvent(d, kin, (id) => db.itemCount(d.id, id), 'expedition');
-    refreshKin(d, kin);
-    // 지난 일지에도 얻은 것·잃은 것이 보이게 (결과 창과 같은 내용)
-    const last = logic.expInfo(d).last;
-    if (last) Object.assign(last, { items: res.items, gold: res.gold, goldLost: res.goldLost, hpLost: res.hpLost, xp: res.xp, lines: res.lines });
-    db.saveState(d, res.items);
-    sendMe(socket, d);
-    broadcastPresence(d.region);
-    system(d.region, `${d.name}${josa(d.name, '이', '가')} 원정에서 돌아왔다.`, socket);
-    ack({ ok: true, result: res });
-    arena.checkMind(d);
-  });
-
-  socket.on('inv:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon, items = db.inventory(d.id);
-    ack({ ok: true, items, equip: logic.equipOf(d), giftSrc: giftSrcOf(d, items) });
-  });
-  // 상자에 간직할 수 있는 선물 물건마다: 받은 것 몇 개 · 직접 만든 것 몇 개 (가진 개수를 넘지 않게. 받은 것을 먼저 셈)
-  function giftSrcOf(d, items) {
-    const c = logic.combatJson(d), mk = c.madeKeep || {}, used = c.keepUsed || {};
-    const keepIds = items.filter((x) => ITEMS[x.item]?.use?.keep && x.qty > 0);
-    if (!keepIds.length) return {};
-    const got = {};
-    for (const e of db.ledgerList(d.id, 200)) {
-      if (e.kind !== 'gift_in') continue;
-      let rem = used[e.id] || 0; // 이 선물에서 이미 상자에 넣은 개수 (선물 하나에 여러 물건이면 앞에서부터 뺌)
-      for (const x of e.itemsIn) {
-        if (!ITEMS[x.id]?.use?.keep) continue;
-        const sub = Math.min(rem, x.qty || 0); rem -= sub;
-        got[x.id] = (got[x.id] || 0) + (x.qty || 0) - sub;
-      }
-    }
-    const out = {};
-    for (const x of keepIds) {
-      const g = Math.max(0, Math.min(x.qty, got[x.item] || 0));
-      const m = Math.max(0, Math.min(x.qty - g, mk[x.item] || 0));
-      if (g || m) out[x.item] = { got: g, made: m };
-    }
-    return out;
-  }
-
-  // ── 제작 · 회복약 · 장신구 ──
-  // 모두 같은 모양: 규칙 함수를 부르고, 성공하면 저장하고 내 정보를 다시 보냄
-  // trigger(res): 성공한 결과를 보고 이벤트를 굴릴 때의 이름 (없으면 굴리지 않음)
-  const itemAction = (event, run, after, trigger) => {
-    socket.on(event, (payload, ack) => {
-      if (typeof ack !== 'function') return;
-      const entry = entryOf(socket);
-      if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-      const now = Date.now();
-      if (now - (socket.data.lastItem || 0) < 300) return ack({ error: '숨을 고르는 중이다.' });
-      socket.data.lastItem = now;
-      const d = entry.dragon;
-      if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-      logic.regen(d, now);
-      const kin = syncKin(socket, d, now);
-      const have = (id) => db.itemCount(d.id, id);
-      const gold0 = d.gold || 0;
-      const res = run(d, payload || {}, have, kin);
-      if (res.error) return ack(res);
-      // 이벤트가 다른 드래곤에게 남긴 소식 (라이벌 이벤트)
-      for (const t of res.tells || []) social.tellRival(t.id, t.text, t.title);
-      for (const g of res.sends || []) social.eventGift(d, g.id, g.items, g.msg); // 이벤트로 보낸 선물
-      for (const l of res.loves || []) kinLove.ask(d, l); // 다른 둥지 첫사랑에게 혼인 청
-      for (const b of res.babies || []) kinLove.babyAsk(d, b); // 짝 사이의 아이를 두고 상대 둥지에 청
-      for (const l of res.leaves || []) { const r = kinLove.leaveAsk(d, l); if (r?.lines) res.lines = [...(res.lines || []), ...r.lines]; } // 짝과 함께 떠나기 청
-      if (res.purify) res.lines = [...(res.lines || []), ...logic.hooks.purify(d, 'event', res.purify)]; // 이벤트로 쌓은 정화 기여 (멸망한 대륙이면 그 땅의 정화로, 재앙의 오염이 있으면 그쪽에도)
-      delete res.tells; delete res.sends; delete res.purify; delete res.loves; delete res.babies; delete res.leaves;
-      // 지나온 이야기에 남길 선택·사건
-      const cr = CHRON_ON[event];
-      if (cr) { const [k, t] = cr(d, res, payload || {}) || []; if (t) logic.chron(d, k, t); }
-      const t = trigger && trigger(res);
-      if (t) res.event = life.rollEvent(d, kin, have, t, now);
-      refreshKin(d, kin);
-      // 장신구를 모두 팔거나 버렸으면 강화·각인 기록도 지움
-      if ((res.items || []).some((x) => x.qty < 0 && ITEMS[x.id]?.type === 'equip')) {
-        const delta = {}; for (const x of res.items) delta[x.id] = (delta[x.id] || 0) + x.qty;
-        logic.tidyGear(d, (id) => have(id) + (delta[id] || 0));
-      }
-      db.saveState(d, res.items, res.hoardItems);
-      // 지난 소식: 이벤트를 고른 결과 (얻고 잃은 물건·금화까지)
-      if (event === 'event:choose') db.newsAdd(d.id, `이벤트 · ${res.title || ''}`, [res.choice ? `고른 것: '${res.choice}'` : '', ...(res.lines || [])], [...(res.items || []), ...(res.hoardItems || [])], (d.gold || 0) - gold0);
-      sendMe(socket, d);
-      if (after) after(d, res);
-      ack({ ok: true, result: res });
-    });
-  };
-// 직접 만든 선물(보물 상자에 간직할 수 있는 것) 개수를 셈: 상자에 넣을 때 '직접 만든 것'으로 적고, 소지품에서 받은 선물과 나눠 보여 줌
-  const countMade = (d, res) => { if (res.error) return res; const c = logic.combatJson(d); for (const m of res.made || []) if (m.qty > 0 && ITEMS[m.id]?.use?.keep) { c.madeKeep ||= {}; c.madeKeep[m.id] = (c.madeKeep[m.id] || 0) + m.qty; } return res; };
-  itemAction('craft', (d, p, have) => countMade(d, logic.craftMany(d, str(p.recipe), have, p.focus, p.qty, p.spice ? str(p.spice) : null))); // spice: 양념 (행상인) // qty: 한꺼번에 만들 개수 (장신구는 하나씩)
-  itemAction('craft:experiment', (d, p, have) => countMade(d, logic.experiment(d, p.items, have, { gift: p.gift === true, meal: p.meal === true && p.gift !== true }))); // gift: 선물로 빚기 · meal: 식구 요리로 빚기
-  // 자유 제작: 내 제작법으로 다시 빚기 (저장한 재료 조합으로 실험)
-  itemAction('craft:mine', (d, p, have) => {
-    const l = logic.combatJson(d).myRecipes || [];
-    const m = l[Number(p.idx)];
-    if (!m) return { error: '그런 제작법이 없다.' };
-    // 여러 개 한꺼번에 (일반 제작의 craftMany처럼). 장신구는 하나씩
-    let n = Math.max(1, Math.min(99, Math.floor(Number(p.qty)) || 1));
-    if (m.id && ITEMS[m.id]?.type === 'equip') n = 1;
-    if (n === 1) return countMade(d, logic.experiment(d, m.mats, have, { gift: !!m.gift, meal: !!m.meal }));
-    const delta = {}, haveNow = (id) => have(id) + (delta[id] || 0), items = [], made = {};
-    let done = 0, stop = null, last = null; const qual = { good: 0, great: 0, mw: 0 }; // 하나씩 굴린 품질을 셈 (알림에 함께)
-    for (let i = 0; i < n; i++) {
-      const r = logic.experiment(d, m.mats, haveNow, { gift: !!m.gift, meal: !!m.meal });
-      if (r.error) { stop = r.error; break; }
-      done++; last = r;
-      for (const x of r.items || []) { items.push(x); delta[x.id] = (delta[x.id] || 0) + x.qty; }
-      for (const x of r.made || []) { made[x.id] = (made[x.id] || 0) + x.qty; const cq = ITEMS[x.id]?.custom; if (cq?.quality === 'good') qual.good += x.qty; if (cq?.quality === 'great') qual.great += x.qty; if (cq?.mw) qual.mw += x.qty; }
-      if (!r.made || !r.made.length) break; // 제작법과 어긋나 재료만 잃은 경우 등: 더 돌지 않음
-    }
-    if (!done) return { error: stop };
-    const kinds = Object.keys(made), total = Object.values(made).reduce((a, b) => a + b, 0);
-    const name = kinds.length === 1 ? ITEMS[kinds[0]]?.name : (ITEMS[m.id]?.name || '물건');
-    const qs = [qual.good && `좋음 ${qual.good}`, qual.great && `빼어남 ${qual.great}`, qual.mw && `걸작 ${qual.mw}`].filter(Boolean).join(' · ');
-    const lines = [`${name}${josa(name, '을', '를')} ${done}번 빚어 ${total}개를 얻었다.${kinds.length > 1 ? ` (${kinds.map((k) => `${ITEMS[k]?.name} ${made[k]}`).join(', ')})` : ''}${qs ? ` (${qs})` : ''}`];
-    if (done < n) lines.push(`${n}번 중 ${done}번만 빚었다. ${stop || ''}`.trim());
-    return countMade(d, { title: last.title || '실험', lines, items, made: kinds.map((k) => ({ id: k, qty: made[k] })), free: last.free ? { ...last.free, qty: made[last.free.id] || 1 } : last.free }); // qty: 방금 빚은 그 물건 수 (이름 붙일 때 그만큼만 새 이름으로)
-  });
-  itemAction('gear:enhance', (d, p, have) => logic.enhanceGear(d, str(p.item), have));
-  itemAction('gear:engrave', (d, p, have) => logic.engraveGear(d, str(p.item), str(p.elem), have));
-  itemAction('nest:forge', (d, p, have) => logic.buildFacility(d, 'forge', have)); // 예전 화로 짓기 버튼
-  // 둥지 시설
-  itemAction('nest:fac:build', (d, p, have) => logic.buildFacility(d, str(p.id), have));
-  itemAction('nest:fac:remove', (d, p) => logic.removeFacility(d, str(p.id)));
-  // 시설 일 맡기기 · 새끼 심부름: 둥지 밖에서도 할 수 있음 (결과 첫 줄에 멀리서 일러두었다고 적음)
-  const byTelepathy = (d, r) => { if (r && !r.error && d.region !== d.nest && Array.isArray(r.lines)) r.lines.unshift('멀리서 일러두었다.'); return r; };
-  itemAction('nest:job', (d, p, have, kin) => byTelepathy(d, life.setJob(d, kin, p.kin, str(p.fac))));
-  itemAction('mob:past', (d, p) => mobs.pastAsk(d, str(p.mob)));                  // 옛일 묻기 (이야기를 끝까지 들은 뒤, 하루 한 조각)
-  itemAction('nest:harvest', (d, p, have, kin) => life.harvest(d, kin));
-  itemAction('nest:cook', (d, p, have, kin) => life.cook(d, kin, str(p.recipe), have));
-  itemAction('order:fill', (d, p, have) => logic.fillOrder(d, str(p.key), have, Date.now(), p?.alt === true)); // alt: 걸작·정성 들인 것으로 채워 납품
-  // ── 모브 드래곤 ──
-  socket.on('mob:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const id = mobs.MOB_BY_REGION[d.region];
-    if (!id) return ack({ error: '이곳에는 머무는 드래곤이 없다.' });
-    ack({ ok: true, mob: mobs.view(d, id, (x) => db.itemCount(d.id, x)) });
-  });
-  itemAction('mob:accept', (d, p) => mobs.accept(d, str(p.mob), p.i));
-  itemAction('mob:turnin', (d, p, have) => mobs.turnIn(d, str(p.mob), p.i, have));
-  itemAction('mob:abandon', (d, p) => mobs.abandon(d, str(p.mob), p.i));
-  itemAction('mob:story', (d, p) => mobs.storyAccept(d, str(p.mob)));
-  itemAction('mob:storyturn', (d, p, have) => mobs.storyTurnIn(d, str(p.mob), have));
-  itemAction('mob:gate', (d, p) => mobs.storyAccept(d, str(p.mob), 'gate'));        // 지하 회랑 입장 부탁
-  itemAction('mob:gateturn', (d, p, have) => mobs.storyTurnIn(d, str(p.mob), have, 'gate'));
-  maze.bind(socket, () => entryOf(socket));
-  city.bind(socket, () => entryOf(socket));
-  itemAction('mob:trade', (d, p, have) => mobs.trade(d, str(p.mob), p.i, have));
-  socket.on('order:list', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const v = logic.ordersView(entry.dragon);
-    if (!v) return ack({ error: '의뢰 게시판은 인간 마을에만 있다.' });
-    ack({ ok: true, orders: v });
-  });
-  itemAction('item:use', (d, p, have) => {
-    const id = str(p.item);
-    const U = ITEMS[id]?.use || {};
-    const keep = !!U.keep && (!!p.keep || !U.mind); // 상자에 넣는 경우에만 보낸 이를 찾아 붙임
-    const sender = U.keep ? giftSender(d, id) : {};  // 받은 꽃다발을 써 버려도 그 선물은 쓴 것으로 셈 (나중에 넣는 다른 꽃다발에 엉뚱한 이름이 붙지 않게)
-    const mk = logic.combatJson(d).madeKeep || {};
-    const made = keep && !sender.from && mk[id] > 0;
-    // 유품: 누구의 것인지 고른 식구(긴 잠에 든 이 둥지의 인간 식구)의 이름을 붙여 넣음. 고르지 않으면 이름 없이
-    if (keep && U.kin) {
-      const of = Math.trunc(Number(p.of)) || 0;
-      const k = of ? db.kinLoad(d.id).find((x) => x.id === of && life.restedHuman(x)) : null; // 둥지에서 생을 마친 식구 + 마을에서 수명을 다한 식구
-      if (of && !k) return { error: '그 식구를 찾지 못했다.' };
-      return logic.useItem(d, id, have, { keep: true, from: k ? k.name : '' });
-    }
-    const res = logic.useItem(d, id, have, keep ? { keep: true, ...sender, made } : {});
-    if (!res.error && keep && made) mk[id] -= 1;
-    if (res.error && U.keep) { const c = logic.combatJson(d); /* 쓰지 못했으면 셈을 되돌림 */ for (const k of Object.keys(c.keepUsed || {})) if (c._lastKeep === k) c.keepUsed[k] -= 1; }
-    return res;
-  }, (d, res) => { arena.checkMind(d); if (res?.title === ITEMS.flower_crown.name) broadcastPresence(d.region); }); // 광기의 묘약으로 정신이 다 깎일 수 있음 · 화관을 쓰면 같은 지역 목록에 꽃이 바로 보이게
-  itemAction('chest:take', (d, p) => logic.chestTake(d, p.i, p.at == null ? null : Number(p.at))); // 보물 상자에서 꺼내기
-  // 소지품 버리기: 버린 물건은 사라짐
-  itemAction('item:drop', (d, p, have) => {
-    const id = str(p.item);
-    const it = require('./game-data').ITEMS[id];
-    if (!it && id.startsWith('cx_') && have(id) > 0) { const n = have(id); return { title: '소지품', lines: ['사라진 빚은 물건을 버렸다.'], items: [{ id, qty: -n }] }; } // 목록에서 사라진 빚은 물건
-    if (!it) return { error: '알 수 없는 물건이다.' };
-    const n = have(id);
-    if (n < 1) return { error: '가지고 있지 않다.' };
-    const q = Math.max(1, Math.min(n, Math.floor(Number(p.qty)) || 1));
-    const what = q > 1 ? `${it.name} ${q}개` : it.name;
-    // 강화된 줄에서 버렸으면 그 강화된 한 개가 나감 (보통 줄에서 버리면 보통 것부터)
-    if (p.enh === true && it.type === 'equip' && logic.gearAt(d, id) === 'inv') delete logic.gearOf(d)[id];
-    return { title: '소지품', lines: [`${what}${josa(q > 1 ? '개' : it.name, '을', '를')} 버렸다.`], items: [{ id, qty: -q }] };
-  });
-  itemAction('equip', (d, p, have) => logic.equip(d, str(p.item), have, p.plain === true)); // plain: 강화되지 않은 보통 것을 참
-  itemAction('unequip', (d, p) => logic.unequip(d, str(p.slot)));
-  // 장비 프리셋: 담기 · 이름 바꾸기 · 비우기 · 갈아입기
-  itemAction('preset:save', (d, p) => logic.presetSave(d, Number(p.i), p.name == null ? null : str(p.name)));
-  itemAction('preset:rename', (d, p) => logic.presetRename(d, Number(p.i), str(p.name)));
-  itemAction('preset:clear', (d, p) => logic.presetClear(d, Number(p.i)));
-  itemAction('preset:use', (d, p, have) => logic.presetUse(d, Number(p.i), have), (d) => broadcastPresence(d.region)); // 칭호가 바뀌면 이곳의 드래곤 목록도
-
-  // ── 인간 마을 ──
-  itemAction('stance:set', (d, p) => logic.setStance(d, str(p.stance)));
-  // 결과가 성공이면 특성 횟수를 셈
-  const counted = (key, fn) => (...a) => { const r = fn(...a); if (!r.error) r.lines.push(...logic.traitCount(a[0], key)); return r; };
-  itemAction('market:buy', counted('trade', (d, p, have) => logic.buy(d, str(p.item), Number(p.qty), have)));
-  itemAction('market:sell', counted('trade', (d, p, have) => logic.sell(d, str(p.item), Number(p.qty), have)));
-  // 왕도 야시장: 상인 노점에서 사기 · 내 노점에 올리기·거두기·간판 · 다른 드래곤 노점에서 사기
-  itemAction('pd:buy', (d, p) => peddler.buy(d, str(p.item), p.qty));
-  itemAction('pd:trade', (d, p) => peddler.trade(d, str(p.key)));
-  itemAction('nm:npcBuy', (d, p) => nightMarket.npcBuy(d, str(p.item), p.qty));
-  itemAction('nm:put', (d, p) => nightMarket.put(d, str(p.item), p.qty, p.price, typeof p.sign === 'string' ? p.sign : undefined));
-  itemAction('nm:take', (d, p) => nightMarket.take(d, p.item ? str(p.item) : null));
-  itemAction('nm:sign', (d, p) => nightMarket.setSign(d, typeof p.sign === 'string' ? p.sign : ''));
-  itemAction('nm:buy', (d, p) => nightMarket.buyFrom(d, p.seller, str(p.item), p.qty));
-  itemAction('intimidate', counted('intimidate', (d) => logic.intimidate(d)), null, (res) => (res.gold > 0 ? 'intimidate' : null));
-  // ── 낚시: 던지면 서버가 입질 시각을 정하고, 당긴 시각으로 결과를 정함 ──
-  itemAction('fish:cast', (d, p, have) => {
-    const f = socket.data.fish;
-    if (f && Date.now() < f.bite + FISHING.window) return { error: '이미 줄을 던져 두었다.' };
-    const bait = str(p.bait);
-    const r = logic.fishCast(d, bait, have, !!p.auto);
-    socket.data.fish = r.fishing ? { bait, bite: Date.now() + r.fishing.biteIn } : null;
-    return r;
-  });
-  itemAction('fish:reel', (d) => { const c = socket.data.fish; socket.data.fish = null; return logic.fishReel(d, c); });
-  // 줄 걸어 두기: 원정처럼 해안에 묶여 기다림 (거둘 때는 exp:finish)
-  itemAction('fish:line', (d, p, have) => {
-    const f = socket.data.fish;
-    if (f && Date.now() < f.bite + FISHING.window) return { error: '던져 둔 줄부터 거둬들이자.' };
-    return logic.startFishLine(d, Number(p.minutes), str(p.bait), have);
-  }, (d) => broadcastPresence(d.region));
-  itemAction('traits:choose', (d, p) => logic.chooseTraits(d, str(p.good), str(p.bad)));
-  itemAction('stats:spend', (d, p) => logic.spendStats(d, p.alloc));
-  itemAction('title:set', (d, p) => logic.setTitle(d, str(p.id) || null), (d) => broadcastPresence(d.region));
-  // ── 둥지 ──
-  const presenceAfter = (d) => broadcastPresence(d.region);
-  itemAction('nest:build', (d) => logic.buildNest(d));
-  itemAction('nest:expand', (d, p, have) => logic.expandNest(d, have));
-  itemAction('rest:start', (d) => logic.startRest(d), presenceAfter);
-  itemAction('rest:stop', (d, p, have, kin) => {
-    const mins = d.rest_at ? (Date.now() - d.rest_at) / 60000 : 0;
-    const res = logic.stopRest(d);
-    if (!res.error) {
-      const l = life.restTogether(kin, mins); if (l) res.lines.push(l);
-      if (mins >= NEST.restCountMin) res.lines.push(...logic.traitCount(d, 'rest')); // NEST.restCountMin분 이상 쉬어야 셈
-      else res.lines.push(`${NEST.restCountMin}분이 되기 전에 깨어나, 쉰 횟수로는 치지 않았다.`);
-    }
-    return res;
-  }, presenceAfter, () => 'wake');
-  itemAction('hoard:put', (d, p, have) => logic.hoardMove(d, 'put', str(p.what), Number(p.qty), have, () => 0));
-  itemAction('hoard:take', (d, p) => logic.hoardMove(d, 'take', str(p.what), Number(p.qty), () => 0, (id) => db.hoardCount(d.id, id)));
-  // 둥지로 곧장 날아가기: 지역이 바뀌므로 이동과 같은 처리를 함
-  itemAction('nest:home', (d) => logic.flyHome(d), (d, res) => {
-    const ga = josa(d.name, '이', '가');
-    socket.leave(res.from);
-    system(res.from, `${d.name}${ga} 둥지를 향해 날아갔다.`);
-    socket.join(d.region);
-    system(d.region, `${d.name}${ga} 둥지로 돌아왔다.`, socket);
-    broadcastPresence(res.from);
-    broadcastPresence(d.region);
-    broadcastCounts();
-    sendRegionState(socket, d);
-    social.onMove(d.id);
-  });
-  // 귀환 주문진: 내 집터에 놓아 두었으면 고대도시로 곧장 (city.js warpTo)
-  itemAction('nest:city', (d) => city.warpTo(d), (d, res) => {
-    const ga = josa(d.name, '이', '가');
-    if (res.from !== d.region) { socket.leave(res.from); system(res.from, `${d.name}${ga} 주문진의 빛에 싸여 사라졌다.`); socket.join(d.region); system(d.region, `${d.name}${ga} 주문진을 타고 고대도시로 날아왔다.`, socket); broadcastPresence(res.from); }
-    broadcastPresence(d.region);
-    broadcastCounts();
-    sendRegionState(socket, d);
-    social.onMove(d.id);
-  });
-  // 반려의 둥지로 날아가기
-  itemAction('nest:partner', (d) => logic.flyPartner(d), (d, res) => {
-    const ga = josa(d.name, '이', '가');
-    socket.leave(res.from);
-    system(res.from, `${d.name}${ga} 반려의 둥지를 향해 날아갔다.`);
-    socket.join(d.region);
-    system(d.region, `${d.name}${ga} 반려 ${res.partner}의 둥지로 날아왔다.`, socket);
-    broadcastPresence(res.from);
-    broadcastPresence(d.region);
-    broadcastCounts();
-    sendRegionState(socket, d);
-    social.onMove(d.id);
-  });
-  // ── 장소: 같은 지역 안에서 옮기기 (행동력 없음) ──
-  socket.on('place:go', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중에는 옮길 수 없다.' });
-    const now = Date.now();
-    if (now - (socket.data.lastPlace || 0) < PLACE_RULES.moveCooldown) return ack({ error: '날개를 잠깐 쉬고 다시 움직이자.' });
-    socket.data.lastPlace = now;
-    const res = logic.goPlace(d, str(payload?.id));
-    if (res.error) return ack(res);
-    db.saveState(d);
-    sendMe(socket, d);
-    broadcastPresence(d.region);
-    ack({ ok: true, result: res });
-  });
-
-  // ── 둥지 식구 ──
-  itemAction('kin:care', (d, p, have, kin) => life.care(d, kin, p.id, str(p.item), have));
-  itemAction('kin:touch', (d, p, have, kin) => life.touch(d, kin, Number(p.id), str(p.act))); // 교감: 쓰다듬기·안아 주기 등
-  itemAction('kin:fest', (d, p, have, kin) => life.festOuting(d, kin, logic.festivalNow(), !!nightMarket.sessionAt())); // 왕도 축제에 식구들 데려가기
-  // ── 반려의 둥지에서 그 집 식구 돌보기 (인간 아이 돌보기, 새끼 드래곤 가르치기). 유대·능력치는 반려의 식구에게 쌓임 ──
-  const partnerHome = (d) => {
-    const ph = logic.hooks.partnerNest(d);
-    if (!ph) return { error: '반려가 없거나, 반려에게 아직 둥지가 없다.' };
-    if (d.exp_end) return { error: '원정을 떠나 있는 동안에는 할 수 없다.' };
-    if (d.region !== ph.region) return { error: `반려 ${ph.name}의 둥지(${REGIONS[ph.region].name})에 있어야 돌볼 수 있다.` };
-    return ph;
-  };
-  const partnerKinAct = (fn, verb) => (d, p, have) => {
-    const ph = partnerHome(d);
-    if (ph.error) return ph;
-    const pkin = db.kinLoad(ph.id);
-    const k = pkin.find((x) => x.id === Number(p.id));
-    const owner = online.get(ph.id)?.dragon || db.getDragon(ph.id); // 반려 드래곤 (그 둥지의 부엌 등 시설을 볼 때)
-    const res = fn(d, pkin, p, have, owner);
-    if (res.error) return res;
-    const pe = online.get(ph.id);
-    if (pe) refreshKin(pe.dragon, pkin); else db.kinSaveAll(ph.id, pkin);
-    res.title = `반려 ${ph.name}의 식구 · ${res.title}`;
-    const gain = res.lines.find((l) => /유대 \+/.test(l));
-    const fav = res.lines.find((l) => l.includes('가장 좋아하는 것 같다')); // 반려가 알아낸 좋아하는 음식은 둥지 주인에게도 알림
-    social.tellRival(ph.id, `${d.name}${josa(d.name, '이', '가')} 둥지에 들러 ${k ? k.name : '식구'}${josa(k ? k.name : '식구', '을', '를')} ${verb}.${gain ? ` (${gain})` : ''}${fav ? ` ${fav}` : ''}`, '반려');
-    return res;
-  };
-  itemAction('kin:pcare', partnerKinAct((d, pkin, p, have, owner) => life.care(d, pkin, p.id, str(p.item), have, Date.now(), { away: true, owner }), '돌봐 주었다'));
-  itemAction('kin:ptrain', partnerKinAct((d, pkin, p) => life.train(d, pkin, p.id, str(p.stat), Date.now(), { away: true }), '가르쳐 주었다'));
-  itemAction('kin:rename', (d, p, have, kin) => life.rename(kin, p.id, str(p.name)));
-  itemAction('kin:path', (d, p, have, kin) => life.choosePath(d, kin, p.id, str(p.path), str(p.town)));
-  itemAction('kin:incubate', (d, p, have, kin) => life.incubate(d, kin, p.id, have));
-  itemAction('kin:train', (d, p, have, kin) => life.train(d, kin, p.id, str(p.stat)));
-  itemAction('kin:companion', (d, p, have, kin) => life.setCompanion(kin, p.id)); // 곁에 둘 새끼 (사냥·강적에 함께 나섬)
-  itemAction('kin:search', (d, p, have, kin) => life.searchRunaway(d, kin, p.id, have)); // 가출한 식구 직접 찾기
-  itemAction('kin:seek', (d, p, have, kin) => life.sendSeek(kin, p.id, p.target)); // 새끼 드래곤을 보내 찾아오게
-  itemAction('kin:errand', (d, p, have, kin) => byTelepathy(d, life.sendErrand(kin, p.id, str(p.region), Number(p.minutes), ruin.unlocked(str(p.region))))); // 새끼 혼자 심부름 (둥지 밖에서도)
-  itemAction('kin:release', (d, p, have, kin) => life.release(d, kin, p.id));
-
-  // ── 이벤트 ──
-  socket.on('event:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const kin = syncKin(socket, d);
-    const had = d.pending_event;
-    const event = life.getEvent(d, kin, (id) => db.itemCount(d.id, id));
-    if (had && !event) { db.saveState(d); sendMe(socket, d); } // 지나가 버린 이벤트
-    ack(event ? { ok: true, event } : { error: '그 일은 이미 지나갔다.' });
-  });
-  itemAction('event:choose', (d, p, have, kin) => life.chooseEvent(d, kin, have, p.i), (d) => arena.checkMind(d)); // 오염 이벤트로 정신이 다 깎일 수 있음
-
-  socket.on('nest:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    const kin = syncKin(socket, d);
-    const items = d.nest ? db.hoard(d.id) : [];
-    ack({
-      ok: true,
-      nest: {
-        region: d.nest, here: !!d.nest && d.region === d.nest,
-        gold: d.hoard_gold || 0, items, value: logic.hoardValue(d.hoard_gold || 0, items) + logic.chestValue(d),
-        rank: d.nest ? hoardRank(d) : null, // 서버 보물더미 순위 (1~3위와 내 순위)
-        chest: logic.chestView(d), // 보물 상자 (아이의 선물·받은 꽃다발)
-        kin: (() => { // 식구 보기 + 혼인 청하기 메뉴를 띄울 수 있는지 (kinlove.js)
-          const v = life.views(kin, Date.now(), d);
-          for (const x of v.home || []) { const k = kin.find((y) => y.id === x.id); const c = k && kinLove.canPropose(d.id, k); if (c) x.propose = c; }
-          return v;
-        })(),
-        tier: logic.nestInfo(d).tier, maxKin: logic.maxKinOf(d),
-        wards: { trap: logic.nestInfo(d).wards.trap || 0, stone: logic.nestInfo(d).wards.stone || 0 },
-        raid: logic.raidView(d),
-        guard: d.perks?.guard || null,
-        forge: !!logic.nestInfo(d).forge, forgeCost: CRAFT.forge.cost, // 둥지 공방(화로)
-        // 둥지 시설: 칸 수, 지은 시설과 그 힘, 일하는 식구, 오늘 할 수 있는 것
-        facilities: (() => {
-          const fac = logic.facOf(d);
-          const today = logic.dayIdx();
-          const workers = {};
-          for (const k of kin) if (k.type === 'human' && k.status === 'home' && k.data.job) workers[k.data.job] = k;
-          return {
-            slots: logic.facSlots(d),
-            built: Object.keys(fac).filter((id) => FACILITY.list[id]).map((id) => {
-              const w = workers[id];
-              const v = w && life.views([w], Date.now(), d).home[0];
-              return { id, power: logic.facPower(d, id), worker: w ? { id: w.id, name: w.name, working: !!v?.job?.working, apprentice: !!v?.job?.apprentice, fit: !!v?.job?.fit } : null,
-                herbDone: id === 'herb' ? fac.herb.day === today : undefined, cookLeft: id === 'kitchen' ? life.cookLeft(d) : undefined };
-            }),
-          };
-        })(),
-        offers: social.kinOffers(d),            // 식구 입양 제안 (받은 것·보낸 것)
-        loves: kinLove.view(d),                 // 혼인 청 (받은 것·보낸 것)
-        partnerKin: (() => {                     // 반려의 둥지에 와 있으면 그 집 식구 (같이 돌보기)
-          const ph = logic.hooks.partnerNest(d);
-          if (!ph || ph.region !== d.region || d.exp_end) return null;
-          const v = life.views(db.kinLoad(ph.id), Date.now(), d, online.get(ph.id)?.dragon || db.getDragon(ph.id)); // 포만감은 반려 둥지의 부엌으로
-          return { id: ph.id, name: ph.name, home: v.home };
-        })(),
-      },
-    });
-  });
-
-  // ── 보물 도둑 쫓기: 사냥처럼 직접 싸움. 이기면 훔쳐 간 것을 되찾음 ──
-  socket.on('raid:chase', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: FALLEN });
-    if (arena.inBattle(d.id)) return ack({ error: '이미 싸우는 중이다.' });
-    logic.regen(d);
-    const why = logic.chaseCheck(d);
-    if (why) return ack(why);
-    const raid = logic.nestInfo(d).raid;
-    logic.spendAp(d, RAID.chaseAp);
-    const { battle, lines, c } = combat.raidBattle(d, raid);
-    const view = arena.startHunt(d, battle, c, (dd, r) => {
-      // 이기거나 쓰러지면 도둑 일은 끝남 (물러나면 흔적이 남은 동안 다시 쫓을 수 있음)
-      if (r.settled) { const ni = logic.nestInfo(dd); ni.raid = null; ni.calm = Date.now() + RAID.calm; ni.raidAt = Date.now(); }
-      if (r.wound) r.lines.push(...logic.traitCount(dd, 'wound'));
-    }, (dd, b, cc) => combat.raidReward(dd, b, cc, raid));
-    db.saveState(d);
-    sendMe(socket, d);
-    ack({ ok: true, result: { title: '도둑 추격', hunt: true, raid: true, battle: view, lines, items: [], gold: 0, xp: 0 } });
-  });
-
-  // ── 환영 공지: 계정마다 처음 들어올 때(와 GM이 다시 띄울 때) 한 번 ──
-  // 휴면 복구: 본인이 직접 눌러야 다시 결투장·지역 목록·지도 등에 보임
-  socket.on('account:wake', (p, ack) => {
-    const e = entryOf(socket); if (!e) return typeof ack === 'function' && ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = e.dragon;
-    if (d.dormant_at) {
-      db.dormantSet(d.id, null); d.dormant_at = null;
-      system(d.region, `오랫동안 보이지 않던 ${d.name}${josa(d.name, '이', '가')} 먼 길을 돌아 다시 이곳에 모습을 드러냈다.`, socket);
-    }
-    sendMe(socket, d); broadcastPresence(d.region); broadcastCounts();
-    setImmediate(() => rivalNear(d));
+  socket.on('dm:read', (m, ack) => {
+    const w = Number(m && m.with); if (w) QD.read.run(w, uid);
+    io.to('u:' + uid).emit('dm:read', { with: String(w) });
     if (typeof ack === 'function') ack({ ok: true });
   });
-  socket.on('welcome:seen', (p, ack) => {
-    db.welcomeSet(user.id, welcomeOf().ver);
-    if (typeof ack === 'function') ack({ ok: true });
-  });
-  socket.on('gm:welcome:get', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    ack({ ok: true, welcome: welcomeOf() });
-  });
-  socket.on('gm:welcome:set', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const text = (typeof p?.text === 'string' ? p.text : '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim().slice(0, WELCOME_MAX);
-    if (!text) return ack({ error: '공지 내용을 적자.' });
-    const cur = welcomeOf();
-    const w = { text, ver: p?.again ? cur.ver + 1 : cur.ver };
-    db.worldSet('welcome', w);
-    db.gmLog(socket.data.user.username, null, `환영 공지를 고침${p?.again ? ' (모두에게 다시 띄움)' : ''}`);
-    if (p?.again) io.emit('welcome', { ...w, seen: -1 }); // 접속 중인 모두에게 바로 (seen −1: 다시 띄우라는 뜻)
-    ack({ ok: true, welcome: w });
-  });
-
-  // ── 공지 (업데이트 노트와 따로) ──
-  socket.on('notices:get', (p, ack) => { if (typeof ack === 'function') ack({ ok: true, list: noticesOf() }); });
-  socket.on('gm:notice:save', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const title = str(p?.title).replace(/\s+/g, ' ').slice(0, NOTE.titleMax);
-    const body = (typeof p?.body === 'string' ? p.body : '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim().slice(0, NOTE.bodyMax);
-    if (!title) return ack({ error: '제목을 적자.' });
-    if (!body) return ack({ error: '내용을 적자.' });
-    const list = noticesOf().slice(), id = Number(p?.id) || 0;
-    if (id) {
-      const i = list.findIndex((n) => n.id === id); if (i < 0) return ack({ error: '그 공지를 찾지 못했다.' });
-      list[i] = { ...list[i], title, body }; db.worldSet('notices', list);
-      db.gmLog(socket.data.user.username, null, `공지를 고침: ${title}`);
-      if (i === 0) io.emit('notices:latest', { id: list[0].id, notice: list[0], edited: true }); // 가장 새 공지를 고치면 메뉴 내용만 바꿈 (다시 띄우지 않음)
-      return ack({ ok: true, list });
-    }
-    const n = { id: Date.now(), date: kstDate(), title, body };
-    list.unshift(n); db.worldSet('notices', list.slice(0, NOTE.max));
-    db.gmLog(socket.data.user.username, null, `공지를 올림: ${title}`);
-    io.emit('notices:latest', { id: n.id, notice: n }); // 접속 중인 모두에게도 바로 뜸
-    ack({ ok: true, list: noticesOf() });
-  });
-  // 다시 띄우기: 이미 읽은 드래곤(올린 GM 포함)에게도 다음 접속 때·지금 바로 다시 뜨게 (새 번호를 붙여 맨 위로)
-  socket.on('gm:notice:again', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const list = noticesOf().slice(), i = list.findIndex((x) => x.id === Number(p?.id)); if (i < 0) return ack({ error: '그 공지를 찾지 못했다.' });
-    const n = { ...list[i], id: Date.now() }; list.splice(i, 1); list.unshift(n); db.worldSet('notices', list);
-    db.gmLog(socket.data.user.username, null, `공지를 다시 띄움: ${n.title}`);
-    io.emit('notices:latest', { id: n.id, notice: n });
-    ack({ ok: true, list });
-  });
-  socket.on('gm:notice:delete', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const list = noticesOf(), n = list.find((x) => x.id === Number(p?.id)); if (!n) return ack({ error: '그 공지를 찾지 못했다.' });
-    const next = list.filter((x) => x.id !== n.id); db.worldSet('notices', next);
-    db.gmLog(socket.data.user.username, null, `공지를 지움: ${n.title}`);
-    io.emit('notices:latest', { id: next[0]?.id || 0, notice: next[0] || null, edited: true });
-    ack({ ok: true, list: next });
-  });
-
-  // ── 업데이트 노트 ──
-  socket.on('notes:get', (p, ack) => { if (typeof ack === 'function') ack({ ok: true, list: notesOf() }); });
-  // 새로 올리기(id 없음) 또는 고치기(id 있음)
-  socket.on('gm:note:save', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const title = str(p?.title).replace(/\s+/g, ' ').slice(0, NOTE.titleMax);
-    const body = (typeof p?.body === 'string' ? p.body : '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim().slice(0, NOTE.bodyMax);
-    if (!title) return ack({ error: '제목을 적자.' });
-    if (!body) return ack({ error: '내용을 적자.' });
-    const list = notesOf().slice();
-    const id = Number(p?.id) || 0;
-    if (id) {
-      const i = list.findIndex((n) => n.id === id);
-      if (i < 0) return ack({ error: '그 노트를 찾지 못했다.' });
-      list[i] = { ...list[i], title, body };
-      db.worldSet('notes', list);
-      db.gmLog(socket.data.user.username, null, `업데이트 노트를 고침: ${title}`);
-      return ack({ ok: true, list });
-    }
-    const n = { id: Date.now(), date: kstDate(), title, body };
-    list.unshift(n);
-    db.worldSet('notes', list.slice(0, NOTE.max));
-    db.gmLog(socket.data.user.username, null, `업데이트 노트를 올림: ${title}`);
-    io.emit('notes:latest', { id: n.id });
-    ack({ ok: true, list: notesOf() });
-  });
-  socket.on('gm:note:delete', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const list = notesOf();
-    const n = list.find((x) => x.id === Number(p?.id));
-    if (!n) return ack({ error: '그 노트를 찾지 못했다.' });
-    db.worldSet('notes', list.filter((x) => x !== n));
-    db.gmLog(socket.data.user.username, null, `업데이트 노트를 지움: ${n.title}`);
-    ack({ ok: true, list: notesOf() });
-  });
-
-  // ── 멸망한 대륙: 정화도와 기여 순위, 생존자와의 교환 ──
-  socket.on('ruin:get', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    ack({ ok: true, view: ruin.view(d), top: ruin.top(5), exchange: d.region === RUIN.gateTo ? RUIN.exchange : null, shards: db.itemCount(d.id, 'purify_shard') });
-  });
-  itemAction('ruin:trade', (d, p, have) => {
-    if (d.region !== RUIN.gateTo) return { error: `${REGIONS[RUIN.gateTo].name}의 생존자에게서만 바꿀 수 있다.` };
-    const x = RUIN.exchange.find((e) => e.id === str(p.id));
-    if (!x) return { error: '바꿀 수 없는 물건이다.' };
-    const qty = Math.max(1, Math.min(20, Math.floor(Number(p.qty)) || 1));
-    const cost = x.cost * qty;
-    if (have('purify_shard') < cost) return { error: `정화의 결정이 모자란다. (${cost}개 필요)` };
-    const name = ITEMS[x.id].name;
-    return { title: '생존자 오르샤', lines: [`정화의 결정 ${cost}개를 건네자, 오르샤가 낡은 상자에서 ${name}${qty > 1 ? ` ${qty}개` : ''}${josa(qty > 1 ? '개' : name, '을', '를')} 꺼내 주었다.`, '"이 땅을 맑게 해 주는 대가요. 부디 무사히 돌아가시오."'], items: [{ id: 'purify_shard', qty: -cost }, { id: x.id, qty }] };
-  });
-
-  // GM: 지금 바로 새 오염을 일으킴 (region을 비우면 다음 차례 지역)
-  // 무너진 시장: GM이 일으키고 / 그만두고, 모두가 보탬
-  socket.on('gm:marketfall', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const town = str(p?.town);
-    if (p?.stop) { const ok = marketFall.stop(town); if (ok) db.gmLog(socket.data.user.username, null, `무너진 시장 이벤트를 끝냄: ${REGIONS[town]?.name || town}`); return ack(ok ? { ok: true } : { error: '그 마을에는 지금 무너진 시장이 없다.' }); }
-    if (!SHOPS[town]) return ack({ error: '시장이 있는 인간 마을을 골라야 한다.' });
-    if (marketFall.has(town)) return ack({ error: `${REGIONS[town].name}의 시장은 이미 무너져 있다. 다른 마을을 고르거나 먼저 끝내야 한다.` }); // 마을마다 하나씩, 여러 마을에 함께 일으킬 수 있음
-    const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
-    const goals = {};
-    if (num(p?.gold, 0, 1e9)) goals.gold = num(p.gold, 0, 1e9);
-    for (const [id, n] of Object.entries(p?.items || {})) if (ITEMS[id] && num(n, 0, 1e6)) goals[id] = num(n, 0, 1e6);
-    if (!Object.keys(goals).length) return ack({ error: '모을 금화나 재료를 하나는 정해야 한다.' });
-    marketFall.start(town, goals, { sun: num(p?.sun ?? 5, 0, 99), salt: num(p?.salt ?? 15, 0, 999) }, str(p?.attacker).slice(0, 16), num(p?.cap ?? 10, 0, 100));
-    db.gmLog(socket.data.user.username, null, `시장을 무너뜨림: ${REGIONS[town].name}`);
-    ack({ ok: true });
-  });
-  itemAction('market:help', (d, p, have) => marketFall.help(d, p?.gold, p?.items, have));
-  itemAction('cc:submit', (d, p, have) => contest.submit(d, p?.id, have)); // 풍어 요리 잔치: 심사위원에게 요리 내기
-  itemAction('cc:enter', (d, p, have) => contest.enter(d, p?.id, p?.note, have)); // 풍어 요리 잔치: 인기 투표에 요리 출품
-  socket.on('gm:corrupt', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const now = Date.now();
-    const next = logic.corruptPeriod(now) + 1;
-    const want = str(p?.region);
-    if (want && (!REGIONS[want] || SHOPS[want] || logic.isRuin(want))) return ack({ error: '인간 마을과 멸망한 대륙에는 일으킬 수 없다.' });
-    corruptClock = { off: now, bump: next, force: want ? { period: next, region: want } : null };
-    db.worldSet('corruptClock', corruptClock);
-    const region = logic.corruptedRegion(now);
-    db.gmLog(socket.data.user.username, null, `오염을 일으킴: ${REGIONS[region].name}`);
-    io.emit('system', { text: `[오염] ${REGIONS[region].name}에 검은 기운이 번졌다! 함께 정화하자.`, at: now });
-    db.worldSet('corruptPin', io.lastNews ? { ...io.lastNews, region } : null); // 그 땅이 정화되거나 오염이 옮겨 갈 때까지 기록에 늘 남김
-    for (const e of online.values()) sendMe(e.socket, e.dragon);
-    ack({ ok: true, region, until: logic.corruptUntil(now) });
-  });
-
-  // 이야기 창: 위로 올려서 지난 말 더 불러오기 (지금 지역의 말과 용언을 섞어 before보다 앞의 것)
-  socket.on('chat:older', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const before = Math.floor(Number(p?.before));
-    if (!(before > 0)) return ack({ error: '불러올 곳을 모르겠다.' });
-    // '용언과 소식'만 볼 때: 그 아래 용언·소식만 거슬러 올라감 (지역 대화가 덮는 기간과 상관없이)
-    if (p?.only === 'shout') {
-      // 용언과 소식은 따로 거슬러 올라감 (하나의 기준으로 자르면, 더 멀리 남은 쪽에 맞춰 다른 쪽 사이가 빠졌음)
-      const bs = Number(p.beforeShout) || before, bn = Number(p.beforeNews) || before;
-      const list = [...(p.shoutEnd ? [] : db.olderChat(SHOUT_REGION, bs, 200).map((m) => ({ ...m, shout: true }))), ...(p.newsEnd ? [] : db.olderChat(NEWS_REGION, bn, 100).map((m) => ({ ...m, news: true })))]
-        .sort((a, c) => a.at - c.at || a.id - c.id);
-      return ack({ ok: true, history: withTitles(list), more: list.length > 0 });
-    }
-    const list = chatPage(entry.dragon.region, before);
-    ack({ ok: true, history: withTitles(list), more: list.length > 0 });
-  });
-
-  socket.on('weather:get', (p, ack) => { if (typeof ack === 'function') ack({ ok: true, weather: weatherAll() }); });
-
-  // GM: 한 지역의 날씨를 정해진 시간 동안 바꿈 (id가 비면 원래대로)
-  socket.on('gm:weather', (p, ack) => {
-    if (typeof ack !== 'function') return;
-    if (!socket.data.user?.is_gm) return ack({ error: 'GM만 쓸 수 있다.' });
-    const r = str(p?.region);
-    if (!REGIONS[r]) return ack({ error: '그런 지역은 없다.' });
-    const id = str(p?.id);
-    if (!id) delete logic.weatherDebug[r];
-    else {
-      if (!WEATHERS[id]) return ack({ error: '그런 날씨는 없다.' });
-      const h = Math.max(0.1, Math.min(48, Number(p?.hours) || 3));
-      logic.weatherDebug[r] = { id, until: Date.now() + h * 3600000 };
-    }
-    db.gmLog(socket.data.user.username, null, id ? `${REGIONS[r].name}의 날씨를 ${WEATHERS[id].name}${josa(WEATHERS[id].name, '으로', '로')} 바꿈` : `${REGIONS[r].name}의 날씨를 원래대로`);
-    const cur = weatherAll();
-    wxLast = cur;
-    io.emit('weather', cur);
-    for (const e of online.values()) if (e.dragon && e.dragon.region === r) sendMe(e.socket, e.dragon); // 그 지역 드래곤의 행동력 표시도 새로
-    ack({ ok: true, weather: cur, log: db.gmLogList(40) });
-  });
-
-  // 짝 사이의 아이를 두고 받은 청에 답하기 (받은 쪽 보호자)
-  socket.on('kinbaby:answer', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const res = kinLove.babyAnswer(entry.dragon, payload?.id, !!payload?.yes);
-    if (!res.error) { syncKin(socket, entry.dragon); sendMe(socket, entry.dragon); }
-    ack(res);
-  });
-  // 중매: 상대 고르기 · 청하기 · 답하기 · 거두기 (kinlove.js)
-  for (const [ev, fn] of [
-    ['kinmatch:cands', (d, p) => kinLove.matchCands(d, p?.kin)],
-    ['kinmatch:ask', (d, p) => kinLove.matchAsk(d, p?.kin, p?.owner, p?.to)],
-    ['kinmatch:answer', (d, p) => kinLove.matchAnswer(d, p?.id, !!p?.yes)],
-    ['kinmatch:cancel', (d, p) => kinLove.matchCancel(d, p?.id)],
-    ['kinlove:propose', (d, p) => kinLove.propose(d, syncKin(socket, d), p?.kin)], // ⋯ 메뉴의 혼인 청하기·짝 청하기
-    ['kinleave:answer', (d, p) => kinLove.leaveAnswer(d, p?.id, !!p?.yes)], // 짝과 함께 떠나기 청에 답하기
-  ]) {
-    socket.on(ev, (payload, ack) => {
-      if (typeof ack !== 'function') return;
-      const entry = entryOf(socket);
-      if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-      const res = fn(entry.dragon, payload || {});
-      if (!res.error && ev !== 'kinmatch:cands') { syncKin(socket, entry.dragon); sendMe(socket, entry.dragon); }
-      ack(res);
-    });
-  }
-  // 혼인 청에 답하기 (받은 쪽 보호자)
-  socket.on('kinlove:answer', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const res = kinLove.answer(entry.dragon, payload?.id, !!payload?.yes);
-    if (!res.error) sendMe(socket, entry.dragon);
-    ack(res);
-  });
-  // 안개 너머의 행상인 (남쪽 해안)
-  socket.on('pd:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const res = peddler.view(entry.dragon);
-    ack(res.error ? res : { ok: true, pd: res });
-  });
-  socket.on('nm:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const res = nightMarket.view(entry.dragon);
-    ack(res.error ? res : { ok: true, nm: res });
-  });
-  socket.on('market:get', (payload, ack) => {
-    if (typeof ack !== 'function') return;
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const res = logic.marketInfo(entry.dragon, db.inventory(entry.dragon.id));
-    ack(res.error ? res : { ok: true, market: res });
-  });
-
-  // 화면이 회복 시각이 됐다고 알려주면 다시 계산해서 보냄
-  socket.on('me:sync', () => {
-    const entry = entryOf(socket);
-    if (!entry) return;
-    syncKin(socket, entry.dragon);
-    sendMe(socket, entry.dragon);
-  });
-
-  socket.on('chat', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {}; // 예전 화면(답을 받지 않음)도 그대로 됨
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const text = str(payload?.text).slice(0, CHAT_MAX);
-    if (!text) return ack({ ok: true });
-    // 광폭화 중에는 말을 잃음 (텔레파시만 가능)
-    if (logic.berserkOf(entry.dragon)) { socket.emit('system', { text: '광폭화 중에는 말을 할 수 없다. 텔레파시로만 마음을 전할 수 있다.', at: Date.now() }); return ack({ error: 'berserk' }); }
-
-    const now = Date.now();
-    // 너무 빨리 이어 말하면: 예전엔 아무 말 없이 버려져 '보냈는데 안 올라간' 것처럼 보였음 → 화면에 알려 글을 되돌려 줌
-    if (now - (socket.data.lastChat || 0) < CHAT_COOLDOWN) return ack({ error: '숨을 고르고 다시 말하자.' });
-    socket.data.lastChat = now;
-
-    const d = entry.dragon;
-    const msg = { dragonId: d.id, name: d.name, kind: d.kind, text, at: now };
-    msg.id = db.addChat(d.region, msg);
-    io.to(d.region).emit('chat', { ...msg, title: logic.titleName(d), av: d.has_avatar ? d.avatar_ver : 0 });
-    ack({ ok: true });
-  });
-
-  // 용언: 대륙의 모든 드래곤에게 텔레파시로 외침
-  socket.on('shout', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const text = str(payload?.text).slice(0, CHAT_MAX);
-    if (!text) return ack({ error: '외칠 말을 적자.' });
-    if (logic.berserkOf(entry.dragon)) return ack({ error: '광폭화 중에는 외칠 수 없다. 텔레파시로만 마음을 전할 수 있다.' });
-    const now = Date.now();
-    if (now - (socket.data.lastChat || 0) < CHAT_COOLDOWN) return ack({ error: '숨을 고르고 다시 외치자.' });
-    const d = entry.dragon;
-    socket.data.lastChat = now;
-    const msg = { dragonId: d.id, name: d.name, kind: d.kind, text, at: now };
-    msg.id = db.addChat(SHOUT_REGION, msg);
-    io.emit('chat', { ...msg, shout: true, title: logic.titleName(d), av: d.has_avatar ? d.avatar_ver : 0 });
-    ack({ ok: true });
-  });
-
-  // 내가 한 말 지우기 (GM은 누구의 말이든)
-  socket.on('chat:delete', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const row = db.chatGet(Number(payload?.id));
-    if (!row) return ack({ error: '이미 지워진 말이다.' });
-    if (row.dragonId !== entry.dragon.id && !socket.data.user.is_gm) return ack({ error: '내가 한 말만 지울 수 있다.' });
-    db.chatDel(row.id);
-    (row.region === SHOUT_REGION ? io : io.to(row.region)).emit('chat:deleted', { id: row.id }); // 용언은 모두에게서
-    ack({ ok: true });
-  });
-
-  // 성별과 특징
-  socket.on('bio:set', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const gender = str(payload?.gender).replace(/\s+/g, ' ').slice(0, BIO.genderMax);
-    const desc = (typeof payload?.desc === 'string' ? payload.desc : '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, BIO.descMax);
-    const d = entry.dragon;
-    d.bio = { gender, desc };
-    db.setBio(d.id, d.bio);
-    sendMe(socket, d);
-    ack({ ok: true });
-  });
-  // 특징 그림 지우기 (올리기는 /api/bio-img)
-  socket.on('bio:img:delete', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '먼저 드래곤을 만들어야 한다.' });
-    const d = entry.dragon;
-    if (d.has_bio_img) { d.bio_img_ver = db.clearBioImg(d.id); d.has_bio_img = 0; }
-    sendMe(socket, d);
-    ack({ ok: true });
-  });
-
-  // 비밀번호 바꾸기: 지금 비밀번호를 확인하고 새 비밀번호로. 이 기기만 로그인을 유지하고 다른 기기는 끊김
-  socket.on('account:password', async (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const u = db.getUserByName(user.username);
-    const cur = typeof payload?.current === 'string' ? payload.current : '';
-    const next = typeof payload?.next === 'string' ? payload.next : '';
-    if (!u || !cur || !(await bcrypt.compare(cur, u.pw_hash))) return ack({ error: '지금 비밀번호가 맞지 않는다.' });
-    if (next.length < 8 || next.length > 64) return ack({ error: '새 비밀번호는 8~64자로 정해야 한다.' });
-    if (next === cur) return ack({ error: '지금 비밀번호와 다른 비밀번호를 정하자.' });
-    db.setPassword(u.id, await bcrypt.hash(next, 10), socket.handshake.auth?.token || null);
-    { const t = db.worldGet('pwtemp', {}) || {}; if (t[u.id]) { delete t[u.id]; db.worldSet('pwtemp', t); } } // 임시 비밀번호를 바꿨으면 안내 끝
-    ack({ ok: true });
-  });
-
-  // 계정 탈퇴: 비밀번호를 다시 확인하고, 계정과 드래곤을 모두 지움 (되돌릴 수 없음)
-  socket.on('account:delete', async (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const u = db.getUserByName(user.username);
-    const pw = typeof payload?.password === 'string' ? payload.password : '';
-    if (!u || !pw || !(await bcrypt.compare(pw, u.pw_hash))) return ack({ error: '비밀번호가 맞지 않는다.' });
-    if (u.is_gm && db.gmCount() <= 1 && db.userCount() > 1) {
-      return ack({ error: '마지막 GM은 탈퇴할 수 없다. GM 도구에서 다른 드래곤에게 GM 권한을 준 뒤 탈퇴하자.' });
-    }
-    const entry = entryOf(socket);
-    if (entry) {
-      const d = entry.dragon;
-      social.onLeave(d.id);
-      arena.onLeave(d.id, true);
-      online.delete(d.id);
-      socket.leave(d.region);
-      system(d.region, `${d.name}${josa(d.name, '이', '가')} 구름 너머로 영영 떠났다.`);
-      broadcastPresence(d.region);
-      broadcastCounts();
-    }
-    const gone = entry ? entry.dragon : db.getDragonByUser(u.id);
-    // 탈퇴: 바로 지우지 않고 7일 동안 GM이 맡아 둠 (들어올 수도 보이지도 않음). 그 뒤 휴면 정리에서 완전히 지움
-    if (gone) { if (!gone.dormant_at) db.dormantSet(gone.id, Date.now()); }
-    db.hold(u.id);
-    if (gone) eraseName(gone.id, gone.name, u.id, true); // 남들에게 보이는 곳의 이름은 바로 지움
-    socket.data.kicked = true;
-    ack({ ok: true });
-    socket.disconnect(true);
-  });
-
-  // ── 먼 여행: 지금 드래곤은 대륙을 떠나고(기록은 남음), 같은 계정으로 새 드래곤을 만듦 ──
-  // 레벨 DEPART.minLevel 이상이면 새 드래곤에게 의지(능력치 포인트·칭호)를 이어 줌. 재산·둥지·식구는 함께 떠남
-  socket.on('dragon:depart', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '떠날 드래곤이 없다.' });
-    const d = entry.dragon;
-    if (str(payload?.name) !== d.name) return ack({ error: `확인을 위해 드래곤 이름 '${d.name}'${josa(d.name, '을', '를')} 그대로 적어야 한다.` });
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중에는 떠날 수 없다.' });
-    if (logic.berserkOf(d)) return ack({ error: BERSERK });
-    if (logic.isFallen(d)) return ack({ error: '쓰러진 채로는 떠날 수 없다. 먼저 일어서거나 긴 잠을 정하자.' });
-    if (d.exp_end) return ack({ error: '원정에서 돌아온 뒤에 떠나자.' });
-    const now = Date.now();
-    const words = str(payload?.words).replace(/\s+/g, ' ').slice(0, DEPART.wordsMax);
-    const legacy = d.level >= DEPART.minLevel
-      ? { name: d.name, kind: d.kind, level: d.level, pts: require('./game-data').departPts(d.level), at: now, words: str(payload?.words).replace(/\s+/g, ' ').slice(0, DEPART.wordsMax) }
-      : null;
-    logic.regen(d, now);
-    d.rest_at = null;
-    d.fallen = { departed: true, closed: true, at: now, region: d.region, words };
-    logic.chron(d, 'mark', `먼 여행을 떠났다.${legacy ? ' 의지는 새로운 드래곤에게 이어진다.' : ''}`);
-    db.saveState(d);
-    db.depart(d);
-    d.dead_at = now;
-    logic.hooks.onGone?.(d); // 집터에 놓여 있던 선물은 보낸 이에게
-    if (legacy) db.legacySet(user.id, legacy);
-    for (const o of db.offersTo(d.id)) db.offerDel(o.id); // 받은 입양 제안은 지움 (보낸 제안은 동료가 받아 줄 수 있게 둠)
-    social.onLeave(d.id);
-    arena.onLeave(d.id, true);
-    online.delete(d.id);
-    socket.leave(d.region);
-    socket.data.dragonId = null;
-    const ga = `${d.name}${josa(d.name, '이', '가')}`;
-    io.emit('system', { text: `[먼 여행] ${ga} 먼 여행을 떠났다.${words ? ` "${words}"` : ''}${legacy ? ' 그 의지는 새로운 드래곤에게 이어진다.' : ''}`, at: now });
-    for (const r of db.relList(d.id)) {
-      if (r.kind !== 'friend') continue;
-      const text = `동료 ${ga} 먼 여행을 떠났다.${words ? ` 남긴 말: "${words}"` : ''}`;
-      const e = online.get(r.id);
-      if (e) e.socket.emit('notice', { title: '먼 여행', lines: [text] });
-      else db.noteAdd(r.id, text);
-    }
-    broadcastPresence(d.region);
-    broadcastCounts();
-    io.emit('rescue:list', death.rescues());
-    ack({ ok: true, legacy });
-  });
-
-  // GM: 내 드래곤을 정리하고 같은 계정으로 처음부터 다시 만들기 (GM 권한은 그대로)
-  socket.on('gm:remake', (payload, ack) => {
-    if (typeof ack !== 'function') ack = () => {};
-    const u = db.getUserByName(user.username);
-    if (!u || !u.is_gm) return ack({ error: 'GM만 할 수 있다.' });
-    const entry = entryOf(socket);
-    if (!entry) return ack({ error: '정리할 드래곤이 없다.' });
-    const d = entry.dragon;
-    if (str(payload?.name) !== d.name) return ack({ error: `확인을 위해 드래곤 이름 '${d.name}'을 그대로 적어야 한다.` });
-    if (arena.inBattle(d.id)) return ack({ error: '싸우는 중에는 할 수 없다. 싸움을 끝낸 뒤 다시 하자.' });
-    if (logic.berserkOf(d)) return ack({ error: '광폭화 중에는 할 수 없다.' });
-    social.onLeave(d.id);
-    arena.onLeave(d.id, true);
-    online.delete(d.id);
-    socket.leave(d.region);
-    socket.data.dragonId = null;
-    system(d.region, `${d.name}${josa(d.name, '이', '가')} 바람 속으로 흩어져 사라졌다.`);
-    broadcastPresence(d.region);
-    broadcastCounts();
-    db.gmLog(user.username, d.name, '내 드래곤을 정리하고 새로 만들기');
-    db.deleteDragon(d.id);
-    io.emit('rescue:list', death.rescues());
-    ack({ ok: true });
-  });
-
-  social.attach(socket);
-  slate.attach(socket);
-  gm.attach(socket);
-  arena.attach(socket);
-  death.attach(socket);
-  boss.attach(socket);
-  contest.attach(socket);
-  raidBoss.attach(socket);
 
   socket.on('disconnect', () => {
-    const entry = entryOf(socket);
-    if (!entry) return;
-    social.onLeave(entry.dragon.id);
-    arena.onLeave(entry.dragon.id);
-    online.delete(entry.dragon.id);
-    logic.regen(entry.dragon);
-    db.saveState(entry.dragon);
-    db.touch(entry.dragon.id);
-    if (socket.data.kicked) return; // 다른 창으로 옮겨간 경우는 조용히
-    const d = entry.dragon;
-    broadcastPresence(d.region);
-    broadcastCounts();
+    const n = (online.get(uid) || 1) - 1;
+    if (n > 0) online.set(uid, n); else online.delete(uid);
+    Q.seen.run(now(), uid);
+    const row = Q.agent.get(uid);
+    if (row) io.emit('agent', publicAgent(row));
   });
-}
-
-// 이어받은 의지를 지금 표(DEPART.tiers)에 맞춤: 표가 낮아지면 이미 이어받아 받는 중인 드래곤의 남은 몫도 줄임 (2026-11-06 최대 8점 → 5점)
-// 이미 받은 포인트는 거두지 않음 (새 몫보다 많이 받았으면 남은 몫만 0). 이어받은 점수(heir.pts)를 새 몫으로 고쳐 두므로 다시 켜도 그대로
-function capHeirDrip() {
-  const { departPts } = require('./game-data');
-  let n = 0;
-  for (const id of db.heirDripIds()) {
-    try {
-      const d = db.getDragon(id); if (!d || d.dead_at) continue;
-      const dr = logic.combatJson(d).heirDrip; if (!dr) continue;
-      let h = null; try { h = d.heir ? JSON.parse(d.heir) : null; } catch {}
-      if (!h || !Number.isFinite(h.level) || !Number.isFinite(h.pts)) continue;
-      const total = departPts(h.level);
-      if (total >= h.pts) continue; // 표가 낮아지지 않았으면 그대로
-      const got = Math.max(0, h.pts - (dr.left || 0)); // 지금까지 받은 포인트
-      const left = Math.max(0, total - got);
-      const before = dr.left || 0;
-      if (left === before) continue; // 남은 몫이 그대로면 손대지 않음 (이미 다 받은 드래곤에게 알림이 가지 않게)
-      dr.left = left; h.pts = total;
-      db.setHeir(id, h);
-      const text = `대륙의 규칙이 바뀌어, ${h.name}에게서 이어받은 의지가 모두 ${total}점이 되었다. ${left > 0 ? `남은 의지 ${before}점 → ${left}점.` : `이미 ${got}점을 받아 더 받을 의지는 없다.`}`;
-      logic.chron(d, 'mark', text);
-      db.saveState(d);
-      db.noteAdd(id, text);
-      n++;
-    } catch (e) { console.error('[이어받은 의지 정리]', id, e.message); }
-  }
-  if (n) console.log(`[이어받은 의지 정리] ${n}마리의 남은 몫을 지금 표에 맞춤`);
-}
-capHeirDrip();
-
-server.listen(PORT, () => {
-  console.log(`용의 대륙 서버가 http://localhost:${PORT} 에서 열렸어요.`);
 });
+
+// 안정도가 시간에 따라 떨어지는 것을 5분마다 모두에게 알린다
+setInterval(() => emitSector(), 5 * 60 * 1000).unref();
+// 격리 실패 검사 (1분마다)
+setInterval(() => { try { checkBreach(); } catch (e) { console.error(e); } }, 60 * 1000).unref();
+setTimeout(() => { try { checkBreach(); } catch (e) { console.error(e); } }, 2000).unref();
+
+server.listen(PORT, () => console.log(`SECTOR R-8 서버 가동: 포트 ${PORT}, 데이터 ${DATA_DIR}`));
