@@ -3775,7 +3775,7 @@ function syncModal() {
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
   if (r.tut) tutCoach(host);
 }
-// 카메라 화면 위의 장면 설명 칸과 레이더 칸을 같은 높이·같은 줄에 맞춘다(PC). 내용 길이가 달라 CSS만으로는 못 맞춘다.
+// 카메라 화면 위의 장면 설명 칸과 레이더 칸의 윗선을 맞춘다(PC). 크기는 각자 내용대로 둔다.
 function eqStageTop(root) {
   if (!root || mobile()) return;
   const cap = root.querySelector('.stg .cctv.big .cap2'), side = root.querySelector('.stg .sideov'), rad = side && side.querySelector('.radar');
@@ -3783,8 +3783,6 @@ function eqStageTop(root) {
   cap.style.minHeight = ''; rad.style.minHeight = '';
   const camTop = root.querySelector('.stg .cctv.big').getBoundingClientRect().top, k = parseFloat(getComputedStyle(document.querySelector('#opModal .opm-box') || document.body).getPropertyValue('--s')) || 1;
   side.style.top = Math.round((cap.getBoundingClientRect().top - camTop) / k) + 'px';
-  const h = Math.max(cap.offsetHeight, rad.offsetHeight);
-  cap.style.minHeight = h + 'px'; rad.style.minHeight = h + 'px';
 }
 /* ─────────────────────────── 튜토리얼: 첫 출동 ───────────────────────────
    새 요원이 재생 수조에서 깨어나 경보를 듣고 바로 투입된다. 서버 작전을 쓰지 않고 브라우저 안에서 대본대로 진행한다.
