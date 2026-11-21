@@ -1812,6 +1812,30 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .badge .bst .skc{margin-left:auto;font-size:11px;padding:1px 7px;color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}
 .badge.tmb .stats .tms .l{color:var(--c)}.badge.tmb .stats .tms .l b{color:var(--c)}
 .badge.mb .vit{margin-top:6px}.badge.mb .bst{margin-top:2px}
+/* 출입증 능력치 막대: 한 줄로 촘촘하게, 기울어진 칸에 이어지는 그라데이션 */
+.badge{--g1:#2C6F86;--g2:#7FD8EA}.badge.tmb{--g1:color-mix(in srgb,var(--c) 55%,#1E3A44);--g2:var(--c)}
+.badge .stats{gap:5px 18px;padding-top:12px}
+.badge .stats>span{display:grid;grid-template-columns:34px minmax(0,1fr) 24px;align-items:center;gap:8px;line-height:1.15}
+.badge .stats .l{display:contents}.badge .stats .l b{order:3;text-align:right;font-size:17px}
+.badge .stats .bars{order:2;height:12px;gap:2px}.badge.mb .mstats .bars{height:10px;gap:2px}.badge.pv .stats .bars{height:10px}
+.badge .bars{display:flex;gap:2px;height:8px;padding:2px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--g2) 30%,transparent)}
+[data-theme=light] .badge .bars{background:rgba(20,40,48,.08)}
+.badge .bars i{flex:1;height:100%;border-radius:0;transform:skewX(-24deg);background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.badge .bars i.on,.badge .bars i.half{background:linear-gradient(90deg,var(--g1),var(--g2));background-size:1000% 100%;background-position:calc(var(--k) * 11.111%) 0;box-shadow:0 0 6px color-mix(in srgb,var(--g2) 45%,transparent)}
+.badge .bars i.half{opacity:.45}
+.badge .stats .tms .bars i.on{box-shadow:0 0 8px color-mix(in srgb,var(--g2) 70%,transparent)}
+.badge.tmb .stats>span:not(.tms){--g1:#2C6F86;--g2:#7FD8EA}
+.badge .mstats{gap:6px 12px}
+/* 바이탈 막대: 눈금과 그라데이션 */
+.badge .vit{gap:5px}.badge .vr{grid-template-columns:40px minmax(0,1fr) 62px;gap:8px}
+.badge .vr i{position:relative;height:9px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 1px rgba(127,216,234,.2)}
+[data-theme=light] .badge .vr i{background:rgba(20,40,48,.08)}
+.badge .vr i span{height:9px!important;position:relative}
+.badge .vr i::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),var(--tile) calc(10% - 2px) 10%);pointer-events:none}
+.badge .vr.hp i span{background:linear-gradient(90deg,#1F6B4B,#5FE0A0);box-shadow:0 0 8px rgba(95,224,160,.45)}
+.badge .vr.sn i span{background:linear-gradient(90deg,#4A3A9C,#A893FF);box-shadow:0 0 8px rgba(168,147,255,.45)}
+.badge .vr.ct i span{background:linear-gradient(90deg,#8A6A16,#F2CC5C);box-shadow:0 0 8px rgba(242,204,92,.4)}
+.badge .vr.low i span{background:linear-gradient(90deg,#8E1E18,#FF6B60);box-shadow:0 0 8px rgba(255,107,96,.5)}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
