@@ -416,10 +416,10 @@ const RADAR_RANGE = 50, STEP_M = 15, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY 
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
-  id: 'R8-14', kind: 'combat', title: 'AO-212 「계수자」 제압', threat: 'Ⅲ', mins: 15, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
+  id: 'R8-14', kind: 'secure', event: true, title: 'AO-212 「계수자」 재확보', threat: 'Ⅲ', mins: 15, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
-  brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 제압하십시오. 제압하면 장치는 기지가 다시 켭니다.',
+  brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 쓰러뜨리고 다시 격리하십시오. 제압하면 장치는 기지가 다시 켭니다.',
   boss: { hpBy: [0, 30, 34, 32, 36], name: '계수자' },
   contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
   forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
@@ -456,11 +456,37 @@ const OPS = [{
 /* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
 // 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
 const PATROL_SECTIONS = 2, REACH_M = 6, PATROL_STAB = 15;
-OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, recoil: 12,
-  brief: '하층 B3 구역 정기 순찰입니다. 구역 문을 지나 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
-  sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
+OPS.push({ id: 'R8-P', patrol: true, kind: 'explore', title: '하층 탐사', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, recoil: 12,
+  brief: '하층 B3 구역 탐사입니다. 구역 문을 지나며 남겨진 연구 기록을 회수하고 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
+  sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 연구 자료를 많이 얻고, 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
   countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
-  endText: '귀환 신호가 끊겼다. 대열은 반복되는 복도 속에서 길을 잃었다.', endHp: -3, failText: '순찰 기록을 폐기한다.', reward: { supply: 25, research: 1 }, scenes: [] });
+  endText: '귀환 신호가 끊겼다. 대열은 반복되는 복도 속에서 길을 잃었다.', endHp: -3, failText: '탐사 기록을 폐기한다.', reward: { supply: 10, research: 4 }, scenes: [] });
+/* ───────── 소탕 (정기 작전) ─────────
+   한 장면. 하수인이 라운드마다 몰려온다. 정해진 수만큼 쓰러뜨리면 성공, 남은 시간이 0이 되면 실패. 보급품을 많이 준다. */
+OPS.push({ id: 'R8-S', kind: 'sweep', title: 'B2 배양 구역 소탕', threat: 'Ⅱ', mins: 15, field: 3, ctrl: 0, level: 2, rec: { field: [1, 3], ctrl: [0, 0] }, count: 5, countEvery: 3, tickSpawn: false,
+  brief: '하층 B2 배양 구역에서 하수인이 또 불어났습니다. 정해진 수만큼 처리해 개체 수를 줄이십시오. 정기 작전입니다.',
+  sub: '라운드마다 하수인이 몰려옵니다. 목표 수만큼 쓰러뜨리면 성공. 보급품을 많이 얻습니다.',
+  countLabel: '소각 대기 시간', tickText: '배양조에서 거품이 올라왔다. 소각 대기 시간이 줄었다.',
+  endText: '소각 대기 시간이 끝났다. 구역 전체에 소각 경보가 울린다. 대열은 쫓기듯 빠져나왔다.', endHp: -2, failText: '구역을 소각 처리한다. 다음 소탕까지 개체 수가 회복된다.', reward: { supply: 45, research: 0 },
+  sweep: { needBy: [0, 6, 11, 12, 14] },
+  entity: '배양 군체', contact: { text: '배양조 하나가 통째로 무너졌다. {name} 요원이 덮쳐졌다.', hp: -2, san: -1, count: 0 },
+  forms: ['배양조 안쪽에서 무언가 꿈틀거린다.', '배양조 너머로 덩어리진 윤곽이 보인다.', '덩어리 표면에 손 모양 돌기가 수없이 돋아 있다.', '돌기들이 일제히 요원들 쪽을 가리킨다.'],
+  minion: { name: '배양체', hp: 2, text: '배양조에서 기어 나온 반투명한 덩어리. 사람 손 모양의 돌기가 달려 있다.',
+    spawn: { front: '앞쪽 배양조가 터지며 배양체가 기어 나왔다.', rear: '뒤쪽 배수구에서 배양체가 올라왔다.' },
+    hit: '배양체가 {pos} {name} 요원에게 달라붙었다.', kill: '{name} 요원이 배양체를 터뜨렸다. 끈적한 액체가 바닥에 퍼진다.' },
+  scenes: [
+    { title: 'B2 배양 구역', sweep: true, from: 'front', dist: 60, speed: 0, spawn: { front: 2 },
+      map: { len: 40, start: 20, marks: [{ at: 0, label: '배수구', kind: 'door' }, { at: 12, label: '배양조 1' }, { at: 28, label: '배양조 2' }, { at: 40, label: '소각로', kind: 'door' }] },
+      text: '배양조 여러 개가 줄지어 서 있다. 깨진 유리 사이로 반투명한 것들이 꿈틀거린다. 소각로 예열음이 낮게 울린다.',
+      choices: [
+        { id: 'valve', label: '배양조 밸브를 잠근다', stat: 3, skill: '장비 운용', diff: 2, adv: false,
+          crit: { text: '밸브를 모두 잠갔다. 배양조가 조용해졌다.', count: 2 }, ok: { text: '밸브 하나를 잠갔다. 시간을 벌었다.', count: 1 }, cost: { text: '잠그긴 했지만 뜨거운 증기에 손을 데었다.', count: 1, hp: -1 }, fail: { text: '밸브가 부러졌다. 배양조가 끓어오른다.', count: -1 } },
+        { id: 'burn', label: '소각 유도선을 깐다', stat: 3, skill: '장비 운용', diff: 3, adv: false,
+          crit: { text: '유도선에 불이 붙었다. 근처의 배양체가 한꺼번에 타 버렸다.', clearMinions: 1 }, ok: { text: '유도선을 깔았다. 다음 판정이 수월해진다.', sup: 2 }, cost: { text: '깔긴 했지만 연기를 들이마셨다.', sup: 1, hp: -1 }, fail: { text: '불꽃이 튀어 배양체가 흥분했다.', san: -1 } },
+        { id: 'regroup', label: '대열을 재정비한다', stat: 5, skill: '인내', diff: 1, adv: false,
+          crit: { text: '호흡을 맞췄다. 다음 판정에 주사위 2개가 붙는다.', sup: 2 }, ok: { text: '대열을 다시 짰다. 다음 판정에 주사위 1개가 붙는다.', sup: 1 }, cost: { text: '정비는 했지만 배양조 소리가 귀에 남는다.', sup: 1, san: -1 }, fail: { text: '손발이 맞지 않는다.' } }
+      ] }
+  ] });
 const pick = a => a[die(a.length) - 1];
 // 조사: 받침 있으면 a, 없으면 b
 const jo = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return w + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? a : b); };
@@ -550,7 +576,7 @@ function genPatrol(base) {
       { id: 'side', label: '수동으로 승강기를 끌어올린다', pos: 'mid', stat: 0, skill: '장비 운용', diff: 2, adv: false, crit: { text: '승강기가 빠르게 내려온다.', count: 1, sup: 1 }, ok: { text: '승강기가 내려오고 있다.', sup: 1 }, cost: { text: '손잡이가 손을 할퀴었다.', hp: -1, sup: 1 }, fail: { text: '줄이 끊어질 듯 삐걱댄다.', count: -1 } },
       { id: 'rear', pos: 'rear', adv: false, ...pick(REAR_T) }] });
   return { ...base, entity: w.name, forms: w.forms, contact: w.contact, minion: { name: cr.name, hp: cr.hp, spawn: cr.spawn, kill: cr.kill }, scenes,
-    title: `하층 정기 순찰: ${first.title}부터` };
+    title: `하층 탐사: ${first.title}부터` };
 }
 // 갈림길 투표 결과로 다음 구역을 정하고 들어간다
 function forkResolve(r) {
@@ -663,7 +689,7 @@ function runOut(r, viewer, gm) {
   const radar = live ? (r.noise && !gm ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
     : { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
-      patrol: !!o.patrol, kind: o.kind || (o.patrol ? 'explore' : 'explore'), level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
+      patrol: !!o.patrol, kind: o.kind || 'explore', event: !!o.event, minName: o.minion ? o.minion.name : null, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
     steps: live ? o.scenes.map((x, i) => o.patrol ? (x.fork ? '갈림길' : i === o.scenes.length - 1 ? '승강기' : i <= r.scene ? x.title.replace(/ \(하층.*$/, '') : '구역') : x.title) : null,
     eta: live ? (() => { const ev = cadence(r); return Math.max(0, r.count * ev - (r.turn % ev)); })() : null,
     cnt: live ? { every: cadence(r), next: cadence(r) - (r.turn % cadence(r)), max: o.count, fx: (r.cfx || []).filter(x => x.turn >= r.turn - 1) } : null,
@@ -675,6 +701,7 @@ function runOut(r, viewer, gm) {
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     contactWarn: live && r.contactWarn ? r.contactWarn : null,
     gauge: live ? { v: r.gauge || 0, max: gaugeMax(r) } : null, dmgBy: r.dmgBy || {},
+    sweep: live && sc && sc.sweep ? { kills: sweepKills(r), need: sweepNeed(r) } : null,
     boss: live && r.boss && sc.boss ? { name: r.boss.name, hp: r.boss.hp, hpMax: r.boss.hpMax, intent: r.boss.stun ? 'stun' : r.boss.intent, intentName: r.boss.stun ? '비틀거림' : BOSS_INT[r.boss.intent], exposed: r.boss.exposedUntil >= r.turn, taunt: r.boss.taunt ? r.boss.taunt.uid : null, blocked: r.minions.some(x => x.side === 'front'), dmgRound: r.boss.dmgRound || 0, brk: BOSS_BREAK, combo: r.boss.hitTurn === r.turn - 1 ? r.boss.hitBy : null } : null,
     ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
     noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
@@ -893,6 +920,13 @@ function burst(r) {
   say(r, txt, { kind: 'burst', dmg: B ? dmg : 0 });
   if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill' }); checkBodies(r); opFinish(r, 'success'); }
 }
+// 소탕: 쓰러뜨린 수 = 나온 수 − 남은 수(장면이 하나뿐이라 그대로 센다)
+const sweepNeed = r => { const o = D(r); return o.sweep ? o.sweep.needBy[Math.min(4, Math.max(1, r.nf || 1))] : 0; };
+const sweepKills = r => Math.max(0, (r.spawned || 0) - r.minions.length);
+function sweepCheck(r) {
+  const o = D(r); if (r.status !== 'live' || !o.sweep) return;
+  if (sweepKills(r) >= sweepNeed(r)) { say(r, `처리 목표 ${sweepNeed(r)}마리 달성. 배양 구역 개체 수가 기준 아래로 내려갔다. 소각로가 나머지를 처리한다.`, { kind: 'kill' }); r.minions = []; checkBodies(r); opFinish(r, 'success'); }
+}
 function resolveRound(r) {
   if (r.status !== 'live' || r.batch) return;
   clearTimeout(r._timer);
@@ -908,6 +942,7 @@ function resolveRound(r) {
     if (p.kind === 'move' && p.v === 'wait') { say(r, `${m.name} 요원은 자리를 지키며 기다렸다.`, { kind: 'move', uid }); continue; }
     const e = p.kind === 'move' ? moveExec(r, uid, p.v) : actExec(r, uid, p.v);
     if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
+    sweepCheck(r);
   }
   if (r.status === 'live' && r.scene === sc0 && D(r).scenes[r.scene].fork) forkResolve(r);
   if (r.ambush && r.ambush.at === r.turn + 1) {
@@ -915,7 +950,7 @@ function resolveRound(r) {
     r.ambushQuiet = { quiet: able.every(m => quietV(picks[m.uid])), ok: able.filter(m => m.hideOk === r.turn).length, need: Math.ceil(able.length / 2) };
   }
   r.batch = false; r.picks = {};
-  if (r.status === 'live' && (r.gauge || 0) >= gaugeMax(r)) burst(r);
+  if (r.status === 'live' && (r.gauge || 0) >= gaugeMax(r)) { burst(r); sweepCheck(r); }
   if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
   if (r.status === 'live') startRound(r);
 }
@@ -938,7 +973,7 @@ function opStart(uid, opId) {
   say(r, '관제실: 작전 개시를 승인한다. 개체 거리와 이상 징후는 이 회선으로 하달한다.', { kind: 'radio', name: '관제실' });
   r.band = 0;
   say(r, `대열 편성: ${lineOf(r).map(m => m.name).join(' → ')} (민첩이 높은 요원이 선두에 선다)`, { kind: 'sys' });
-  r.minions = []; r.mseq = 0;
+  r.minions = []; r.mseq = 0; r.spawned = 0;
   say(r, o.scenes[0].text, { kind: 'scene', title: o.scenes[0].title });
   sceneEnter(r);
   startRound(r);
@@ -1054,8 +1089,8 @@ function applyFx(r, m, fx, why) {
     if (fx.bossStun) { r.boss.stun = true; r.contactWarn = null; }
     if (fx.bossExpose) r.boss.exposedUntil = Math.max(r.boss.exposedUntil, r.turn + fx.bossExpose);
     if (fx.bossTaunt && m) { r.boss.taunt = { uid: m.uid, half: fx.bossTaunt >= 2 }; if (r.boss.intent === 'reach') r.contactWarn = { uid: m.uid, name: m.name, side: 'front', boss: true }; }
-    if (fx.clearMinions && r.minions.length) { r.minions = []; }
   }
+  if (fx.clearMinions && r.minions.length) { r.minions = []; }
   if (fx.sup) r.support = Math.min(4, r.support + fx.sup);
   if (fx.push) r.dist = Math.min(60, r.dist + fx.push);
 }
@@ -1088,7 +1123,7 @@ function spawnMinion(r, side, n) {
   const o = D(r);
   for (let i = 0; i < n && r.minions.length < MINION_CAP; i++) {
     const hp = o.minion.hp + MINION_HP + scaleOf(r).hp;
-    const f = { id: ++r.mseq, side, hp, hpMax: hp }; setIntent(r, f); r.minions.push(f);
+    const f = { id: ++r.mseq, side, hp, hpMax: hp }; setIntent(r, f); r.minions.push(f); r.spawned = (r.spawned || 0) + 1;
     say(r, o.minion.spawn[side], { kind: 'spawn' });
   }
 }
@@ -1315,6 +1350,11 @@ function endTurn(r, moved) {
       else { r.ambush = { side, n, at: r.turn + 1, scene: r.scene }; say(r, `관제실: ${side === 'rear' ? '후방' : '전방'} 배관에서 하수인 반응${n > 1 ? ` ${n}` : ''}. 다음 라운드 출현 예상. 전원 정지하고 숨을 것.`, { kind: 'radio', name: '관제실', ambush: true }); }
     }
   }
+  if (o.scenes[r.scene].sweep && r.status === 'live') {
+    // 소탕: 라운드마다 몰려온다. 3인 이상이면 가끔 둘. 앞뒤를 번갈아.
+    const n = 1 + ((r.nf || 1) >= 3 && r.turn % 2 ? 1 : 0), cap = Math.min(MINION_CAP, 1 + (r.nf || 1));
+    for (let i = 0; i < n && r.minions.length < cap; i++) spawnMinion(r, (r.turn + i) % 3 === 0 ? 'rear' : 'front', 1);
+  }
   ambushTick(r);
   noiseTick(r);
   if (moved !== false) shiftTick(r);
@@ -1463,6 +1503,7 @@ function opRecover(r, m, uid, target) {
 function moveExec(r, uid, kind) {
   const err = canField(r, uid); if (err) return err;
   const m = fieldMember(r, uid), sc = D(r).scenes[r.scene], p = posOf(r, uid);
+  if ((kind === 'fwd' || kind === 'back') && sc.sweep) return 'op/no-move';
   if (kind === 'fwd' || kind === 'back') {
     if (r.minions.some(x => x.side === (kind === 'fwd' ? 'front' : 'rear'))) return kind === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear';
     // 대열은 지형 위에서 움직인다. 진행 방향(fwd)은 지형의 끝 쪽.
