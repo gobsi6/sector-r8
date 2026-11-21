@@ -1709,7 +1709,7 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .prog .cnt .csub{flex-basis:100%;text-align:right;font-style:normal;font-size:10.5px;color:var(--sub);white-space:normal}
 @keyframes cfxIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 @media (max-width:999px){.prog .cnt .csub{text-align:left}}
-@media (min-width:1000px){.prog .cnt{flex-wrap:nowrap}.prog .cnt .csub{flex-basis:auto;white-space:nowrap;padding-left:8px;margin-left:2px;box-shadow:inset 1px 0 0 var(--tileLine)}}
+@media (min-width:1000px){.prog .cnt{flex-wrap:nowrap;flex:1 1 100%}.prog .cnt .csub{flex-basis:auto;white-space:nowrap;margin-left:auto;text-align:right}}
 /* 폰 스크롤 버벅임 줄이기: 큰 화면 위의 흐림(backdrop-filter)·혼합 모드·계속 도는 잡음은 스크롤마다 다시 그려져 무겁다 */
 @media (max-width:999px){
   .opmodal.on{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(6,10,14,.92)}
