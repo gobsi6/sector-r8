@@ -1849,6 +1849,25 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 [data-theme=light] .badge .vr.sn i span{background:linear-gradient(90deg,#8A78E8,#3F2D9C);box-shadow:none}
 [data-theme=light] .badge .vr.ct i span{background:linear-gradient(90deg,#D6AE3E,#87640E);box-shadow:none}
 [data-theme=light] .badge .vr.low i span{background:linear-gradient(90deg,#E5655C,#9E1E17);box-shadow:none}
+.myturn .moves.m3{grid-template-columns:repeat(3,minmax(0,1fr))}.myturn .moves.m3 .btn{height:auto;min-height:36px;flex-direction:column;gap:1px;line-height:1.2;padding:4px 6px}
+/* 예고 종류 기호 */
+.icat{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;font-size:11px;line-height:1;margin:0 2px 0 4px;color:#120000;background:#FF6B60;vertical-align:-2px}
+.icat.ic-scream,.icat.ic-count{background:#A893FF}.icat.ic-call{background:#F0C774}.icat.ic-brace{background:#9FB1B5}.icat.ic-stun,.icat.ic-open{background:#7FD39B}
+.icl{font-size:10.5px;font-weight:800;letter-spacing:.02em;margin-right:2px}
+.badge .vr .lw{font-style:normal;margin-left:4px;font-size:10px;font-weight:800;color:var(--red)}
+/* 손맛: 히트스톱(움직임 잠깐 멈춤)과 번쩍임 */
+.opm-box.hstop *{animation-play-state:paused!important}
+.opm-box .opm-body{will-change:transform}
+.fbflash{position:absolute;inset:0;pointer-events:none;z-index:70;background:#FFF6DC;opacity:0}
+.fbflash.soft{background:#F0C774}
+.fbflash.on{animation:fbfl .22s ease-out}
+@keyframes fbfl{0%{opacity:var(--a,.2)}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.fbflash.on{animation:none}}
+/* 연출 설정 */
+.fxset{position:relative;display:inline-flex}
+.fxpop{position:absolute;right:0;top:calc(100% + 8px);z-index:300;width:250px;display:flex;flex-direction:column;gap:10px;padding:14px;background:var(--tile);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line2),0 12px 30px rgba(0,0,0,.3);font-size:13px}
+.fxpop label{display:flex;align-items:center;gap:8px}.fxpop label input[type=range]{flex:1;accent-color:var(--navyLine)}.fxpop label em{font-style:normal;width:40px;text-align:right;font-size:16px}
+.fxpop label.ck input{width:16px;height:16px;accent-color:var(--navyLine)}.fxpop small{font-size:11.5px;color:var(--sub);line-height:1.5}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2017,6 +2036,7 @@ const IC = {
   check: 'M20 6 9 17l-5-5', play: 'M7 4 L20 12 L7 20 Z',
   sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
   moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+  fx: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4',
   out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
 };
 const eico = (e, s = 20) => IC['e-' + e.icon] ? ico('e-' + e.icon, s, 1.6) : '';
@@ -2337,7 +2357,7 @@ const photoBox = (a, deco) => `${a && a.photo ? '' : `<i class="dots" aria-hidde
 const addYear = ms => ms ? ms + 365 * 864e5 : 0;
 // 출입증 바이탈: HP · 정신력 · 오염도를 같은 모양의 막대로
 function vitHTML(a) {
-  const V = a.vit || {}, lim = a.contLimit || 90, row = (k, cls, v, mx) => { const p = mx ? Math.max(0, Math.min(100, v / mx * 100)) : 0; return `<span class="vr ${cls}${p <= 30 && cls !== 'ct' ? ' low' : ''}"><b>${k}</b><i><span style="width:${p}%"></span></i><em class="bb">${v}<small> / ${mx}</small></em></span>`; };
+  const V = a.vit || {}, lim = a.contLimit || 90, row = (k, cls, v, mx) => { const p = mx ? Math.max(0, Math.min(100, v / mx * 100)) : 0; return `<span class="vr ${cls}${p <= 30 && cls !== 'ct' ? ' low' : ''}"><b>${k}${p <= 30 && cls !== 'ct' ? '<em class="lw">위험</em>' : ''}</b><i><span style="width:${p}%"></span></i><em class="bb">${v}<small> / ${mx}</small></em></span>`; };
   return `<span class="vit">${V.hpMax ? row('HP', 'hp', V.hp, V.hpMax) : ''}${V.sanMax ? row('정신력', 'sn', V.san, V.sanMax) : ''}${row('오염도', 'ct', a.contamination || 0, lim)}</span>`;
 }
 function badgeHTML(a, { preview = false } = {}) {
@@ -2478,7 +2498,7 @@ function viewShell() {
     <span class="sep"></span>
     <nav class="nav" aria-label="주 메뉴">${MENU.map(([k, l, i]) => `<button data-act="view" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ico(i, 22)}<span>${l}</span></button>`).join('')}</nav>
     <span class="res" id="resBar">${resHTML(r)}</span>
-    <span class="tools">${S.gm ? `<button class="btn s g gmbtn" data-act="toGM">GM</button>` : ''}<button class="ib" data-act="theme" aria-label="${S.theme === 'dark' ? '밝은 화면' : '어두운 화면'}으로 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span>
+    <span class="tools">${S.gm ? `<button class="btn s g gmbtn" data-act="toGM">GM</button>` : ''}<span class="fxset"><button class="ib" data-act="fxOpen" aria-label="연출 설정" aria-expanded="${!!S.fxOpen}">${ico('fx')}</button>${S.fxOpen ? `<span class="fxpop" role="group" aria-label="연출 설정"><b>연출 설정</b><label><span>화면 흔들림</span><input type="range" min="0" max="100" step="25" value="${Math.round(FXS.shake * 100)}" data-fx="shake"><em class="bb">${Math.round(FXS.shake * 100)}%</em></label><label class="ck"><input type="checkbox" data-fx="noFlash" ${FXS.noFlash ? 'checked' : ''}><span>번쩍임 줄이기</span></label><small>흔들림 0%면 화면이 흔들리지 않습니다. 번쩍임 줄이기는 밝은 번쩍임을 옅은 색으로 바꿉니다.</small></span>` : ''}</span><button class="ib" data-act="theme" aria-label="${S.theme === 'dark' ? '밝은 화면' : '어두운 화면'}으로 전환">${ico(S.theme === 'dark' ? 'sun' : 'moon')}</button><button class="ib" data-act="signOut" aria-label="로그아웃">${ico('out')}</button></span>
   </header>
   <div class="body3">
     <section class="colL" id="colL" aria-label="${S.view === 'agents' ? '요원 명단' : '요원 출입증'}">${viewLeft()}</section>
@@ -2941,11 +2961,14 @@ function stripHTML(r, me) {
     <span class="sl"><b>목표</b> ${r.boss ? `${esc(r.boss.name)} 제압` : r.sweep ? `${esc(r.op.minName || '하수인')} ${r.sweep.kills} / ${r.sweep.need}마리 처리` : left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
 }
 // 무대 위 하수인: 이름, 체력, 다음 행동
+// 예고 종류: 색만으로 구분하지 않도록 기호와 글자를 함께 붙인다
+const INT_CAT = { bite: ['공격', '⚔'], pounce: ['공격', '⚔'], reach: ['공격', '⚔'], scream: ['정신', '◈'], count: ['정신', '◈'], call: ['소환', '✚'], brace: ['방어', '▣'], stun: ['기회', '◎'], open: ['기회', '◎'] };
+const icat = it => { const c = INT_CAT[it]; return c ? `<i class="icat ic-${it}" aria-hidden="true">${c[1]}</i><span class="icl">${c[0]}</span>` : ''; };
 function foesOnStage(r) {
   const fresh = r._fxAt && Date.now() - r._fxAt < 1600, FX = fresh ? r._fx || {} : {};
   return ['front', 'rear'].map(sd => { const L2 = (r.minions || []).filter(x => x.side === sd); if (!L2.length) return '';
-    const x = L2[0], it = x.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null, f = FX['m' + x.id];
-    return `<span class="sfoe${f && f.hp < 0 ? ' hit' : ''}"><i></i><b>${esc(x.name)}</b><small>${sd === 'front' ? '앞' : '뒤'} · HP ${x.hp}/${x.hpMax}${L2.length > 1 ? ` · +${L2.length - 1} 대기` : ''}</small><em class="it-${it}">다음: ${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</em></span>`; }).join('');
+    const x = L2[0], it = x.intent || 'bite', tg = (it === 'bite' || it === 'scream' || it === 'pounce') ? foeTarget(r, sd) : null, f = FX['m' + x.id];
+    return `<span class="sfoe${f && f.hp < 0 ? ' hit' : ''}"><i></i><b>${esc(x.name)}</b><small>${sd === 'front' ? '앞' : '뒤'} · HP ${x.hp}/${x.hpMax}${L2.length > 1 ? ` · +${L2.length - 1} 대기` : ''}</small><em class="it-${it}">${icat(it)} 다음: ${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</em></span>`; }).join('');
 }
 // 조우 카드: 개체 그림 대신, 가까워질수록 관측 기록이 한 줄씩 열린다
 const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
@@ -2957,7 +2980,7 @@ function bossHTML(r) {
   const st = [B.exposed ? '<em class="tg gd">급소 노출 · 피해 +3</em>' : '', tg ? `<em class="tg ct">${esc(tg.name)}에게 시선 고정</em>` : '', B.blocked ? '<em class="tg hp">하수인이 앞을 막는 중 · 개체를 칠 수 없음</em>' : '', B.intent === 'count' ? `<em class="tg sn">셈 끊기 ${Math.min(B.dmgRound, B.brk)}/${B.brk}</em>` : ''].join('');
   return `<div class="boss"><span class="bh"><b class="bb">TARGET</b><b>${esc(B.name)}</b><small>제압하면 작전 성공</small></span>
     <span class="bhp"><i><span style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
-    <span class="bin it-${B.intent}"><small>다음 행동</small><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span>
+    <span class="bin it-${B.intent}"><small>다음 행동 ${icat(B.intent)}</small><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span>
     ${st ? `<span class="bst">${st}</span>` : ''}</div>`;
 }
 function bossAtkHTML(r, me) {
@@ -3163,8 +3186,8 @@ function combatBarHTML(r) {
 // 다음 하수인 행동 예고: 누구든 행동 하나를 마치면 이대로 움직인다
 function foreHTML(r) {
   const parts = ['front', 'rear'].map(sd => { const f = (r.minions || []).find(x => x.side === sd); if (!f) return '';
-    const it = f.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null;
-    return `<span class="fi it-${it}"><small>${sd === 'front' ? '앞' : '뒤'}</small><b>${esc(f.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</b><em>${INT_FX[it]}${tg && tg.guard ? ', 막기로 절반' : ''}</em></span>`; }).filter(Boolean);
+    const it = f.intent || 'bite', tg = (it === 'bite' || it === 'scream' || it === 'pounce') ? foeTarget(r, sd) : null;
+    return `<span class="fi it-${it}"><small>${sd === 'front' ? '앞' : '뒤'} ${icat(it)}</small><b>${esc(f.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</b><em>${INT_FX[it]}${tg && tg.guard ? ', 막기로 절반' : ''}</em></span>`; }).filter(Boolean);
   return parts.length ? `<div class="fore"><span class="fl">이번 라운드가 끝나면</span>${parts.join('')}</div>` : '';
 }
 // 교전 행동: 앞 / 나 / 뒤 세 묶음
@@ -3974,7 +3997,8 @@ function rollFx(host, r) {
   if (L.length <= (host._seen || 0)) { host._seen = L.length; return; }
   const nw = L.slice(host._seen); host._seen = L.length;
   nw.forEach(e => { if (e.kind === 'roll' && e.dice) RFQ.push(e); else if (e.kind === 'burst') RFQ.push(e); });
-  while (RFQ.length > 4) RFQ.shift();
+  while (RFQ.length > 3) RFQ.shift();
+  if (nw.some(e => e.kind === 'kill')) setTimeout(() => feedback(host, 'medium'), 200);
   if (!rollFx.busy) rollFxNext(host);
 }
 function rollFxNext(host) {
@@ -3985,8 +4009,8 @@ function rollFxNext(host) {
   const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
   if (e.kind === 'burst') {
     el.innerHTML = `<div class="rf burst"><b class="bb">RAVEN 일제 사격</b><em>${esc(e.text.replace('팀 연계 완성. RAVEN 일제 사격. ', ''))}</em></div>`;
-    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
-    setTimeout(() => { el.innerHTML = ''; rollFxNext(host); }, reduce ? 1200 : 1700); return;
+    feedback(host, 'large');
+    setTimeout(() => { el.innerHTML = ''; rollFxNext(host); }, reduce ? 1000 : 1300); return;
   }
   const faces = [...(e.dice.w || []).map(v => ['w', v]), ...(e.dice.b || []).map(v => ['b', v]), ...(e.dice.s || []).map(v => ['s', v])].slice(0, 12);
   const dmg = e.dmg != null ? e.dmg : ((e.fx && e.fx.foe) || +((/피해 (\d+)/.exec(e.text || '') || [])[1] || 0));
@@ -4002,11 +4026,38 @@ function rollFxNext(host) {
   let gone = false; const next = () => { if (gone) return; gone = true; clearInterval(it); el.innerHTML = ''; rollFxNext(host); };
   card.style.pointerEvents = 'auto'; card.addEventListener('click', next);
   const land = () => { card.querySelectorAll('.rd i').forEach(i => { i.textContent = i.dataset.v; i.classList.add(+i.dataset.v >= 5 ? 'hit' : 'miss'); }); card.classList.add('land');
+    // 세기: 대성공·큰 피해는 큼, 피해가 들어간 성공은 보통, 그냥 성공은 작음
+    feedback(host, e.tier === 'crit' || dmg >= 8 ? 'large' : dmg > 0 ? 'medium' : e.tier === 'ok' ? 'small' : null);
   };
   let it = 0;
-  if (!reduce) { it = setInterval(() => card.querySelectorAll('.rd i').forEach(i => { i.textContent = Math.ceil(Math.random() * 6); }), 60); setTimeout(() => { clearInterval(it); land(); }, 420); }
+  if (!reduce) { it = setInterval(() => card.querySelectorAll('.rd i').forEach(i => { i.textContent = Math.ceil(Math.random() * 6); }), 50); setTimeout(() => { clearInterval(it); land(); }, 300); }
   else land();
-  setTimeout(next, reduce ? 2400 : 2800);
+  // 짧게 보여 주고 넘긴다(한 장 약 1.6초). 연출 중에도 행동 카드는 그대로 누를 수 있다.
+  setTimeout(next, reduce ? 1500 : 1600);
+}
+/* ───────── 손맛: 세기 3단계(작음·보통·큼) ─────────
+   흔들림은 맞을 때마다 쌓이고 서서히 줄어드는 값(trauma)의 제곱만큼, 사인 곡선으로 부드럽게 흔든다.
+   히트스톱은 보통·큼에서만, 화면의 움직임을 아주 잠깐 멈춘다(입력은 막지 않는다).
+   설정의 흔들림 세기(0~100%)와 번쩍임 줄이기를 따른다. */
+const FB_TIER = { small: { tr: .15, hs: 0, fl: 0 }, medium: { tr: .4, hs: 55, fl: .18 }, large: { tr: .8, hs: 120, fl: .32 } };
+const FXS = { shake: 1, noFlash: false };
+try { const v = JSON.parse(localStorage.getItem('r8fx') || 'null'); if (v) Object.assign(FXS, v); } catch {}
+const fxSave = () => { try { localStorage.setItem('r8fx', JSON.stringify(FXS)); } catch {} };
+const FB = { trauma: 0, t: 0, raf: 0, last: 0, hsId: 0 };
+function feedback(host, tier) {
+  const T = FB_TIER[tier]; if (!T) return;
+  const box = host && host.querySelector('.opm-box'), body = box && box.querySelector('.opm-body'); if (!body) return;
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  if (T.hs) { const id = ++FB.hsId; box.classList.add('hstop'); setTimeout(() => { if (id === FB.hsId) box.classList.remove('hstop'); }, T.hs); }
+  if (T.fl) { let f = box.querySelector('.fbflash'); if (!f) { f = document.createElement('i'); f.className = 'fbflash'; f.setAttribute('aria-hidden', 'true'); box.appendChild(f); }
+    f.style.setProperty('--a', FXS.noFlash ? T.fl * .35 : T.fl); f.classList.toggle('soft', !!FXS.noFlash); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
+  FB.trauma = Math.min(1, FB.trauma + T.tr);
+  if (!FB.raf) { FB.last = performance.now(); FB.raf = requestAnimationFrame(function step(now) {
+    const dt = Math.min(.05, (now - FB.last) / 1000); FB.last = now; FB.trauma = Math.max(0, FB.trauma - 1.6 * dt); FB.t += dt * 30;
+    const k = FB.trauma * FB.trauma * FXS.shake;
+    body.style.transform = k > .001 ? `translate(${(10 * k * Math.sin(FB.t * 1.7)).toFixed(2)}px,${(7 * k * Math.sin(FB.t * 2.3)).toFixed(2)}px) rotate(${(.6 * k * Math.sin(FB.t * 1.1)).toFixed(3)}deg)` : '';
+    if (FB.trauma > 0) FB.raf = requestAnimationFrame(step); else { FB.raf = 0; body.style.transform = ''; }
+  }); }
 }
 // 카메라 화면 위의 장면 설명 칸과 레이더 칸의 윗선을 맞춘다(PC). 크기는 각자 내용대로 둔다.
 function eqStageTop(root) {
@@ -4385,6 +4436,7 @@ app.addEventListener('click', e => {
     case 'teamSave': if (!S.teamSel) return; B.teamSet({ team: S.teamSel }).then(d => { if (d && d.agent) S.me = d.agent; S.teamSel = 0; render(); }).catch(err => { S.teamErr = errMsg(err); render(); }); return;
     case 'loginMode': S.loginMode = S.loginMode === 'in' ? 'up' : 'in'; S.err = ''; return re();
     case 'signOut': return B.signOut();
+    case 'fxOpen': S.fxOpen = !S.fxOpen; return re();
     case 'theme': setTheme(S.theme === 'dark' ? 'light' : 'dark'); return re();
     // 재생 절차
     case 'role': c.role = +v; return re();
@@ -4619,6 +4671,12 @@ app.addEventListener('input', e => {
 });
 
 app.addEventListener('change', e => { const t = e.target; if (t.matches && t.matches('[data-act=dmPick]') && t.value) dmOpen(t.value); });
+// 연출 설정: 흔들림 세기와 번쩍임 줄이기(이 브라우저에 저장)
+document.addEventListener('input', e => { const t = e.target; if (!t.matches || !t.matches('[data-fx]')) return;
+  if (t.dataset.fx === 'shake') { FXS.shake = +t.value / 100; const em = t.parentNode.querySelector('em'); if (em) em.textContent = t.value + '%'; }
+  if (t.dataset.fx === 'noFlash') FXS.noFlash = t.checked;
+  fxSave(); });
+document.addEventListener('change', e => { const t = e.target; if (t.matches && t.matches('[data-fx=noFlash]')) { FXS.noFlash = t.checked; fxSave(); } });
 app.addEventListener('submit', async e => {
   e.preventDefault();
   const f = e.target, kind = f.dataset.form;
