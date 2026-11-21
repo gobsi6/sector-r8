@@ -420,7 +420,7 @@ const OPS = [{
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 제압하십시오. 제압하면 장치는 기지가 다시 켭니다.',
-  boss: { hpBy: [0, 30, 54, 62, 72], name: '계수자' },
+  boss: { hpBy: [0, 30, 40, 32, 36], name: '계수자' },
   contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
   forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
   minion: { name: '세어진 것', hp: 3, text: '이마에 숫자가 새겨진 사람 형체. 셈에 붙들린 이전 직원들의 모습을 하고 있다.',
@@ -620,7 +620,7 @@ function rollPool(row, statIdx, skill, support, pen) {
   const anomalies = b.filter(v => v === 1).length;
   return { dice: { w, b, s: sp }, succ, anomalies, stat: SN[statIdx], statVal: s[statIdx], skill, skillLv: sk };
 }
-const tierOf = (succ, diff) => succ >= diff + 2 ? 'crit' : succ >= diff ? 'ok' : succ === diff - 1 ? 'cost' : 'fail';
+const tierOf = (succ, diff) => succ >= Math.max(diff + 2, 4) ? 'crit' : succ >= diff ? 'ok' : succ === diff - 1 ? 'cost' : 'fail';
 const TIER_NAME = { crit: '대성공', ok: '성공', cost: '대가 있는 성공', fail: '실패' };
 
 // 진행 중인 작전 (작전 하나당 하나)
@@ -878,7 +878,7 @@ function startRound(r) {
   r.deadline = now() + ROUND_MS;
   r._timer = setTimeout(() => { if (r.status === 'live') { resolveRound(r); emitRun(r); } }, ROUND_MS + 250);
 }
-const gaugeMax = r => 4 + 2 * Math.max(1, r.nf || 1);
+const gaugeMax = r => 6 + 2 * Math.max(1, r.nf || 1);
 // 일제 사격: 개체가 있으면 큰 피해, 하수인은 모두 쓰러뜨리고, 탐사에서는 남은 시간 +1
 function burst(r) {
   r.gauge = 0; r.bursts = (r.bursts || 0) + 1;
@@ -1001,17 +1001,25 @@ function bossAct(r) {
   else if (act === 'open') say(r, `${jo(B.name, '이', '가')} 셈을 잃고 휘청였다. 틈이 지나갔다.`, { kind: 'contact' });
   bossIntent(r);
 }
+// 피해가 어떻게 나왔는지: 화면 연출에서 한 줄로 풀어 보여 준다
+const BOSS_DIFF = +(process.env.R8_BOSS_DIFF || 2);
+// 공격은 필요 수에 못 미치면 빗나간다(하나 모자라면 스치기만: 피해 1, 반격 받음은 R8_GRAZE=1일 때만)
+const atkTier = (succ, diff) => { const t = tierOf(succ, diff); return t === 'cost' && process.env.R8_GRAZE !== '1' ? 'fail' : t; };
+function dmgWhy(tier, succ, atk) {
+  if (tier === 'fail') return [];
+  const w = tier === 'cost' ? ['한 개 모자라 1만'] : [`성공 ${succ}개`]; if (tier === 'crit') w.push('대성공 +1'); if (atk) w.push('무기 +1'); return w;
+}
 function bossFight(r, m, uid) {
   const B = r.boss; if (!B || B.hp <= 0) return 'op/no-foe';
   if (r.minions.some(x => x.side === 'front')) return 'op/blocked';
   const p = posOf(r, uid), melee = p === 'front' || p === 'solo';
-  const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
+  const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = BOSS_DIFF;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const atk = m.cls === 'weapon';
   const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0), isDark(r) ? 1 : 0);
-  const tier = tierOf(res.succ, diff);
+  const tier = atkTier(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
-  const notes = [];
+  const notes = [], why = dmgWhy(tier, res.succ, atk);
   if (atk && dmg > 0) dmg += 1;
   if (dmg > 0 && B.hitTurn >= r.turn - 1 && B.hitBy && B.hitBy !== m.uid) { dmg += 2; notes.push('협공 +2'); }
   if (dmg > 0 && B.exposedUntil >= r.turn) { dmg += 3; notes.push('급소 +3'); }
@@ -1022,7 +1030,7 @@ function bossFight(r, m, uid) {
   if (!B.npcBind && B.hp > 0 && B.hp <= B.hpMax / 2) { B.npcBind = true; B.stun = true; r.contactWarn = null; say(r, '관제실: 구속 장치 가동. 개체를 붙잡았다. 지금 몰아칠 것.', { kind: 'radio', name: '관제실' }); }
   const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
   const txt = { crit: '정확히 급소를 노렸다. 개체가 크게 휘청인다.', ok: '개체를 밀어붙였다.', cost: '맞히긴 했지만 개체의 손가락이 팔을 셌다.', fail: '빗나갔다. 개체의 손가락이 팔을 셌다.' }[tier];
-  say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null });
+  say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null, dmg, why: dmg ? why.concat(notes) : [] });
   if (hurt) m.hp = Math.max(0, m.hp + hurt);
   if (B.hp <= 0) {
     say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 접힌 손가락이 더는 펴지지 않는다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill', uid: m.uid });
@@ -1375,18 +1383,19 @@ function opFight(r, m, uid, side) {
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const atk = m.cls === 'weapon';
   const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
-  const tier = tierOf(res.succ, diff);
+  const tier = atkTier(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
+  const why = dmgWhy(tier, res.succ, atk);
   if (atk && dmg > 0) dmg += 1;
   // 협공: 바로 앞 차례에 다른 요원이 친 하수인을 이어 치면 +2
   const combo = dmg > 0 && foe.hitTurn >= r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
-  if (combo) dmg += 2;
-  const braced = dmg > 0 && foe.braced; if (braced) dmg = Math.ceil(dmg / 2);
+  if (combo) { dmg += 2; why.push('협공 +2'); }
+  const braced = dmg > 0 && foe.braced; if (braced) { dmg = Math.ceil(dmg / 2); why.push('웅크림 절반'); }
   if (dmg > 0) { foe.hitTurn = r.turn; foe.hitBy = m.uid; }
   const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
   foe.hp = Math.max(0, foe.hp - dmg); r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + dmg;
   const nm = o.minion.name, txt = { crit: `정확히 급소를 노렸다. ${jo(nm, '이', '가')} 크게 휘청인다.`, ok: `${jo(nm, '을', '를')} 밀어붙였다.`, cost: `맞히긴 했지만 ${nm}의 반격이 스쳤다.`, fail: `빗나갔다. ${jo(nm, '이', '가')} 틈을 파고들었다.` }[tier];
-  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + (side === 'front' ? ' (앞)' : ' (뒤)'), stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: { foe: dmg, hp: hurt || undefined } });
+  say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + (side === 'front' ? ' (앞)' : ' (뒤)'), stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: { foe: dmg, hp: hurt || undefined }, dmg, why: dmg ? why : [] });
   if (combo) say(r, `협공. ${jo(o.minion.name, '이', '가')} 연달아 맞아 피해 +2.`, { kind: 'kill', uid: m.uid });
   if (braced) say(r, `${jo(o.minion.name, '이', '가')} 웅크리고 있어 피해가 절반으로 줄었다.`, { kind: 'warn' });
   if (hurt) m.hp = Math.max(0, m.hp + hurt);
