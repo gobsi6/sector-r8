@@ -2335,7 +2335,7 @@ function viewCreate() {
     <label class="lab"><span>교차 과거 (선택)</span><input class="inp" data-in="cross" value="${esc(c.cross)}" maxlength="8" placeholder="과거를 함께 엮을 요원의 넘버, 예: R8-047"></label>
     <div class="note">${ico('lock', 18)}<span>이 내용은 전부 봉인됩니다. 플레이어는 알지만 캐릭터는 기억하지 못합니다.</span></div>`;
   if (step === 3) body = `
-    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="sub">능력치 6개에 60점을 배분하십시오. 평균은 10이고, 각 능력치는 3~15입니다. 판정 주사위는 능력치 10에 4개이고, 2 오를 때마다 하나씩 늘어납니다.</span>
+    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="sub">능력치 6개에 60점을 배분하십시오. 평균은 10이고, 각 능력치는 3~15입니다. 판정 주사위는 능력치 10에 4개이고, 2 오를 때마다 하나씩 늘어납니다. 작전 중에는 한 번에 최대 6개만 굴리고, 넘친 주사위는 2개당 공격 피해 +1이 됩니다.</span>
       <span class="sub" style="margin-left:auto">남은 점수 <b class="bb" style="font-size:24px;color:${left === 0 ? 'var(--navyLine)' : 'var(--ink)'}">${left}</b> / ${STAT_SUM}</span></span>
     <div style="display:flex;flex-direction:column;gap:8px">${SN.map((n, k) => `<span class="statrow"><b>${n}</b>${bars(c.stats[k], true)}<span class="ctl"><button class="ib" data-act="stat" data-k="${k}" data-v="-1" aria-label="${n} 내리기" ${c.stats[k] <= STAT_MIN0 ? 'disabled' : ''}>${ico('minus', 14, 2)}</button><b class="bb">${c.stats[k]}</b><button class="ib" data-act="stat" data-k="${k}" data-v="1" aria-label="${n} 올리기" ${c.stats[k] >= 7 || left <= 0 ? 'disabled' : ''}>${ico('plus', 14, 2)}</button></span></span>`).join('')}</div>
     <span class="derived"><span class="pan"><span class="sub">HP</span><b class="bb">${dv.hp}</b></span><span class="pan"><span class="sub">정신력</span><b class="bb">${dv.san}</b></span><span class="pan"><span class="sub">오염 한계</span><b class="bb">${dv.lim}</b></span></span>`;
@@ -3871,7 +3871,7 @@ function rollFxNext(host) {
   const T = { crit: '대성공!', ok: '성공', cost: '대가 있는 성공', fail: '실패' }[e.tier] || e.tierName || '';
   const need = e.diff || 0, sc = e.succ || 0;
   // 왜 이 결과인지: 굴린 주사위 → 5·6 개수 → 필요 수와 비교 → 피해 계산
-  const pool = `${esc(e.stat || '')} ${e.statVal ?? ''}${e.skill ? ` + ${esc(e.skill)} ${e.skillLv || 0}` : ''}${(e.dice.s || []).length ? ` + 무기·지원 ${(e.dice.s || []).length}` : ''} → 주사위 ${faces.length}개`;
+  const pool = `${esc(e.stat || '')} ${e.statVal ?? ''}${e.skill ? ` + ${esc(e.skill)} ${e.skillLv || 0}` : ''}${(e.dice.s || []).length ? ` + 무기·지원 ${(e.dice.s || []).length}` : ''} → ${e.dice.over ? `주사위 ${faces.length + e.dice.over}개 중 최대 ${faces.length}개만 굴림 · 넘친 ${e.dice.over}개는 ${(e.why || []).length || /공격|사격/.test(e.label || '') ? `맞히면 피해 +${Math.floor(e.dice.over / 2)}` : '공격 때만 피해로 바뀜'}` : `주사위 ${faces.length}개`}`;
   const rule = e.tier === 'crit' ? '2개 이상 넘쳤다' : e.tier === 'ok' ? '채웠다' : e.tier === 'cost' ? '하나 모자라 대가를 치렀다' : '못 미쳤다';
   const why = (e.why || []).length ? `<span class="rwhy">피해 = ${e.why.map(esc).join(' · ')}</span>` : '';
   const said = esc(String(e.text || '').split(/(?<=[.!?])\s/)[0]).slice(0, 60);

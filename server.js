@@ -420,7 +420,7 @@ const OPS = [{
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 제압하십시오. 제압하면 장치는 기지가 다시 켭니다.',
-  boss: { hpBy: [0, 30, 40, 32, 36], name: '계수자' },
+  boss: { hpBy: [0, 30, 34, 32, 36], name: '계수자' },
   contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
   forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
   minion: { name: '세어진 것', hp: 3, text: '이마에 숫자가 새겨진 사람 형체. 셈에 붙들린 이전 직원들의 모습을 하고 있다.',
@@ -609,16 +609,19 @@ const scaleFx = fx => fx ? { ...fx, hp: hpD(fx.hp || 0) || undefined, san: sanD(
 // 주사위 풀 굴리기
 const skLv = (row, k) => Math.max(0, (JSON.parse(row.skills)[k] || 0) + (gearFx(row).skill[k] || 0) + traitsOf(row).reduce((a, t) => a + (TRAIT_SKILL[t.id] && TRAIT_SKILL[t.id][0] === k ? TRAIT_SKILL[t.id][1] : 0), 0));
 const skAll = row => Object.fromEntries(SKILLS.map(k => [k, skLv(row, k)]));
-function rollPool(row, statIdx, skill, support, pen) {
+function rollPool(row, statIdx, skill, support, pen, cap) {
   const s = modStats(row), sk = skLv(row, skill);
   // 주사위: 능력치 ÷ 2 − 1 (평균 10이면 4개로 예전과 같다. 2 오를 때마다 하나씩 늘어 20이면 9개) + 기능 등급
   const base = Math.max(1, Math.min(DICE_MAX, Math.floor(s[statIdx] / 2) - 1 + sk - (pen || 0)));
   const black = Math.min(base, Math.floor((row.contamination || 0) / (contLimit(row) / 5)));
-  const sup = Math.min(DICE_MAX - base, support || 0);
-  const w = Array.from({ length: base - black }, () => die(6)), b = Array.from({ length: black }, () => die(6)), sp = Array.from({ length: sup }, () => die(6));
+  let sup = Math.min(DICE_MAX - base, support || 0);
+  // 작전 판정은 굴리는 주사위가 최대 cap개. 넘친 주사위는 2개당 공격 피해 +1로 바뀐다
+  let over = 0, bw = base - black;
+  if (cap && base + sup > cap) { over = base + sup - cap; let cut = over; const ds = Math.min(sup, cut); sup -= ds; cut -= ds; const dw = Math.min(bw, cut); bw -= dw; cut -= dw; }
+  const bb = Math.min(black, (cap && over ? cap - bw - sup : black)), w = Array.from({ length: bw }, () => die(6)), b = Array.from({ length: bb }, () => die(6)), sp = Array.from({ length: sup }, () => die(6));
   const succ = w.filter(v => v >= 5).length + b.reduce((a, v) => a + (v === 6 ? 2 : v === 5 ? 1 : 0), 0) + sp.filter(v => v >= 5).length;
   const anomalies = b.filter(v => v === 1).length;
-  return { dice: { w, b, s: sp }, succ, anomalies, stat: SN[statIdx], statVal: s[statIdx], skill, skillLv: sk };
+  return { dice: over ? { w, b, s: sp, over } : { w, b, s: sp }, over, bonus: Math.floor(over / 2), succ, anomalies, stat: SN[statIdx], statVal: s[statIdx], skill, skillLv: sk };
 }
 const tierOf = (succ, diff) => succ >= Math.max(diff + 2, 4) ? 'crit' : succ >= diff ? 'ok' : succ === diff - 1 ? 'cost' : 'fail';
 const TIER_NAME = { crit: '대성공', ok: '성공', cost: '대가 있는 성공', fail: '실패' };
@@ -1005,10 +1008,12 @@ function bossAct(r) {
 const BOSS_DIFF = +(process.env.R8_BOSS_DIFF || 2);
 // 공격은 필요 수에 못 미치면 빗나간다(하나 모자라면 스치기만: 피해 1, 반격 받음은 R8_GRAZE=1일 때만)
 const atkTier = (succ, diff) => { const t = tierOf(succ, diff); return t === 'cost' && process.env.R8_GRAZE !== '1' ? 'fail' : t; };
-function dmgWhy(tier, succ, atk) {
+function dmgWhy(tier, succ, atk, bonus) {
   if (tier === 'fail') return [];
-  const w = tier === 'cost' ? ['한 개 모자라 1만'] : [`성공 ${succ}개`]; if (tier === 'crit') w.push('대성공 +1'); if (atk) w.push('무기 +1'); return w;
+  const w = tier === 'cost' ? ['한 개 모자라 1만'] : [`성공 ${succ}개`]; if (tier === 'crit') w.push('대성공 +1'); if (atk) w.push('무기 +1'); if (bonus) w.push(`넘친 주사위 +${bonus}`); return w;
 }
+const OP_DICE_CAP = +(process.env.R8_DICE_CAP || 6);
+const opPool = (row, statIdx, skill, support, pen) => rollPool(row, statIdx, skill, support, pen, OP_DICE_CAP);
 function bossFight(r, m, uid) {
   const B = r.boss; if (!B || B.hp <= 0) return 'op/no-foe';
   if (r.minions.some(x => x.side === 'front')) return 'op/blocked';
@@ -1016,11 +1021,12 @@ function bossFight(r, m, uid) {
   const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = BOSS_DIFF;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const atk = m.cls === 'weapon';
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0), isDark(r) ? 1 : 0);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0), isDark(r) ? 1 : 0);
   const tier = atkTier(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
-  const notes = [], why = dmgWhy(tier, res.succ, atk);
+  const notes = [], why = dmgWhy(tier, res.succ, atk, res.bonus);
   if (atk && dmg > 0) dmg += 1;
+  if (dmg > 0) dmg += res.bonus;
   if (dmg > 0 && B.hitTurn >= r.turn - 1 && B.hitBy && B.hitBy !== m.uid) { dmg += 2; notes.push('협공 +2'); }
   if (dmg > 0 && B.exposedUntil >= r.turn) { dmg += 3; notes.push('급소 +3'); }
   if (dmg > 0 && B.intent === 'open') { dmg += 2; notes.push('틈 +2'); }
@@ -1233,7 +1239,7 @@ function contactPredict(r) {
 }
 function evadeExec(r, m) {
   const row = Q.agent.get(Number(m.uid));
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 2);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 2);
   if (tier !== 'fail') m.evadeOk = r.turn;
   say(r, tier !== 'fail' ? `${m.name} 요원이 벽에 등을 붙이고 숨을 죽였다.` : `${m.name} 요원의 발이 미끄러졌다. 자세가 무너졌다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '피한다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
   return endTurn(r);
@@ -1287,7 +1293,7 @@ function ambushTick(r) {
 }
 function hideExec(r, m) {
   const row = Q.agent.get(Number(m.uid));
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 1);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 1);
   if (tier !== 'fail') m.hideOk = r.turn;
   say(r, tier !== 'fail' ? `${m.name} 요원이 그림자 속에 몸을 붙였다.` : `${m.name} 요원의 발밑에서 무언가 굴러가는 소리가 났다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '숨는다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
   return endTurn(r);
@@ -1354,7 +1360,7 @@ function actExec(r, uid, choiceId) {
   const row = Q.agent.get(uid);
   const sup = r.support; r.support = 0;
   const ease = c.adv !== false && r.fac && r.fac.ease ? 1 : 0, diff = Math.max(1, c.diff - ease);
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0) + gearDie(m, 'radio'), isDark(r) ? 1 : 0);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0) + gearDie(m, 'radio'), isDark(r) ? 1 : 0);
   const tier = tierOf(res.succ, diff);
   const raw = c[tier], out = scaleFx(typeof raw === 'string' ? { text: raw } : raw); if (out.san) out.san = grit(m, out.san);
   const fx = ['hp', 'san', 'cont', 'count', 'sup', 'push'].some(k => out[k]) ? { hp: out.hp, san: out.san, cont: out.cont, count: out.count, sup: out.sup, push: out.push } : null;
@@ -1382,11 +1388,12 @@ function opFight(r, m, uid, side) {
   const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const atk = m.cls === 'weapon';
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0));
   const tier = atkTier(res.succ, diff);
   let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
-  const why = dmgWhy(tier, res.succ, atk);
+  const why = dmgWhy(tier, res.succ, atk, res.bonus);
   if (atk && dmg > 0) dmg += 1;
+  if (dmg > 0) dmg += res.bonus;
   // 협공: 바로 앞 차례에 다른 요원이 친 하수인을 이어 치면 +2
   const combo = dmg > 0 && foe.hitTurn >= r.turn - 1 && foe.hitBy && foe.hitBy !== m.uid;
   if (combo) { dmg += 2; why.push('협공 +2'); }
@@ -1408,7 +1415,7 @@ function opShove(r, m, uid, side) {
   const o = D(r), foe = r.minions.find(x => x.side === side); if (!foe) return 'op/no-foe';
   const p = posOf(r, uid);
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 0, '격투', sup);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 0, '격투', sup);
   const tier = tierOf(res.succ, 1), nm = o.minion.name;
   if (tier !== 'fail') { foe.intent = 'stun'; foe.braced = false; if (tier === 'crit') { foe.hp = Math.max(0, foe.hp - 1); } }
   const txt = { crit: `${jo(nm, '을', '를')} 벽으로 세게 밀쳐 냈다. 다음 행동을 놓치고 피해 1.`, ok: `${jo(nm, '을', '를')} 밀쳐 냈다. 다음 행동을 놓친다.`, cost: `${jo(nm, '을', '를')} 겨우 밀쳐 냈다. 다음 행동을 놓친다.`, fail: `밀쳐 내지 못했다. ${jo(nm, '이', '가')} 버틴다.` }[tier];
@@ -1432,7 +1439,7 @@ function opHeal(r, m, uid, target) {
   const t = r.members.find(x => x.uid === String(target));
   if (!t || !canHeal(t)) return 'op/no-target';
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 3, '응급처치', sup + gearDie(m, 'medkit'));
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 3, '응급처치', sup + gearDie(m, 'medkit'));
   const tier = tierOf(res.succ, 2), heal = { crit: hpD(3), ok: hpD(2), cost: hpD(1), fail: 0 }[tier], who = t === m ? '자기' : `${t.name} 요원의`;
   const txt = { crit: `${who} 상처를 빠르게 봉합했다. 출혈이 멎었다.`, ok: `${who} 상처를 지혈했다.`, cost: `${who} 상처를 감았지만 붕대가 금세 젖는다.`, fail: `손이 떨려 ${who} 상처를 제대로 감지 못했다.` }[tier];
   say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: t === m ? '자가 응급 처치' : `${t.name} 응급 처치`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier], fx: heal ? { hp: heal } : null });
@@ -1444,7 +1451,7 @@ function opRecover(r, m, uid, target) {
   if (!t || !needsRecovery(t)) return 'op/no-target';
   if (t.uid === m.uid) return 'op/bad-target';
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 1, '운반', sup);
+  const res = opPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 1, '운반', sup);
   const tier = tierOf(res.succ, 1), hurt = tier === 'cost' ? hpD(-1) : 0;
   const txt = { crit: `${t.name} 요원을 둘러메고 대열에 합류했다. 흔들림이 없다.`, ok: `${t.name} 요원을 회수했다.`, cost: `${t.name} 요원을 회수했지만 무게에 어깨가 꺾였다.`, fail: `${t.name} 요원에게 손이 닿지 않았다.` }[tier];
   say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[posOf(r, uid)] || '', label: `${t.name} 회수`, stat: res.stat, statVal: res.statVal, skill: '운반', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier], fx: tier === 'cost' ? { hp: hurt } : null });
@@ -1499,14 +1506,14 @@ function opItem(uid, opId, id) {
 function classExec(r, m, kind, target) {
   const o2 = D(r), row = Q.agent.get(Number(m.uid));
   if (kind === 'support') {
-    const res = rollPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
+    const res = opPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, 1), add = tier === 'crit' ? 2 : tier === 'fail' ? 0 : 1;
     r.support = Math.min(SUPPORT_MAX, r.support + add); 
     say(r, add ? `관제 회선 연결. 다음 판정에 지원 주사위 ${add}개를 보탠다.` : '지원 신호가 잡음에 묻혔다.', { kind: 'roll', uid: m.uid, name: m.name, label: '관제 지원 연결', stat: res.stat, statVal: res.statVal, skill: '통신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'stabilize') {
     const t = r.members.find(x => x.uid === String(target) && !x.dead && (x.role === 'field'));
     if (!t) return 'op/bad-target';
     if (t.san >= t.sanMax) return 'op/no-need';
-    const res = rollPool(row, 5, '응급처치', gearDie(m, 'medkit')), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
+    const res = opPool(row, 5, '응급처치', gearDie(m, 'medkit')), tier = tierOf(res.succ, 2), heal = tier === 'crit' ? sanD(3) : tier === 'fail' ? 0 : sanD(2);
     t.san = Math.min(t.sanMax, t.san + heal); if (t.broken && t.san > 0) t.broken = false; 
     say(r, heal ? `${t.name} 요원의 호흡이 가라앉았다. (정신력 +${heal})` : `${t.name} 요원은 아직 눈의 초점이 돌아오지 않는다.`, { kind: 'roll', uid: m.uid, name: m.name, label: `${t.name} 정신 안정`, stat: res.stat, statVal: res.statVal, skill: '응급처치', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
   } else if (kind === 'raven1') {
@@ -1532,7 +1539,7 @@ function classExec(r, m, kind, target) {
     
     if (kind === 'jam') { r.noise = null; say(r, `${m.name} 요원이 잡음 회선을 차단했다. 관제실 무전이 돌아왔다.`, { kind: 'sys', uid: m.uid }); return null; }
     const read = grit(m, sanD(-0.5)); m.san = Math.max(0, m.san + read);
-    const res = rollPool(row, 3, '기록 해독', gearDie(m, 'radio')), tier = tierOf(res.succ, 2);
+    const res = opPool(row, 3, '기록 해독', gearDie(m, 'radio')), tier = tierOf(res.succ, 2);
     let txt, extra = 0;
     if (tier === 'fail') { extra = grit(m, sanD(-0.6)); txt = '읽어 내지 못했다. 글자들이 눈 안쪽에서 계속 움직인다.'; }
     else {
@@ -1558,7 +1565,7 @@ function classExec(r, m, kind, target) {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
     if (F.id === 'beacon') {
       r.beaconUntil = r.turn + BEACON_TURNS;
-      const res = rollPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
+      const res = opPool(row, 3, '통신', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
       let txt;
       if (tier === 'fail') txt = '비컨 신호가 하층의 잡음에 묻혔다. 좌표를 붙들지 못했다. 심연은 신호를 들었다.';
       else { const k = SHIFT_KINDS[r.shift.kind].name; r.shift = null; r.shiftDone = true; txt = `기준점 비컨이 원래 도면 좌표를 송출했다. 구조가 제자리에 붙들렸다(${k} 차단). 심연도 그 신호를 들었다.`; }
@@ -1568,7 +1575,7 @@ function classExec(r, m, kind, target) {
     if (F.on) return 'op/used';
     if (F.id === 'wall' && !F.need) return 'op/no-target';
     
-    const res = rollPool(row, 3, '장비 운용', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
+    const res = opPool(row, 3, '장비 운용', gearDie(m, 'radio')), tier = tierOf(res.succ, F.diff);
     let txt;
     if (F.id === 'pwr') {
       if (tier === 'fail') { txt = '구역 전원을 올리다 회로가 튀었다. 비상등만 깜빡이고, 관제 화면에 잡음이 번진다.'; noiseStart(r); }
