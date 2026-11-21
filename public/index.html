@@ -296,7 +296,7 @@ select.inp{appearance:none}
 .drawing{animation:bgin .45s ease-out both;animation-delay:calc(var(--d0,0s) + .35s)}
 @keyframes bgin{from{background-color:transparent}}
 .drawfr{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:6;transition:opacity .6s}
-.drawfr rect{fill:none;stroke:var(--navyLine);stroke-width:1.5;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dline .6s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--d0,0s)}
+.drawfr rect{fill:none;stroke:var(--navyLine);stroke-width:1.5;stroke-linejoin:miter;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dline .6s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--d0,0s)}
 .framed>.drawfr{opacity:0}
 @keyframes dline{to{stroke-dashoffset:0}}
 .dl{clip-path:inset(0 100% 0 0);animation:dreveal .45s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--di,0s)}
@@ -3489,7 +3489,7 @@ function drawPanels(list, start = 0) {
     if (getComputedStyle(p).position === 'static') p.style.position = 'relative';
     const svg = document.createElementNS(SVGNS, 'svg'), rect = document.createElementNS(SVGNS, 'rect');
     svg.setAttribute('class', 'drawfr'); svg.setAttribute('aria-hidden', 'true');
-    const rad = parseFloat(getComputedStyle(p).borderTopLeftRadius) || 4;
+    const rad = 0; // 각진 UI: 그려지는 테두리도 모서리를 둥글리지 않는다
     rect.setAttribute('x', '.75'); rect.setAttribute('y', '.75'); rect.setAttribute('width', Math.max(0, r.width - 1.5)); rect.setAttribute('height', Math.max(0, r.height - 1.5)); rect.setAttribute('rx', rad);
     svg.appendChild(rect); p.appendChild(svg);
     p.style.setProperty('--len', 2 * (r.width + r.height)); p.style.setProperty('--d0', d0 + 's'); p.style.setProperty('--db', (d0 + 0.7) + 's');
