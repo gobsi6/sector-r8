@@ -1754,6 +1754,9 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .boss .bst{display:flex;flex-wrap:wrap;gap:4px}
 .myturn .choice2.atk.boss{box-shadow:inset 0 0 0 1.5px #E5574F,inset 3px 0 0 #E5574F}
 @media (max-width:999px){.boss{background:var(--tile)}}
+/* 행동 카드 더 보기 */
+.myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
+.myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
 /* 고른 뒤: 고른 행동을 크게, 나머지는 접어 둔다 */
 .myturn .mine.sel{display:flex;align-items:center;gap:10px;padding:10px 12px;background:color-mix(in srgb,var(--navyLine) 12%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
 .myturn .mine.sel>i{flex:none;width:26px;height:26px;display:grid;place-items:center;font-style:normal;font-weight:800;background:var(--navy);color:var(--onNavy)}
@@ -3207,6 +3210,13 @@ function clsCardsHTML(r, me) {
   const sec = (h, sub, L, open) => L.length ? `<details class="rqs"${open ? ' open' : ''}><summary><b>${h}</b><small>${sub}</small><i>${L.length}</i></summary><div class="choices clsc">${L.join('')}</div></details>` : '';
   return sec('관제실 요청', '시설·비컨·문 확인·지원', Q, g === 'radio' || r.fork || !!r.shift || !!r.noise) + sec('치료', '응급 처치·정신 안정', C, g === 'medkit' || C.some(x => x.includes('붕괴')));
 }
+// 행동 카드는 지금 쓸 만한 것 3개만 먼저 보여 주고 나머지는 접는다(관제실 요청·치료 묶음은 따로)
+function topCards(html) {
+  const L = html.split(/(?=<button class="choice2)/).filter(x => x.trim());
+  const score = h => (/\sdisabled[\s>]/.test(h.slice(0, h.indexOf('>') + 1)) ? 100 : 0) + (/choice2 hide/.test(h) ? 0 : /choice2 rec/.test(h) ? 1 : /atk boss/.test(h) ? 2 : /choice2 atk shove|choice2 atk guard/.test(h) ? 6 : /choice2 atk/.test(h) ? 3 : /choice2 r1/.test(h) ? 9 : /장면 유지/.test(h) ? 5 : 4);
+  const S2 = L.map((h, i) => ({ h, k: score(h) * 100 + i })).sort((a, b) => a.k - b.k);
+  return { top: S2.slice(0, 3).map(x => x.h).join(''), rest: S2.slice(3).map(x => x.h).join(''), n: Math.max(0, S2.length - 3) };
+}
 // 내 차례: 교전·장면 행동은 카드로, 이동과 소모품은 아래 한 줄로. 한 패널 안에서 끝난다.
 function myTurnHTML(r, me, combat) {
   const sc = r.scene, p = me.pos, M = r.map;
@@ -3237,8 +3247,7 @@ function myTurnHTML(r, me, combat) {
   return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${me.cls ? `<span class="clsb c-${me.cls}">${CLS[me.cls][0]}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine sel"><i>✓</i><span><small>이번 라운드에 고른 행동</small><b>${esc(mine.label)}</b><small>${Rd.waitCtl ? '관제 행동을 기다리는 중.' : `동료 ${Rd.done}/${Rd.all} · 모두 고르면 고른 순서대로 실행된다.`}</small></span><button class="btn s g" data-act="opUnpick">선택 취소</button></span><details class="chg"${S.chgOpen ? ' open' : ''}><summary data-act="chgToggle">다른 행동 보기</summary>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
-    ${dq}${evade || hide ? `<div class="choices">${evade}${hide}</div>` : ''}${clsc}
-    ${cards ? `<div class="choices cacts">${cards}</div>` : ''}
+    ${dq}${(() => { const T = topCards(evade + hide + cards); return T.top ? `<div class="choices cacts">${T.top}</div>${T.rest ? `<details class="more"${S.moreOpen ? ' open' : ''}><summary data-act="moreToggle">다른 행동 ${T.n}개 더 보기</summary><div class="choices cacts">${T.rest}</div></details>` : ''}` : ''; })()}${clsc}
     ${opItemsHTML(r, me) ? `<div class="tfoot">${opItemsHTML(r, me)}</div>` : ''}${mine ? '</details>' : ''}</div>`;
 }
 function movesHTML(r, me) {
@@ -4232,6 +4241,7 @@ app.addEventListener('click', e => {
       if (S.chatSheet) { const r = S.tut && S.tut.stage === 'op' ? S.tut.r : myModalOp(); S.opChatSeen = ((r && r.chat) || []).length; const cf = document.getElementById('opmChatFab'); if (cf) { const i = cf.querySelector('i'); if (i) i.remove(); }
         requestAnimationFrame(() => { const c = document.getElementById('opmChat'); if (c) c.scrollTop = c.scrollHeight; }); }
       return; }
+    case 'moreToggle': { e.preventDefault(); S.moreOpen = !S.moreOpen; const d = t.closest('details'); if (d) d.open = S.moreOpen; return; }
     case 'chgToggle': { e.preventDefault(); S.chgOpen = !S.chgOpen; const d = t.closest('details'); if (d) d.open = S.chgOpen; return; }
     case 'actSheet': { S.actSheet = !S.actSheet; if (S.actSheet) { S.chatSheet = false; const b0 = document.querySelector('#opModal .opm-box'); if (b0) b0.classList.remove('chat-on'); } const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.toggle('sheet-on', !!S.actSheet && b.classList.contains('sheetmode')); if (S.actSheet) { const a2 = document.querySelector('#opModal .opm-act'); if (a2) a2.scrollTop = 0; } return; }
     case 'recReload': S.records = null; return renderCenter();
