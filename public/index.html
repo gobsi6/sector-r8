@@ -1819,6 +1819,21 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .boss .bin.it-open .nx,.boss .bin.it-stun .nx{background:#7FD39B}.boss .bin.it-open .bt2,.boss .bin.it-stun .bt2{background:rgba(127,211,155,.12);box-shadow:inset 0 0 0 1.5px #7FD39B}
 .boss .bin.it-brace .nx{background:#F0C774}.boss .bin.it-brace .bt2{background:rgba(240,199,116,.12);box-shadow:inset 0 0 0 1.5px #F0C774}
 @media (prefers-reduced-motion:reduce){.boss .bhp i .tr{transition:none}}
+/* 시안 B 배치: 왼쪽 내 차례 · 가운데 장면 · 오른쪽 기록/채팅, 파티는 아래 줄(왼쪽+가운데)에 크게 */
+@media (min-width:1000px){
+  .opm-body{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:'act stage right' 'party party right'}
+  .opm-act{grid-area:act}.opm-left{grid-area:stage}.opm-right{grid-area:right}.opm-party{grid-area:party;min-width:0}
+  .opm-box.noact .opm-body{grid-template-areas:'stage right' 'party right'}
+  .opm-box.noparty .opm-body{grid-template-rows:minmax(0,1fr) 0}
+  .opm-party .party{margin:0;padding:0;background:none;box-shadow:none}
+  .opm-party .party .pcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .opm-party .party .fm.pc{padding:12px 16px;gap:6px}
+  .opm-party .party .fm.pc .fh b{font-size:19px}.opm-party .party .fm.pc .fh .clsb{font-size:12px}
+  .opm-party .party .fm.pc .vb b{font-size:16px}
+  .opm-party .party .fm.pc.tm>.twm{font-size:150px;bottom:-40px;right:10px}
+  .opm-act .myturn.tm{min-height:100%;box-sizing:border-box}
+}
+@media (max-width:999px){.opm-party{order:1}}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -3435,12 +3450,12 @@ function viewOps(rr, parts) {
   const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
   const noisy = ctl && r.noise && r.noise.shown ? ' noisy' : '';
   const G = r.gauge, gauge = G ? `<span class="gauge${G.v >= G.max ? ' full' : ''}"><small>팀 연계</small><span class="gb2">${Array.from({ length: G.max }, (_, k) => `<i class="${k < G.v ? 'on' : ''}"></i>`).join('')}</span><b>${G.v}/${G.max}</b><em>성공하면 1칸, 대성공은 2칸 · 가득 차면 RAVEN 일제 사격</em></span>` : '';
-  const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}${gauge}
+  const visTop = r.status === 'live' ? `${stepsHTML(r, cnt)}${gauge}
       ${npcHTML(r)}
       ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${contactBoxHTML(r, me)}${ambushBoxHTML(r)}
-      ${stageHTML(r, me)}
-      ${partyHTML(r, me)}
-      ${combat ? foreHTML(r) : ''}` : '';
+      ${stageHTML(r, me)}` : '';
+  const partyH = r.status === 'live' ? `${partyHTML(r, me)}${combat ? foreHTML(r) : ''}` : '';
+  const vis = visTop + partyH;
   const actIn = r.status === 'live' ? `
       ${canAct || ctl ? '' : roundBarHTML(r, me)}
       ${r.fork && !ctl ? forkHTML(r, me) : ''}
@@ -3458,7 +3473,7 @@ function viewOps(rr, parts) {
       ${r.escaped ? `<div class="escd"><b>이송 중 탈출</b><span>${esc(r.op.title.replace(/ 재확보$/, ''))}이(가) 구속을 풀고 다시 빠져나갔습니다. 보상은 그대로 받았고, 확보 작전은 계속 열려 있습니다.</span></div>` : r.result === 'success' && r.op.kind === 'secure' ? '<div class="escd ok"><b>격리 완료</b><span>개체를 격리실로 옮겼습니다. 다시 빠져나가기 전까지 이 작전은 닫힙니다.</span></div>' : ''}
       ${(() => { const D2 = Object.entries(r.dmgBy || {}).sort((a, b) => b[1] - a[1]); if (!D2.length) return ''; const mv = r.members.find(m => m.uid === D2[0][0]); return `<div class="mvp"><span class="bb">MVP</span><b>${esc(mv ? mv.name : '')}</b><small>입힌 피해 ${D2[0][1]}</small>${D2.slice(1).map(([u, v]) => { const x = r.members.find(m => m.uid === u); return `<small>${esc(x ? x.name : '')} ${v}</small>`; }).join('')}</div>`; })()}
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
-  if (parts) return { head, stage: r.status === 'live' ? `<div class="stage vis${noisy}">${vis}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };
+  if (parts) return { head, party: partyH, stage: r.status === 'live' ? `<div class="stage vis${noisy}">${visTop}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };
   const fold = !(S.logOpen && S.logOpen[r.id]);
   return opSplit(r, ' live', `${head}
     <div class="opgrid"><div class="opmain">${stage}<button class="logfold" data-act="logFold" data-v="${r.id}" aria-expanded="${!fold}">${ico('log', 16, 2)}<b>${fold ? '작전 기록 다시보기' : '작전 기록 접기'}</b><small>${r.log.length}건</small><span class="cv">${ico(fold ? 'chevR' : 'chevD', 14, 2)}</span></button>${fold ? '' : `<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol>`}</div>
@@ -3887,7 +3902,7 @@ function syncModal() {
       <div class="opm-head" id="opmHead"></div>
       <button type="button" class="actfab" id="opmFab" data-act="actSheet" aria-label="행동 열기"></button>
       <button type="button" class="actfab chatfab" id="opmChatFab" data-act="chatSheet" aria-label="작전 채팅 열기"></button>
-      <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div>
+      <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div><div class="opm-party" id="opmParty"></div>
         <div class="opm-right"><div id="opmRecap"></div><div class="opm-sec"><span class="bb">LOG</span><small>작전 기록</small></div><ol class="oplog" id="opmLog" aria-label="작전 기록"></ol>
           <div class="opm-comms"><div class="sheet-h"><b>작전 채팅</b><small>참가자만</small><button type="button" class="btn s g" data-act="chatSheet">닫기</button></div>
           <div class="opm-sec"><span class="bb">COMMS</span><small>작전 채팅, 참가자만</small></div><div class="list och" id="opmChat"></div>
@@ -3900,9 +3915,10 @@ function syncModal() {
   ['opmHead', 'opmStage', 'opmAct'].forEach(id => { const el = document.getElementById(id); if (el) el._h = null; });
   setHTML('opmHead', P.head + `<div class="opm-sub">${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
+  setHTML('opmParty', P.party || '');
   setHTML('opmAct', P.act || '');
   const box = host.querySelector('.opm-box');
-  box.classList.toggle('noact', !P.act);
+  box.classList.toggle('noact', !P.act); box.classList.toggle('noparty', !P.party);
   // 폰: 행동 패널은 아래에서 올라오는 시트로. 화면과 행동을 스크롤 없이 오가게 한다(훈련 중에는 안내가 버튼을 가리키므로 펼쳐 둔다)
   const sheet = mobile() && !!P.act && !r.tut;
   box.classList.toggle('sheetmode', sheet); box.classList.toggle('sheet-on', sheet && !!S.actSheet);
