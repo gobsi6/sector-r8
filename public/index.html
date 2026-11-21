@@ -4053,8 +4053,11 @@ app.addEventListener('click', e => {
       if ((a === 'opCtl' || a === 'opAct') && v === 'raven1' && !t.dataset.armed) { t.dataset.armed = '1'; t.querySelector('b').textContent = '한 번 더 누르면 RAVEN-1을 부릅니다'; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.querySelector('b').textContent = 'RAVEN-1 지원 요청'; } }, 3000); return; }
       const ev = { opMove: 'op:move', opJoin: 'op:join', opLeave: 'op:leave', opReady: 'op:ready', opItem: 'op:item', opStart: 'op:start', opAct: 'op:act', opCtl: 'op:ctl', opAbort: 'op:abort', opClose: 'op:close', opUnpick: 'op:unpick', opCls: 'op:cls' }[a];
       const m = { op: r.op.id }; if (a === 'opCls') m.cls = v; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opItem') m.item = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
-      S.opErr = ''; if (a !== 'opCls') app.querySelectorAll('[data-act^="op"]').forEach(b => b.disabled = true);
-      B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); renderCenter(); });
+      // 응답을 기다리는 동안만 막는다. 원래 막혀 있던 버튼과 작전 목록(opGo·opSel)은 건드리지 않고, 끝나면 반드시 풀어 준다
+      // (오류가 나서 화면이 그대로면 막힌 채로 남던 문제: 다른 작전에 들어가려다 실패하면 목록이 전부 눌리지 않았다)
+      S.opErr = ''; const held = a === 'opCls' ? [] : [...document.querySelectorAll('[data-act^="op"]:not([data-act="opGo"]):not([data-act="opSel"])')].filter(b => !b.disabled);
+      held.forEach(b => { b.disabled = true; });
+      B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); }).finally(() => { held.forEach(b => { if (b.isConnected) b.disabled = false; }); renderCenter(); });
       return;
     }
     case 'recReload': S.records = null; return renderCenter();
