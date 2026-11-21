@@ -83,6 +83,11 @@ function duty(r) {
   return { tech: tech && tech.uid, med: med && med.uid };
 }
 function classPick(r, mem, taken) {
+  // 팀 고유 기술: 쓸 수 있고 쓸 만하면 먼저 쓴다(SK=0 이면 안 씀)
+  if (process.env.SK !== '0' && !G('skillPre')(r, mem)[0]) {
+    const k = G('TEAMS')[mem.team].sk.id, fld = r.members.filter(x => x.role === 'field' && !x.dead);
+    if (k === 'revive' ? fld.some(x => x.hp < x.hpMax * 0.6) : k === 'shield' ? r.minions.length >= 1 || r.contactWarn : true) return ['act', 'sk'];
+  }
   const sc = D(r).scenes[r.scene], facsOf = G('facsOf'), p = posOf(r, mem.uid);
   const team = r.members.filter(x => x.role === 'field' && !x.dead);
   const lead = p === 'front' || p === 'solo';
@@ -126,7 +131,10 @@ function runOne(opId, nField, withCtrl) {
   resetBots(); runs.delete(opId); lobbyOf(opId);
   const cl0 = process.env.CLS ? process.env.CLS.split(',') : CLS_DEF[nField], BI = { weapon: 0, medkit: 1, radio: 2, detector: 3 };
   const used = new Set(), team = cl0.slice(0, nField).map(c => { let i = BI[c]; while (used.has(i)) i = (i + 1) % 4; used.add(i); return BOTS[i]; });
-  team.forEach(b => opJoin(b.uid, opId, 'field'));
+  G('db').prepare('UPDATE sector_entities SET captured = 0').run();
+  const TB = { weapon: 1, detector: 2, radio: 3, medkit: 4, van: 5 };
+  team.forEach((b, i) => G('db').prepare('UPDATE agents SET team = ? WHERE user_id = ?').run(TB[cl0[i]] || 1, b.uid));
+  team.forEach(b => { const je = opJoin(b.uid, opId, 'field'); if (je && je !== 'op/full') throw new Error('join ' + je); });
   team.forEach((b, i) => G('opCls')(b.uid, opId, cl0[i]));
   runs.get(opId).members.forEach(x => opReady(Number(x.uid), opId, true));
   const e = opStart(team[0].uid, opId); if (e) throw new Error('start ' + e);

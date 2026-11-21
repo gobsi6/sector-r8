@@ -1741,7 +1741,8 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .myturn .tfoot.tmv{border-top:0;padding-top:0}
 /* 포지션 꼬리표: 테두리 + 옅은 채움 */
 .clsb{display:inline-block;font-style:normal;font-size:10.5px;font-weight:800;padding:1px 6px;line-height:1.5;white-space:nowrap;--c:#8FC3D3;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);box-shadow:inset 0 0 0 1px var(--c)}
-.c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
+.c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}.c-van{--c:#C9A3F0}
+[data-theme=light] .c-van{--c:#5B2E91}.stg .c-van{--c:#C9A3F0}
 [data-theme=light] .c-weapon{--c:#B3261E}[data-theme=light] .c-detector{--c:#1F57A6}[data-theme=light] .c-medkit{--c:#1F6B3E}[data-theme=light] .c-radio{--c:#8A6100}
 .stg .c-weapon{--c:#FF8A80}.stg .c-detector{--c:#8FB8F0}.stg .c-medkit{--c:#7FD39B}.stg .c-radio{--c:#F0C774}
 /* 작전 종류 꼬리표 */
@@ -1785,6 +1786,18 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .escd{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:10px 12px;box-shadow:inset 0 0 0 1px var(--red);background:color-mix(in srgb,var(--red) 10%,transparent)}.escd b{color:var(--red);font-size:14px}.escd span{font-size:13px}.escd.ok{box-shadow:inset 0 0 0 1px var(--navyLine);background:color-mix(in srgb,var(--navyLine) 8%,transparent)}.escd.ok b{color:var(--navyLine)}
 .fc .tbh{font-size:11px;color:var(--sub);margin-top:2px}
 .tbonus{display:inline-block;margin-left:6px;padding:1px 7px;font-size:12px;color:#F0C774;box-shadow:inset 0 0 0 1px #C8A040;background:color-mix(in srgb,#C8A040 12%,transparent)}[data-theme=light] .tbonus{color:#7A5600;box-shadow:inset 0 0 0 1px #A87B12}
+/* 팀 고르기 */
+.tpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:6px}
+.tpc{display:flex;flex-direction:column;gap:5px;text-align:left;padding:12px;border:0;font:inherit;color:var(--ink);cursor:pointer;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileLine);border-left:3px solid var(--c)}
+.tpc .h{display:flex;align-items:baseline;gap:8px}.tpc .h b{font-size:20px;color:var(--c);letter-spacing:.06em}.tpc .h small{font-size:13px;font-weight:700}
+.tpc .r{display:flex;gap:6px;font-size:12px;line-height:1.45;color:var(--sub)}.tpc .r i{flex:none;font-style:normal;font-weight:700;color:var(--ink);width:26px}.tpc .r b{color:var(--ink)}
+.tpc[aria-checked=true]{background:color-mix(in srgb,var(--c) 12%,var(--tile));box-shadow:inset 0 0 0 1.5px var(--c)}
+.tpc:hover{box-shadow:inset 0 0 0 1px var(--c)}
+.teamask{grid-column:1 / -1;padding:18px;background:var(--tile);box-shadow:inset 0 0 0 1.5px var(--navyLine);display:flex;flex-direction:column;gap:8px}
+.teamask>.bb{color:var(--navyLine);letter-spacing:.2em;font-size:14px}.teamask h2{margin:0;font-size:20px}.teamask p{margin:0}.teamask .acts{display:flex;justify-content:flex-end}
+/* 팀 고유 기술 카드 */
+.choice2.tsk{box-shadow:inset 0 0 0 1.5px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}.choice2.tsk>b{display:flex;align-items:baseline;gap:8px;color:var(--c)}.choice2.tsk .tskn{font-size:11px;font-weight:700;color:var(--sub)}
+.choice2.tsk[disabled]{opacity:.6;background:transparent}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2069,7 +2082,7 @@ function serverBackend() {
     async dmHistory(w) { const s = await connect(); const r = await new Promise((ok, no) => s.timeout(6000).emit('dm:history', { with: w }, (err, r) => err ? no({ code: 'network' }) : r && r.error ? no({ code: r.error }) : ok(r))); dmState.msgs[w] = r.list; emitD(null); return r.list; },
     async dmSend(to, text) { const s = await connect(); await new Promise((ok, no) => s.timeout(6000).emit('dm:send', { to, text }, (err, r) => err ? no({ code: 'network' }) : r && r.error ? no({ code: r.error }) : ok(r))); },
     async dmRead(w) { const s = await connect(); if (dmState.conv[w]) dmState.conv[w].unread = 0; s.emit('dm:read', { with: w }); emitD(null); },
-    gmAgent: b => api('/api/gm/agent', b), gmOp: b => api('/api/gm/op', b), gmEntity: b => api('/api/gm/entity', b), gmEvent: b => api('/api/gm/event', b),
+    teamSet: b => api('/api/agent/team', b), gmAgent: b => api('/api/gm/agent', b), gmOp: b => api('/api/gm/op', b), gmEntity: b => api('/api/gm/entity', b), gmEvent: b => api('/api/gm/event', b),
     watchSector(cb) { subs.sector.add(cb); connect().catch(() => {}); if (sector) cb(sector); return () => subs.sector.delete(cb); },
     baseAct: (kind, entity) => api('/api/base', { kind, entity }),
     unlockDoc: (entity, section) => api('/api/archive/unlock', { entity, section }),
@@ -2138,7 +2151,7 @@ function demoBackend() {
     async baseAct() { throw { code: 'demo' }; },
     async unlockDoc() { throw { code: 'demo' }; },
     async statUp() { throw { code: 'demo' }; }, async shopList() { return { items: [], useMax: 3 }; }, async shopBuy() { throw { code: 'demo' }; }, async shopOrder() { throw { code: 'demo' }; }, async shopEquip() { throw { code: 'demo' }; }, watchDm(cb) { cb({ conv: {}, msgs: {}, gms: [] }, null); return () => {}; }, watchNotice() { return () => {}; }, async dmHistory() { return []; }, async dmSend() { throw { code: 'demo' }; }, async dmRead() {},
-    async gmAgent() { throw { code: 'demo' }; }, async gmOp() { throw { code: 'demo' }; }, async gmEntity() { throw { code: 'demo' }; }, async gmEvent() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; }, async taskSign() { throw { code: 'demo' }; },
+    async teamSet() { throw { code: 'demo' }; }, async gmAgent() { throw { code: 'demo' }; }, async gmOp() { throw { code: 'demo' }; }, async gmEntity() { throw { code: 'demo' }; }, async gmEvent() { throw { code: 'demo' }; }, async taskStart() { throw { code: 'demo' }; }, async taskCancel() { throw { code: 'demo' }; }, async taskAck() { throw { code: 'demo' }; }, async taskSign() { throw { code: 'demo' }; },
     async getRecordLog() { return []; },
     async touch(uid) { const all = get('agents') || {}; if (all[uid]) { all[uid].lastSeen = Date.now(); put('agents', all); } }
   };
@@ -2153,7 +2166,7 @@ const S = {
   c: null
 };
 const freshCreate = draft => ({ step: 0, num: draft.num, draft, name: '', role: 0, age: 31, photo: null, photoErr: '', realName: '', cross: '',
-  pastPick: -1, dept: 9, death: 0, secret: 0, stats: [10, 10, 10, 10, 10, 10], traitPick: -1, trait: 0, d1: 0, d2: 0, free: -1, seen: {}, landed: null, err: '' });
+  pastPick: -1, dept: 9, death: 0, secret: 0, stats: [10, 10, 10, 10, 10, 10], traitPick: -1, trait: 0, d1: 0, d2: 0, free: -1, team: 0, seen: {}, landed: null, err: '' });
 function pickPast(c, i) { const p = c.draft.pasts[i]; c.pastPick = i; c.dept = p.dept; c.death = p.death; c.secret = p.secret; c.free = fixFree(c); }
 const traitId = t => t.id || (t.d1 + t.d2);
 function pickTrait(c, i) { c.traitPick = i; c.trait = traitId(c.draft.traits[i]); }
@@ -2176,7 +2189,7 @@ const AUTH_MSG = {
   'agent/bad-name': '호출명을 입력하십시오.',
   'agent/bad-stats': '스탯 배분이 규칙에 맞지 않습니다.',
   'agent/bad-past': '과거 항목을 확인하십시오.',
-  'agent/bad-realname': '본명을 입력하십시오.',
+  'agent/bad-realname': '본명을 입력하십시오.', 'agent/bad-team': '소속 팀을 고르십시오.', 'agent/team-set': '이미 소속 팀이 있습니다. 팀은 전출로만 바뀝니다.', 'op/no-team': '소속 팀을 먼저 고르십시오. 홈 화면에서 고를 수 있습니다.', 'op/sk-cd': '고유 기술은 아직 다시 쓸 수 없습니다.',
   'agent/no-draft': '재생 절차 정보가 없습니다. 새로고침한 뒤 다시 진행하십시오.',
   'agent/bad-skill': '기능 선택을 확인하십시오.',
   'agent/bad-field': '입력값을 확인하십시오.',
@@ -2232,10 +2245,10 @@ function viewLogin() {
     <div style="display:flex;flex-direction:column;gap:18px">
       <span class="locked bb"><i></i>SECTOR LOCKED</span>
       <h1>당신은 이미<br>한 번 사망하였습니다.</h1>
-      <p class="lede">이 섹터에서 일하다 죽은 직원은 재생 수조에서 깨어나 넘버를 받고 RAVEN-5에 배속됩니다. 기억은 온전하지 않지만, 업무는 계속됩니다.</p>
+      <p class="lede">섹터 R-8의 최정예 특수팀 RAVEN. 쓰러진 요원은 재생 수조에서 다시 깨어나 넘버를 받고 팀으로 돌아갑니다. 몸과 전투 감각은 그대로지만, 기억은 온전하지 않습니다.</p>
     </div>
     <div class="tlog"><span class="bb sub" style="font-size:14px;letter-spacing:.16em">TERMINAL LOG</span>
-      ${[[0, '신규 요원 재생 절차 대기'], [7, '재생 수조 TANK-02 가동 중'], [12, 'RAVEN-5 보충 인원 요청 1건'], [19, '격리동 B 정기 점검 대기']].map(([m, t]) => `<div><b class="bb">${new Date(Date.now() - m * 6e4 - 37e3).toTimeString().slice(0, 8)}</b>${t}</div>`).join('')}
+      ${[[0, '신규 요원 재생 절차 대기'], [7, '재생 수조 TANK-02 가동 중'], [12, 'RAVEN-2 정찰 인원 복귀 대기'], [19, '격리동 B 정기 점검 대기']].map(([m, t]) => `<div><b class="bb">${new Date(Date.now() - m * 6e4 - 37e3).toTimeString().slice(0, 8)}</b>${t}</div>`).join('')}
     </div>
   </section>
   <section class="side" aria-label="${up ? '요원 등록' : '출입 인증'}">
@@ -2289,7 +2302,7 @@ function badgeHTML(a, { preview = false } = {}) {
   const pv = S.framePrev && S.view === 'shop' && S.user && a.uid === S.user.uid ? S.framePrev : null;
   const fr = pv ? ' fr-' + pv + ' fpv' : a.inv && a.inv.frame ? ' fr-' + a.inv.frame : '', ttl = a.inv && a.inv.title && SHOPN[a.inv.title] ? `<span class="ttl2">「${esc(SHOPN[a.inv.title])}」</span>` : '';
   return `<article class="badge pc-only${fr}" aria-label="요원 출입증">
-  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>RAVEN-5, 섹터 R-8 출입증</small></span>${pv ? '<span class="pvtag">미리보기</span>' : `<span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span>`}</div>
+  <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : 'RAVEN 소속 미정'}, 섹터 R-8 출입증</small></span>${pv ? '<span class="pvtag">미리보기</span>' : `<span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span>`}</div>
   <div class="id"><div class="ph">${photoBox(a, true)}</div>
     <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
       <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</dd><dt>상태</dt><dd class="ok" style="${stateOf(a).k === 'regen' ? 'color:var(--red)' : ''}">${stateOf(a).t}</dd></dl></div></div>
@@ -2299,7 +2312,7 @@ function badgeHTML(a, { preview = false } = {}) {
   <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>만료 ${ymd(addYear(a.createdAt))}</span></div>
 </article>
 <article class="badge mb mb-only${fr}" aria-label="요원 출입증">
-  <div class="bt"><span class="bb">ACCESS PASS</span><small>RAVEN-5 ${ROLES[a.role][0]}</small></div>
+  <div class="bt"><span class="bb">ACCESS PASS</span><small>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : 'RAVEN 소속 미정'}</small></div>
   <div class="id"><div class="ph">${photoBox(a, false)}</div>
     <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b>${stateOf(a).k === 'regen' ? `, <b style="color:var(--red)">${stateOf(a).t}</b>` : ''}</span>
       <div class="mstats">${SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('')}</div></div></div>
@@ -2314,7 +2327,7 @@ function barcode(s) {
 function viewCreate() {
   const c = S.c, step = c.step, used = c.stats.reduce((a, b) => a + b, 0), left = STAT_SUM - used;
   const dv = derived(c.stats, c.trait), deptSk = DEPT[c.dept][1], tr = c.trait ? TRAITS[c.trait] : null;
-  const can = [!!c.name.trim(), true, !!c.realName.trim() && c.pastPick >= 0, left === 0 && c.stats.every(v => v >= 1), c.traitPick >= 0, c.free >= 0, true];
+  const can = [!!c.name.trim(), true, !!c.realName.trim() && c.pastPick >= 0, left === 0 && c.stats.every(v => v >= 1), c.traitPick >= 0, c.free >= 0, c.team > 0];
   const why = ['호출명을 입력하십시오.', '', !c.realName.trim() ? '본명을 입력하십시오.' : '과거 하나를 고르십시오.', left !== 0 ? '남은 점수를 모두 배분하십시오.' : '모든 능력치는 1 이상이어야 합니다.', '변질 특성 하나를 고르십시오.', '자유 기능 1개를 선택하십시오.', ''][step];
   const L = c.landed ? ' landed' : '';
   let body = '';
@@ -2356,7 +2369,8 @@ function viewCreate() {
     <span class="sub" style="font-size:14px">${deptSk.length ? '부서 기능 ' + deptSk.length + '개는 등급 1로 정해져 있습니다. ' : '소속 기록이 없어 부서 기능이 없습니다. '}자유 기능 1개를 더 선택하십시오. <b style="color:var(--ink)">남은 선택 ${c.free < 0 ? 1 : 0}</b></span>
     <div class="skills">${SKILLS.map(([n, s], i) => { const isD = deptSk.includes(n), isF = c.free === i; return `<button class="${isD ? 'dept' : ''}" ${isD ? 'aria-disabled="true"' : `data-act="free" data-v="${i}"`} aria-pressed="${isD || isF}"><span class="skt"><b>${n}<span class="sub" style="font-size:11px;font-weight:500">${s}</span></b><span class="sub" style="font-size:12px">${SKILL_USE[n] || ''}</span></span>${isD ? '<span class="tag">부서</span>' : isF ? '<span class="tag o">선택</span>' : ''}<b class="bb lv">LV ${isD || isF ? 1 : 0}</b></button>`; }).join('')}</div>`;
   if (step === 6) body = `
-    <p style="margin:0;font-size:15px;line-height:1.7">출입증을 발급하면 섹터 R-8에 귀속되고 RAVEN-5에 배속됩니다. 넘버와 호출명은 이후 변경할 수 없습니다.</p>
+    <div class="lab"><span>소속 팀</span><span class="sub" style="margin-top:-2px">재생된 요원은 RAVEN 다섯 팀 중 하나로 돌아갑니다. 팀은 전출로만 바꿀 수 있습니다.</span>${teamPickHTML(c.team, 'pickTeam')}</div>
+    <p style="margin:0;font-size:15px;line-height:1.7">출입증을 발급하면 섹터 R-8에 귀속되고 고른 팀에 배속됩니다. 넘버와 호출명은 이후 변경할 수 없습니다.</p>
     <div class="summary">${[['넘버', `<b class="bb" style="font-size:22px">${c.num}</b>`], ['호출명', `<b>${esc(c.name)}</b>`], ['변질 특성', `<b>${tr ? tr[0] : '-'}</b>`], ['HP · 정신력 · 오염 한계', `<b>${dv.hp} · ${dv.san} · ${dv.lim}</b>`], ['기능', `<b>${esc(skillList(c).join(', '))}</b>`]].map(([k, v]) => `<span class="pan"><span class="sub">${k}</span>${v}</span>`).join('')}</div>
     <p class="err" role="alert">${esc(c.err)}</p>
     <button class="btn lg" data-act="issue" ${S.busy ? 'disabled' : ''}>${ico('check', 18, 2.5)}출입증 발급</button>`;
@@ -2377,7 +2391,7 @@ function viewCreate() {
       </div>
     </section>
     <aside><span style="display:flex;align-items:baseline;gap:8px"><span class="bb" style="font-size:16px;letter-spacing:.16em;color:var(--sub)">PREVIEW</span><span class="sub" style="font-size:12px">출입증 미리보기</span></span>
-      ${badgeHTML({ num: c.num, name: c.name, role: c.role, photo: c.photo, age: c.age, stats: c.stats, trait: c.trait }, { preview: true })}</aside>
+      ${badgeHTML({ num: c.num, name: c.name, role: c.role, photo: c.photo, age: c.age, stats: c.stats, trait: c.trait, team: c.team }, { preview: true })}</aside>
   </main>
 </div>`;
 }
@@ -2391,7 +2405,7 @@ function viewIssued() {
   <span class="bb" style="font-size:16px;letter-spacing:.2em;color:var(--navyLine)">ISSUING ACCESS PASS</span>
   <span class="slot" aria-hidden="true"></span>
   <div class="feed"><div class="paper thud">${badgeHTML(a)}<span class="stamp" aria-hidden="true"><span class="bb">R-8</span><small>귀속 완료</small></span></div></div>
-  <div class="msg2" role="status"><b>${esc(a.num)} ${esc(a.name)}, 섹터 R-8에 귀속되었습니다. RAVEN-5 배속.</b><span class="sub" style="font-size:14px">출입증이 발급되었습니다. 기억은 돌아오지 않았지만, 업무는 오늘부터 시작됩니다.</span>
+  <div class="msg2" role="status"><b>${esc(a.num)} ${esc(a.name)}, 섹터 R-8에 귀속되었습니다. ${teamOf(a) ? teamOf(a).name : 'RAVEN'} 배속.</b><span class="sub" style="font-size:14px">출입증이 발급되었습니다. 기억은 돌아오지 않았지만, 업무는 오늘부터 시작됩니다.</span>
     <button class="btn lg" data-act="enter">섹터로 입장${ico('arrowR', 18, 2)}</button></div>
 </section>`;
 }
@@ -2767,7 +2781,8 @@ function viewHome() {
   const slots = (n, max) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
   const field = r ? r.members.filter(m => m.role === 'field').length : 0, ctrl = r ? r.members.filter(m => m.role === 'ctrl').length : 0;
   const log = S.agents.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  return `<div class="home">
+  const needTeam = S.me && !S.me.team ? `<section class="teamask" aria-label="소속 팀 정하기"><span class="bb">ASSIGNMENT</span><h2>소속 팀을 정하십시오</h2><p class="sub">RAVEN은 섹터 R-8의 최정예 특수팀입니다. 재생된 요원은 다섯 팀 중 하나로 돌아갑니다. 지금 한 번 고르면, 그 뒤로는 전출로만 바뀝니다. 팀을 정해야 작전에 참가할 수 있습니다.</p>${teamPickHTML(S.teamSel || 0, 'teamSel')}<div class="acts"><button class="btn" data-act="teamSave" ${S.teamSel ? '' : 'disabled'}>${S.teamSel ? `${TEAMS_C[S.teamSel].name}에 배속` : '팀을 고르십시오'}</button></div><p class="err" role="alert">${esc(S.teamErr || '')}</p></section>` : '';
+  return `<div class="home">${needTeam}
   <div class="opblk">
   ${r ? `<section class="op" aria-label="작전">
     <span class="ghost" aria-hidden="true">OPERATION</span>
@@ -2891,7 +2906,7 @@ function bossHTML(r) {
 function bossAtkHTML(r, me) {
   const B = r.boss; if (!B || B.hp <= 0) return '';
   const p = me.pos, melee = p === 'front' || p === 'solo';
-  const tags = [me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : '', B.combo && B.combo !== me.uid ? '<i class="cb">협공 +2</i>' : '', B.exposed ? '<i class="cb">급소 +3</i>' : '', B.intent === 'open' ? '<i class="cb">틈 +2</i>' : '', B.intent === 'brace' ? '<i class="d">웅크림 · 피해 절반</i>' : '', B.intent === 'count' ? '<i class="a">셈 끊기</i>' : ''].join('');
+  const tags = [me.cls === 'weapon' ? '<i class="cb">화력 주사위 +1 · 피해 +1</i>' : '', B.combo && B.combo !== me.uid ? '<i class="cb">협공 +2</i>' : '', B.exposed ? '<i class="cb">급소 +3</i>' : '', B.intent === 'open' ? '<i class="cb">틈 +2</i>' : '', B.intent === 'brace' ? '<i class="d">웅크림 · 피해 절반</i>' : '', B.intent === 'count' ? '<i class="a">셈 끊기</i>' : ''].join('');
   return `<button class="choice2 atk boss" data-act="opAct" data-v="atk-boss" ${B.blocked ? 'disabled' : ''}><b>${esc(jo2(B.name, '을', '를'))} 공격한다</b><small>${melee ? '근력 + 격투 · 근접' : '민첩 + 사격 · 사격'} · 보통(2) · 맞히면 성공 수만큼 피해, 모자라면 빗나감</small><span class="req">${B.blocked ? '<i class="a">하수인이 앞을 막고 있다 · 먼저 쓰러뜨릴 것</i>' : `<i class="a">제압</i>${tags}`}</span></button>`;
 }
 function encHTML(r, ctl) {
@@ -3174,7 +3189,7 @@ function attackHTML(a, me, r) {
   const ok = melee || ranged, f = (r.minions || []).find(x => x.side === a.side);
   const how = melee ? '근력 + 격투 · 근접' : ranged ? '민첩 + 사격 · 사격' : (a.side === 'front' ? '선두 근접, 중열 사격' : '후미 근접, 중열 사격');
   const combo = f && f.combo && f.combo !== me.uid;
-  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 맞히면 성공 수만큼 피해, 모자라면 빗나감</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && INT_TAG[f.intent] ? `<i class="${INT_TAG[f.intent][0]}">${INT_TAG[f.intent][1]}</i>` : ''}</span></button>`;
+  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 맞히면 성공 수만큼 피해, 모자라면 빗나감</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">화력 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && INT_TAG[f.intent] ? `<i class="${INT_TAG[f.intent][0]}">${INT_TAG[f.intent][1]}</i>` : ''}</span></button>`;
   if (melee) h += `<button class="choice2 atk shove" data-act="opAct" data-v="shv-${a.side}"><b>${a.side === 'front' ? '앞' : '뒤'}의 하수인을 밀쳐 낸다</b><small>근력 + 격투 · 쉬움(1) · 다음 행동을 못 하게 한다</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두' : '후미'}</i></span></button>`;
   return h;
 }
@@ -3227,7 +3242,7 @@ function radioHTML(r, me) {
 }
 // 관제실 요청·치료 카드: 누구나 할 수 있다. 장비가 맞으면 주사위 +1
 function clsCardsHTML(r, me) {
-  const g = me.cls, plus = k => g === k ? ` · <b class="gp">${CLS[k][0]} +1</b>` : '';
+  const g = me.cls, plus = k => g === k ? ` · <b class="gp">팀 특성 +1</b>` : '';
   const card = (v, t, sub, eff, off, cls) => `<button class="choice2 cls${cls ? ' c-' + cls : ''}" data-act="opAct" data-v="${v}" ${off ? 'disabled' : ''}><b>${t}</b><small>${sub}</small>${eff ? `<em class="eff">${eff}</em>` : ''}</button>`;
   const Q = [], C = [];
   if (r.noise) {
@@ -3246,9 +3261,15 @@ function clsCardsHTML(r, me) {
 // 행동 카드는 지금 쓸 만한 것 3개만 먼저 보여 주고 나머지는 접는다(관제실 요청·치료 묶음은 따로)
 function topCards(html) {
   const L = html.split(/(?=<button class="choice2)/).filter(x => x.trim());
-  const score = h => (/\sdisabled[\s>]/.test(h.slice(0, h.indexOf('>') + 1)) ? 100 : 0) + (/choice2 hide/.test(h) ? 0 : /choice2 rec/.test(h) ? 1 : /atk boss/.test(h) ? 2 : /choice2 atk shove|choice2 atk guard/.test(h) ? 6 : /choice2 atk/.test(h) ? 3 : /choice2 r1/.test(h) ? 9 : /장면 유지/.test(h) ? 5 : 4);
+  const score = h => (/\sdisabled[\s>]/.test(h.slice(0, h.indexOf('>') + 1)) ? (/ tsk /.test(h) ? 50 : 100) : 0) + (/choice2 hide/.test(h) ? 0 : /choice2 rec/.test(h) ? 1 : /atk boss/.test(h) ? 2 : /choice2 atk shove|choice2 atk guard/.test(h) ? 6 : /choice2 atk/.test(h) ? 3 : /choice2 r1/.test(h) ? 9 : /장면 유지/.test(h) ? 5 : 4);
   const S2 = L.map((h, i) => ({ h, k: score(h) * 100 + i })).sort((a, b) => a.k - b.k);
   return { top: S2.slice(0, 3).map(x => x.h).join(''), rest: S2.slice(3).map(x => x.h).join(''), n: Math.max(0, S2.length - 3) };
+}
+// 팀 고유 기술 카드: 3라운드에 한 번. 쓸 수 없을 땐 남은 라운드를 보여 준다.
+function skillCardHTML(r, me) {
+  const T = TEAMS_C[me.team]; if (!T || r.fork) return '';
+  const left = Math.max(0, (me.skNext || 0) - r.turn), D2 = ['', '쉬움', '보통', '어려움'][T.sk.diff];
+  return `<button class="choice2 hide tsk c-${T.gear}" data-act="opAct" data-v="sk" ${left ? 'disabled' : ''}><b>${T.sk.label}<small class="tskn">${T.name} 고유 기술</small></b><small>${SN[T.sk.stat]} + ${T.sk.skill} · ${D2}(${T.sk.diff}) · ${left ? `${left}라운드 뒤 다시 쓸 수 있음` : `쓰면 ${SK_CD_C}라운드 쉼`}</small><em class="eff">${esc(T.sk.desc)}</em></button>`;
 }
 // 내 차례: 교전·장면 행동은 카드로, 이동과 소모품은 아래 한 줄로. 한 패널 안에서 끝난다.
 function myTurnHTML(r, me, combat) {
@@ -3261,6 +3282,7 @@ function myTurnHTML(r, me, combat) {
     : combat ? '하수인을 치워야 대열이 움직일 수 있다.'
     : reachNeed ? '구역 끝까지 전진해야 목표 행동을 할 수 있다.' : '';
   const cards = [
+    skillCardHTML(r, me),
     r.boss ? bossAtkHTML(r, me) : '',
     ...(combat && !r.fork ? (r.attacks || []).map(a => attackHTML(a, me, r)) : []), combat && !r.fork ? guardHTML(r, me) : '',
     ...(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`),
@@ -3268,16 +3290,16 @@ function myTurnHTML(r, me, combat) {
     r.r1 || r.fork ? '' : `<button class="choice2 r1" data-act="opAct" data-v="raven1"><b>RAVEN-1 지원 요청</b><small>누구나 · 작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button>`
   ].filter(Boolean).join('');
   const clsc = clsCardsHTML(r, me);
-  const W = r.contactWarn, evade = W && W.uid === me.uid ? `<button class="choice2 hide ent" data-act="opAct" data-v="evade"><b>피한다</b><small>민첩 + 은신 · 보통(2)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 개체 접촉 임박. 성공하면 빗나가고 개체가 멀리 물러난다.</em></button>`
+  const W = r.contactWarn, evade = W && W.uid === me.uid ? `<button class="choice2 hide ent" data-act="opAct" data-v="evade"><b>피한다</b><small>민첩 + 은신 · 보통(2)${me.cls === 'detector' ? ' · <b class="gp c-detector">팀 특성 +1</b>' : ''}</small><em class="eff">관제실 하달: 개체 접촉 임박. 성공하면 빗나가고 개체가 멀리 물러난다.</em></button>`
     : W && !(r.minions || []).length ? `<button class="choice2 hide" data-act="opAct" data-v="guard"><b>막기</b><small>판정 없음</small><em class="eff">${esc(W.name)} 요원이 받는 개체 피해가 절반이 된다.</em></button>` : '';
-  const hide = r.ambush ? `<button class="choice2 hide" data-act="opAct" data-v="hide"><b>숨는다</b><small>민첩 + 은신 · 쉬움(1)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 하수인이 접근 중. 전원이 조용히 있으면 지나간다.</em></button>` : '';
+  const hide = r.ambush ? `<button class="choice2 hide" data-act="opAct" data-v="hide"><b>숨는다</b><small>민첩 + 은신 · 쉬움(1)${me.cls === 'detector' ? ' · <b class="gp c-detector">팀 특성 +1</b>' : ''}</small><em class="eff">관제실 하달: 하수인이 접근 중. 전원이 조용히 있으면 지나간다.</em></button>` : '';
 
   const Rd = readyOf(r), mine = Rd.P[me.uid];
   if (!mine) S.chgOpen = false;
   const timer = timerHTML(r, `준비 ${Rd.done}/${Rd.all}`);
   const dq = (sc.choices || []).some(c => c.max || c.min) && r.radar && r.radar.noise
     ? `<span class="dnote">무전 잡음으로 개체 거리를 알 수 없습니다. 거리 조건이 안 맞으면 판정 없이 차례만 지나갑니다.</span>` : '';
-  return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${me.cls ? `<span class="clsb c-${me.cls}">${CLS[me.cls][0]}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
+  return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${teamTag(me)}${r.mark ? `<span class="clsb c-detector">약점 간파 +${r.mark.bonus}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine sel"><i>✓</i><span><small>이번 라운드에 고른 행동</small><b>${esc(mine.label)}</b><small>${Rd.waitCtl ? '관제 행동을 기다리는 중.' : `동료 ${Rd.done}/${Rd.all} · 모두 고르면 고른 순서대로 실행된다.`}</small></span><button class="btn s g" data-act="opUnpick">선택 취소</button></span><details class="chg"${S.chgOpen ? ' open' : ''}><summary data-act="chgToggle">다른 행동 보기</summary>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
     ${dq}${(() => { const T = topCards(evade + hide + cards); return T.top ? `<div class="choices cacts">${T.top}</div>${T.rest ? `<details class="more"${S.moreOpen ? ' open' : ''}><summary data-act="moreToggle">다른 행동 ${T.n}개 더 보기</summary><div class="choices cacts">${T.rest}</div></details>` : ''}` : ''; })()}${clsc}
@@ -3299,8 +3321,27 @@ const levelHTML = op => `<span class="lvl l${op.level}" title="난이도 ${LEVEL
 const recTxt = op => { if (!op.rec) return ''; const f = op.rec.field, rg = a => a[0] === a[1] ? a[0] : a[0] + '~' + a[1]; return `현장 ${rg(f)}명`; };
 // 포지션: 대기실에서 작전마다 고른다
 // 출발 장비: 대기실에서 작전마다 하나 챙긴다(무료). 역할은 정해져 있지 않고, 장비가 잘하는 쪽을 정한다.
-const CLS = { weapon: ['무기', '공격 판정 주사위 +1, 맞히면 피해 +1'], detector: ['탐지기', '은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률 증가'], medkit: ['구급상자', '응급처치·정신 안정 주사위 +1, 기능 없이도 치료 가능, 구급 키트 1회분'], radio: ['통신기', '장면 행동 판정 주사위 +1(관찰·해독·설치 같은 공격 말고 카드)'] };
-const clsPickHTML = m => `<span class="si">출발 장비 · 하나를 챙깁니다</span><span class="clsp" role="group" aria-label="출발 장비">${Object.entries(CLS).map(([k, [n, d]]) => `<button class="c-${k}" data-act="opCls" data-v="${k}" aria-pressed="${m.cls === k}" title="${esc(d)}">${n}</button>`).join('')}</span><span class="si">${esc((CLS[m.cls] || CLS.weapon)[1])}</span>`;
+// RAVEN 팀: 서버 TEAMS와 같은 내용. 팀 특성은 예전 출발 장비 효과(gear 키)를 이어받았다.
+const TEAMS_C = {
+  1: { name: 'RAVEN-1', role: '화력 지원', gear: 'weapon', stats: [0, 2], perk: '공격 주사위 +1, 맞히면 피해 +1', sk: { label: '집중 포화', stat: 2, skill: '사격', diff: 2, desc: '모든 하수인에게 성공 수만큼 피해, 개체에게는 절반' } },
+  2: { name: 'RAVEN-2', role: '정찰·추적', gear: 'detector', stats: [4, 2], perk: '은신 주사위 +1, 하수인 공격을 잘 피한다', sk: { label: '약점 간파', stat: 4, skill: '관찰', diff: 2, desc: '이번과 다음 라운드, 팀 공격 피해 +2(대성공 +3)' } },
+  3: { name: 'RAVEN-3', role: '봉쇄·격리', gear: 'radio', stats: [3, 5], perk: '장면 행동 주사위 +1', sk: { label: '구속', stat: 3, skill: '장비 운용', diff: 2, desc: '개체를 묶어 다음 행동을 끊는다. 하수인은 앞쪽 하나(대성공이면 전부)' } },
+  4: { name: 'RAVEN-4', role: '회수·의무', gear: 'medkit', stats: [1, 3], perk: '치료 주사위 +1, 기능 없이도 치료, 구급 키트 1회분', sk: { label: '응급 소생', stat: 3, skill: '응급처치', diff: 2, desc: '현장 전원의 체력 회복(대성공이면 정신력도)' } },
+  5: { name: 'RAVEN-5', role: '돌격·선봉', gear: 'van', stats: [0, 1], perk: '받는 체력 피해 1 감소', sk: { label: '방패', stat: 1, skill: '인내', diff: 1, desc: '이번 라운드 동료에게 가는 공격을 대신 받고 절반으로(대성공이면 0)' } }
+};
+const SK_CD_C = 3;
+const CLS = Object.fromEntries(Object.values(TEAMS_C).map(T => [T.gear, [T.name, `${T.role} · ${T.perk}`]]));
+const teamOf = a => TEAMS_C[(a && a.team) || 0] || null;
+const teamTag = a => { const T = teamOf(a); return T ? `<span class="clsb c-${T.gear}">${T.name}</span>` : ''; };
+// 팀 고르기 카드(캐릭터 생성·예전 요원 소속 정하기에서 같이 쓴다)
+function teamPickHTML(sel, act) {
+  return `<div class="tpick" role="radiogroup" aria-label="소속 팀">${Object.entries(TEAMS_C).map(([k, T]) => `<button class="tpc c-${T.gear}" role="radio" data-act="${act}" data-v="${k}" aria-checked="${+sel === +k}">
+    <span class="h"><b class="bb">${T.name}</b><small>${T.role}</small></span>
+    <span class="r"><i>주력</i><span>${T.stats.map(i => SN[i]).join(' · ')} 판정 주사위 +1</span></span>
+    <span class="r"><i>특성</i><span>${esc(T.perk)}</span></span>
+    <span class="r"><i>기술</i><span><b>${T.sk.label}</b> ${esc(T.sk.desc)}</span></span></button>`).join('')}</div>`;
+}
+const clsPickHTML = m => { const T = TEAMS_C[m.team]; return T ? `<span class="si">${T.role} · ${esc(T.perk)}</span><span class="si">고유 기술 「${T.sk.label}」 ${esc(T.sk.desc)}</span>` : '<span class="si">소속 팀이 없습니다.</span>'; };
 function recNote(r) {
   if (!r.op.rec || r.status !== 'lobby') return '';
   const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
@@ -3338,7 +3379,7 @@ function viewOps(rr, parts) {
     const sealed = r.sealedUntil > Date.now() || !!r.contained, busy = st.k === 'regen' || sealed;
     const f = team('field').length, c = team('ctrl').length, rd = r.members.filter(m => m.ready).length, tot = r.members.length;
     const seats = (role, cap) => { const L = team(role), nm = '현장팀'; return Array.from({ length: cap }, (_, i) => { const m = L[i];
-      return m ? `<div class="seat on${m.uid === S.user.uid ? ' me' : ''}"><span class="sn"><b>${esc(m.name)}</b>${m.uid === S.user.uid ? '<small>나</small>' : ''}${CLS[m.cls] ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}<span class="rd${m.ready ? ' ok' : ''}">${m.ready ? '준비 완료' : '준비 중'}</span></span><span class="si">${esc(m.num)} · HP ${m.hpMax} · 정신력 ${m.sanMax}</span>${m.uid === S.user.uid ? clsPickHTML(m) : `<span class="si">${CLS[m.cls] ? esc(CLS[m.cls][1]) : ''}</span>`}</div>`
+      return m ? `<div class="seat on${m.uid === S.user.uid ? ' me' : ''}"><span class="sn"><b>${esc(m.name)}</b>${m.uid === S.user.uid ? '<small>나</small>' : ''}${teamTag(m)}<span class="rd${m.ready ? ' ok' : ''}">${m.ready ? '준비 완료' : '준비 중'}</span></span><span class="si">${esc(m.num)} · HP ${m.hpMax} · 정신력 ${m.sanMax}</span>${m.uid === S.user.uid ? clsPickHTML(m) : `<span class="si">${CLS[m.cls] ? esc(CLS[m.cls][1]) : ''}</span>`}</div>`
         : `<button class="seat" data-act="opJoin" data-v="${role}" ${busy || (me && me.role === role) ? 'disabled' : ''}><span class="sn"><b>+ 이 자리로 참가</b></span><span class="si">빈 자리 · 누르면 ${nm}으로 참가</span></button>`; }).join(''); };
     const lack = []; if (r.op.rec) { if (f < r.op.rec.field[0]) lack.push(`현장팀 ${r.op.rec.field[0] - f}명`); }
     const warn = !f ? '현장팀이 1명 이상 있어야 작전을 개시할 수 있습니다.' : lack.length ? `권장 인원보다 ${lack.join(', ')}이 부족합니다. 이대로도 개시할 수 있지만 위험이 커집니다.` : me && rd < tot ? `참가자 전원이 준비 완료를 눌러야 개시할 수 있습니다. (${rd}/${tot})` : '';
@@ -3590,7 +3631,7 @@ function gmAgentsHTML() {
     <p class="sh"><b>기능 등급</b><small>0~${SKILL_MAX}</small></p>
     <div class="ggrid">${SKILLS.map(([k]) => num('sk_' + k, (a.skills || {})[k] || 0, 0, SKILL_MAX, k)).join('')}</div>
     <p class="sh"><b>자원과 상태</b></p>
-    <div class="ggrid">${num('supply', a.res.supply, 0, 999999, '보급품')}${num('research', a.res.research, 0, 999999, '연구 자료')}${num('pass', a.res.pass, 0, 999999, '기록 열람권')}${num('cont', a.contamination || 0, 0, 300, `오염도 (한계 ${a.contLimit})`)}${num('career', a.career ? a.career.total : 0, 0, 100000, `경력 (계급 ${a.career ? a.career.rank : 1})`)}${num('pts', a.statPts || 0, 0, 999, '능력치 포인트')}</div>
+    <div class="ggrid">${num('team', a.team || 0, 0, 5, '소속 팀 (1~5, 0은 미정)')}${num('supply', a.res.supply, 0, 999999, '보급품')}${num('research', a.res.research, 0, 999999, '연구 자료')}${num('pass', a.res.pass, 0, 999999, '기록 열람권')}${num('cont', a.contamination || 0, 0, 300, `오염도 (한계 ${a.contLimit})`)}${num('career', a.career ? a.career.total : 0, 0, 100000, `경력 (계급 ${a.career ? a.career.rank : 1})`)}${num('pts', a.statPts || 0, 0, 999, '능력치 포인트')}</div>
     ${a.regenUntil && a.regenUntil > Date.now() ? `<label class="gchk"><input type="checkbox" name="clearRegen"> 재생 즉시 완료 (${leftTime(a.regenUntil - Date.now())} 남음)</label>` : ''}
     ${a.quarUntil && a.quarUntil > Date.now() ? `<label class="gchk"><input type="checkbox" name="clearQuar"> 격리 관찰 해제 (${leftTime(a.quarUntil - Date.now())} 남음)</label>` : ''}
     <div class="gact"><button class="btn" type="submit">${ico('check', 16, 2)}저장</button>${gmMsgHTML()}</div>
@@ -3881,7 +3922,7 @@ function rollFxNext(host) {
   const T = { crit: '대성공!', ok: '성공', cost: '대가 있는 성공', fail: '실패' }[e.tier] || e.tierName || '';
   const need = e.diff || 0, sc = e.succ || 0;
   // 왜 이 결과인지: 굴린 주사위 → 5·6 개수 → 필요 수와 비교 → 피해 계산
-  const pool = `${esc(e.stat || '')} ${e.statVal ?? ''}${e.skill ? ` + ${esc(e.skill)} ${e.skillLv || 0}` : ''}${(e.dice.s || []).length ? ` + 무기·지원 ${(e.dice.s || []).length}` : ''} → ${e.dice.over ? `주사위 ${faces.length + e.dice.over}개 중 최대 ${faces.length}개만 굴림 · 넘친 ${e.dice.over}개는 ${(e.why || []).length || /공격|사격/.test(e.label || '') ? `맞히면 피해 +${Math.floor(e.dice.over / 2)}` : '공격 때만 피해로 바뀜'}` : `주사위 ${faces.length}개`}`;
+  const pool = `${esc(e.stat || '')} ${e.statVal ?? ''}${e.skill ? ` + ${esc(e.skill)} ${e.skillLv || 0}` : ''}${(e.dice.s || []).length ? ` + 팀·지원 ${(e.dice.s || []).length}` : ''} → ${e.dice.over ? `주사위 ${faces.length + e.dice.over}개 중 최대 ${faces.length}개만 굴림 · 넘친 ${e.dice.over}개는 ${(e.why || []).length || /공격|사격/.test(e.label || '') ? `맞히면 피해 +${Math.floor(e.dice.over / 2)}` : '공격 때만 피해로 바뀜'}` : `주사위 ${faces.length}개`}`;
   const rule = e.tier === 'crit' ? '2개 이상 넘쳤다' : e.tier === 'ok' ? '채웠다' : e.tier === 'cost' ? '하나 모자라 대가를 치렀다' : '못 미쳤다';
   const why = (e.why || []).length ? `<span class="rwhy">피해 = ${e.why.map(esc).join(' · ')}</span>` : '';
   const said = esc(String(e.text || '').split(/(?<=[.!?])\s/)[0]).slice(0, 60);
@@ -4244,7 +4285,7 @@ async function issue() {
   const skills = {}; skillList(c).forEach(k => skills[k] = 1);
   const pub = { num: c.num, name: c.name.trim(), role: c.role, head: 0, photo: c.photo || null, age: c.age, stats: c.stats, trait: c.trait, skills, contamination: 0, res: START_RES };
   const priv = { mode: 'roll', realName: c.realName.trim(), dept: c.dept, death: c.death, secret: c.secret, cross: c.cross.trim().toUpperCase(), realAge: realAgeOf(c) };
-  const payload = { name: pub.name, realName: priv.realName, role: c.role, age: c.age, photo: c.photo || null, stats: c.stats, pastPick: c.pastPick, traitPick: c.traitPick, free: c.free, cross: c.cross };
+  const payload = { name: pub.name, realName: priv.realName, role: c.role, age: c.age, photo: c.photo || null, stats: c.stats, pastPick: c.pastPick, traitPick: c.traitPick, free: c.free, cross: c.cross, team: c.team };
   try {
     await B.createAgent(S.user.uid, pub, priv, payload);
     S.me = await B.getAgent(S.user.uid); S.busy = false; S.phase = 'issued'; render(); window.scrollTo(0, 0);
@@ -4269,6 +4310,8 @@ app.addEventListener('click', e => {
     case 'tutGo': S.tut.stage = 'op'; S.tut.sc = 0; S.tut.r = tutNewRun(S.tut.role); S.tut.r.log.push({ kind: 'sys', text: '훈련 작전 R8-T 개시. 이 작전에서는 쓰러지지 않습니다.' }); tutEnterScene(); syncTut(); return syncModal();
     case 'tutNext': return tutNext();
     case 'tutSkip': return tutSkip();
+    case 'teamSel': S.teamSel = +v; S.teamErr = ''; return render();
+    case 'teamSave': if (!S.teamSel) return; B.teamSet({ team: S.teamSel }).then(d => { if (d && d.agent) S.me = d.agent; S.teamSel = 0; render(); }).catch(err => { S.teamErr = errMsg(err); render(); }); return;
     case 'loginMode': S.loginMode = S.loginMode === 'in' ? 'up' : 'in'; S.err = ''; return re();
     case 'signOut': return B.signOut();
     case 'theme': setTheme(S.theme === 'dark' ? 'light' : 'dark'); return re();
@@ -4287,6 +4330,7 @@ app.addEventListener('click', e => {
     case 'stat': { const k = +t.dataset.k, s = c.stats.slice(), left = STAT_SUM - s.reduce((x, y) => x + y, 0); s[k] += +v; if (s[k] < STAT_MIN0 || s[k] > STAT_MAX0 || (+v > 0 && left <= 0)) return; c.stats = s; return re(); }
     case 'pickPast': if (rollBusy) return; pickPast(c, +v); return re();
     case 'pickTrait': if (rollBusy) return; pickTrait(c, +v); return re();
+    case 'pickTeam': c.team = +v; return re();
     case 'free': c.free = c.free === +v ? -1 : +v; return re();
     case 'goStep': {
       c.step = +v; window.scrollTo(0, 0); re(); play('in-step');
@@ -4527,7 +4571,7 @@ app.addEventListener('submit', async e => {
   if (kind === 'gmAgent') {
     const n = k => +f.querySelector(`[name="${k}"]`).value, b = { uid: S.gmSel };
     b.stats = SN.map((_, i) => n('st' + i)); b.skills = Object.fromEntries(SKILLS.map(([k]) => [k, n('sk_' + k)]));
-    b.res = { supply: n('supply'), research: n('research'), pass: n('pass') }; b.contamination = n('cont'); b.career = n('career'); b.statPts = n('pts');
+    b.res = { supply: n('supply'), research: n('research'), pass: n('pass') }; b.contamination = n('cont'); b.career = n('career'); b.statPts = n('pts'); b.team = n('team');
     if (f.querySelector('[name=clearRegen]')?.checked) b.clearRegen = true; if (f.querySelector('[name=clearQuar]')?.checked) b.clearQuar = true;
     try { await B.gmAgent(b); S.gmMsg = '저장했습니다.'; } catch (err) { S.gmMsg = errMsg(err); } gmRender();
   }
