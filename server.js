@@ -822,7 +822,7 @@ function classPre(r, m, A) {
   if (A.k === 'fac') { const F = facsOf(r).find(x => x.id === A.t); if (!F) return ['op/bad-choice']; if (F.on) return ['op/used']; if (F.id === 'wall' && !F.need) return ['op/no-target']; return [null, `${F.name} 조작 요청`]; }
   return ['op/bad-choice'];
 }
-const ROUND_MS = Math.max(15, Number(process.env.ROUND_SECONDS || 60)) * 1000;
+const ROUND_MS = 60 * 1000; // 라운드 선택 시간은 60초로 고정한다(환경 변수 ROUND_SECONDS는 더 이상 쓰지 않는다)
 const canPick = m => m.role === 'field' && !m.dead && !m.broken;
 function pickCheck(r, uid, kind, v) {
   const m = fieldMember(r, uid), o = D(r), sc = o.scenes[r.scene], p = posOf(r, uid), L = lineOf(r);
