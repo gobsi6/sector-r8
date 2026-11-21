@@ -1764,11 +1764,12 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 #rollFx{position:absolute;left:0;right:0;top:38%;z-index:60;display:flex;justify-content:center;pointer-events:none}
 #rollFx .rf{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 22px;min-width:280px;max-width:min(440px,92vw);cursor:pointer;background:rgba(8,10,11,.97);box-shadow:inset 0 0 0 1.5px var(--navyLine),0 16px 40px rgba(0,0,0,.5);color:#F2F2F0;animation:rfIn .18s ease-out}
 #rollFx .rf small{font-size:12px;color:#A8B0B2}
-#rollFx .rd{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:380px}#rollFx .rd .dc{width:30px;height:30px;font-size:19px;opacity:1;transition:transform .15s}#rollFx .land .rd .dc.hit{transform:scale(1.15);box-shadow:0 0 0 2px #F0C774}#rollFx .land .rd .dc.miss{opacity:.3}
+#rollFx .rd{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:380px}#rollFx .rd .dc{width:30px;height:30px;font-size:19px;opacity:1;transition:transform .15s}#rollFx .land .rd .dc.hit{transform:scale(1.06);box-shadow:0 0 0 2px #F0C774}#rollFx .land .rd .dc.miss{opacity:.3}
 #rollFx .rpool,#rollFx .rcnt{font-size:12px;color:#C9CFD1;text-align:center}#rollFx .rcnt b{color:#F2F2F0}#rollFx .rcnt{opacity:0}#rollFx .land .rcnt{opacity:1;transition:opacity .2s}
 #rollFx .rwhy{font-size:12px;color:#FFB3AC;opacity:0}#rollFx .land .rwhy{opacity:1;transition:opacity .2s .15s}#rollFx .rsay{font-size:12.5px;color:#E3E6E7;max-width:340px;text-align:center;opacity:0}#rollFx .land .rsay{opacity:1;transition:opacity .2s .25s}#rollFx .rskip{font-size:10.5px;color:#7E878A}
 #rollFx .rt{font-size:22px;font-weight:800;opacity:0;transform:scale(.7)}#rollFx .land .rt{opacity:1;transform:none;transition:all .18s cubic-bezier(.2,1.6,.4,1)}
-#rollFx .t-crit{box-shadow:inset 0 0 0 2px #F0C774,0 0 40px rgba(240,199,116,.35)}#rollFx .t-crit .rt{color:#F0C774;font-size:28px}
+#rollFx .t-crit.land{background:linear-gradient(180deg,rgba(64,48,14,.97),rgba(20,16,8,.97));animation:critGlow 1.1s ease-in-out infinite alternate}#rollFx .t-crit .rt{color:#FFD98A;font-size:30px;text-shadow:0 0 14px rgba(240,199,116,.8)}#rollFx .t-crit.land .rd .dc.hit{background:#F0C774;color:#2A1E00;box-shadow:0 0 12px rgba(240,199,116,.9)}
+@keyframes critGlow{from{box-shadow:inset 0 0 0 2px #F0C774,0 0 18px rgba(240,199,116,.35)}to{box-shadow:inset 0 0 0 2px #FFE3A3,0 0 46px rgba(240,199,116,.75)}}
 #rollFx .t-ok .rt{color:#8FC3D3}#rollFx .t-cost .rt{color:#D9C48A}#rollFx .t-fail .rt{color:#FF8A80}
 #rollFx .rdmg{font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;color:#FF8A80;opacity:0}#rollFx .land .rdmg{animation:dmgPop .5s cubic-bezier(.2,1.6,.4,1) forwards}
 #rollFx .burst{box-shadow:inset 0 0 0 2px #F0C774,0 0 60px rgba(240,199,116,.45);padding:18px 28px}#rollFx .burst b{font-size:34px;letter-spacing:.12em;color:#F0C774;animation:dmgPop .5s cubic-bezier(.2,1.6,.4,1)}#rollFx .burst em{font-style:normal;font-size:13px}
@@ -1776,7 +1777,7 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 @keyframes dmgPop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:none}}
 .opm-box.shake .opm-left{animation:boxShake .35s ease-in-out}@keyframes boxShake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,0)}}
 @media (max-width:999px){#rollFx{position:fixed;top:30%}}
-@media (prefers-reduced-motion:reduce){#rollFx .rf,.opm-box.shake .opm-left{animation:none}}
+@media (prefers-reduced-motion:reduce){#rollFx .rf,#rollFx .t-crit.land,.opm-box.shake .opm-left{animation:none}}
 .mvp{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 12px;box-shadow:inset 0 0 0 1px #F0C774}.mvp .bb{font-size:18px;color:#F0C774;letter-spacing:.12em}.mvp b{font-size:16px}.mvp small{color:var(--sub);font-size:12px}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
@@ -3879,7 +3880,7 @@ function rollFxNext(host) {
   let gone = false; const next = () => { if (gone) return; gone = true; clearInterval(it); el.innerHTML = ''; rollFxNext(host); };
   card.style.pointerEvents = 'auto'; card.addEventListener('click', next);
   const land = () => { card.querySelectorAll('.rd i').forEach(i => { i.textContent = i.dataset.v; i.classList.add(+i.dataset.v >= 5 ? 'hit' : 'miss'); }); card.classList.add('land');
-    if (e.tier === 'crit') { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); } };
+  };
   let it = 0;
   if (!reduce) { it = setInterval(() => card.querySelectorAll('.rd i').forEach(i => { i.textContent = Math.ceil(Math.random() * 6); }), 60); setTimeout(() => { clearInterval(it); land(); }, 420); }
   else land();
