@@ -412,7 +412,7 @@ const DIFF_NAME = { 1: '쉬움', 2: '보통', 3: '어려움', 4: '극한' };
 
 // 거리: 개체와 대열 사이 거리(m). from은 개체가 있는 쪽(front 앞, rear 뒤). speed는 한 턴에 개체가 다가오는 거리.
 // 선택지: pos는 대열 위치(front 선두, mid 중열, rear 후미, 없으면 누구나), max/min은 필요한 거리, adv:false면 장면이 넘어가지 않는다.
-const RADAR_RANGE = 50, STEP_M = 10, RECOIL_M = 8, COUNT_EVERY = 4, MINION_CAP = 4;
+const RADAR_RANGE = 50, STEP_M = 10, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY = 4, MINION_CAP = 4;
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
@@ -691,6 +691,7 @@ function runOut(r, viewer, gm) {
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
+    contactWarn: live && r.contactWarn ? r.contactWarn : null,
     ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
     noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
     shift: live && r.shift ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
@@ -850,7 +851,8 @@ function pickCheck(r, uid, kind, v) {
     if (mt[1] === 'shv') return melee ? [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
     return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
   }
-  if (v === 'guard') return r.minions.length ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'guard') return r.minions.length || r.contactWarn ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'evade') return r.contactWarn && r.contactWarn.uid === String(uid) ? [null, '피한다'] : ['op/no-target'];
   if (v === 'hide') return r.ambush ? [null, '숨는다'] : ['op/no-ambush'];
   if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
   if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
@@ -986,7 +988,7 @@ function canField(r, uid) {
    하수인은 현장 인원으로 정한다 — hp: 하수인 체력 + · spawn: 장면·시간 경과 때 더 나오는 수 · cap: 시간 경과로 나올 때 상한
    R8_SCALE 환경 변수(JSON, {"time":{…},"foe":{…}})로 덮어쓸 수 있다. */
 const SCALE_ENV = (() => { try { return JSON.parse(process.env.R8_SCALE || '{}'); } catch { return {}; } })();
-const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.25, speed: 0.9 }, 3: { every: 1.15, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
+const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.25, speed: 0.9 }, 3: { every: 1.05, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
 const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 0, spawn: 0, cap: 2 }, 4: { hp: 1, spawn: 0, cap: 3 } }, SCALE_ENV.foe || {});
 const scaleOf = r => ({ ...SCALE_T[Math.min(4, Math.max(1, r.nt || 1))], ...SCALE_F[Math.min(4, Math.max(1, r.nf || 1))] });
 function spawnMinion(r, side, n) {
@@ -1118,10 +1120,33 @@ function entityStep(r) {
   if (r.dist > 0) return;
   const L = lineOf(r); if (!L.length) return;
   const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
+  const recoil = o.recoil || RECOIL_M;
+  // 관제실 하달을 듣고 피했으면 빗나가고, 개체는 지나쳐서 더 멀리 물러난다
+  if (t.evadeOk === r.turn - 1) { say(r, `개체가 ${t.name} 요원이 있던 자리를 훑고 지나갔다. 빗나갔다.`, { kind: 'contact', ent: true, uid: t.uid }); r.dist = recoil + EVADE_PUSH; r.evaded = (r.evaded || 0) + 1; return; }
   const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san);
-  say(r, c.text.replace('{name}', t.name), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
+  const cov = r.coverEnt === r.turn - 1;
+  if (cov) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); }
+  say(r, c.text.replace('{name}', t.name) + (cov ? ' (동료가 막아 절반)' : ''), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san, count: c.count } });
   applyFx(r, t, c, '개체 접촉');
-  r.dist = o.recoil || RECOIL_M;
+  r.dist = recoil;
+}
+// 개체 접촉 예고: 이번 라운드가 끝날 때 닿을 것 같으면 관제실이 대상자를 부른다(잡음이면 못 듣는다)
+function contactPredict(r) {
+  const o = D(r), sc = o.scenes[r.scene]; r.contactWarn = null;
+  if (r.status !== 'live' || !sc || sc.fork || !sc.speed) return;
+  const step = Math.floor((r._sp || 0) + sc.speed * scaleOf(r).speed);
+  if (r.dist - step > 0) return;
+  const L = lineOf(r); if (!L.length) return;
+  const t = sc.from === 'rear' ? L[L.length - 1] : L[0];
+  r.contactWarn = { uid: t.uid, name: t.name, side: sc.from === 'rear' ? 'rear' : 'front' };
+  if (!r.noise) say(r, `관제실: 개체 접촉 임박. ${L.length > 1 ? (sc.from === 'rear' ? '후미 ' : '선두 ') : ''}${t.name}, 회피 준비. 나머지는 엄호할 것.`, { kind: 'radio', name: '관제실' });
+}
+function evadeExec(r, m) {
+  const row = Q.agent.get(Number(m.uid));
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 2);
+  if (tier !== 'fail') m.evadeOk = r.turn;
+  say(r, tier !== 'fail' ? `${m.name} 요원이 벽에 등을 붙이고 숨을 죽였다.` : `${m.name} 요원의 발이 미끄러졌다. 자세가 무너졌다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '피한다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 2, tier, tierName: TIER_NAME[tier] });
+  return endTurn(r);
 }
 // 턴 끝: 개체 이동 → 셈 감소 → 신체 확인 → 실패 판정
 /* ───────── 관제 간섭: 화면에 잡음이 끼고 알 수 없는 신호가 흘러든다 ─────────
@@ -1197,6 +1222,7 @@ function endTurn(r, moved) {
   noiseTick(r);
   if (moved !== false) shiftTick(r);
   npcRadio(r);
+  contactPredict(r);
   r.members.forEach(x => { x.acted = false; x.radioed = false; x.passed = false; });
   checkBodies(r);
   if (r.count <= 0) {
@@ -1219,6 +1245,7 @@ function actExec(r, uid, choiceId) {
   if (/^shv-(front|rear)$/.test(choiceId)) return opShove(r, m, uid, choiceId.slice(4));
   if (choiceId === 'guard') return opGuard(r, m, uid);
   if (choiceId === 'hide') return r.ambush ? hideExec(r, m) : 'op/no-ambush';
+  if (choiceId === 'evade') return evadeExec(r, m);
   const CA = classAct(choiceId);
   if (CA) { const [pe] = classPre(r, m, CA); if (pe) return pe; const e = classExec(r, m, CA.k, CA.t); if (e) return e; checkBodies(r); return endTurn(r); }
   if (choiceId.startsWith('rec-')) return opRecover(r, m, uid, choiceId.slice(4));
@@ -1299,8 +1326,8 @@ function opShove(r, m, uid, side) {
 }
 // 막기: 판정 없이 이번 차례 하수인에게 받는 피해(물기·비명)를 절반으로 줄인다.
 function opGuard(r, m, uid) {
-  if (!r.minions.length) return 'op/no-foe';
-  m.guard = true;
+  if (!r.minions.length && !r.contactWarn) return 'op/no-foe';
+  m.guard = true; if (r.contactWarn) r.coverEnt = r.turn;
   say(r, `${m.name} 요원이 자세를 낮추고 막을 준비를 했다.`, { kind: 'sys', uid: m.uid });
   return endTurn(r);
 }

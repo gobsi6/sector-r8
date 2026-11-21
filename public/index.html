@@ -1741,6 +1741,9 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
 [data-theme=light] .c-weapon{--c:#B3261E}[data-theme=light] .c-detector{--c:#1F57A6}[data-theme=light] .c-medkit{--c:#1F6B3E}[data-theme=light] .c-radio{--c:#8A6100}
 .stg .c-weapon{--c:#FF8A80}.stg .c-detector{--c:#8FB8F0}.stg .c-medkit{--c:#7FD39B}.stg .c-radio{--c:#F0C774}
+/* 개체 접촉 예고 */
+.myturn .choice2.hide.ent{box-shadow:inset 0 0 0 1.5px #E5574F,inset 3px 0 0 #E5574F}
+.party .fm.pc .cw{align-self:flex-start;margin-top:2px}
 /* 하수인 출현 하달 */
 .shiftbox.amb{background:color-mix(in srgb,#E5574F 8%,var(--tile));box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 50%,transparent)}.shiftbox.amb .bb{color:#FF8A80}.shiftbox.amb .lw{color:#FF8A80;font-weight:700}
 [data-theme=light] .shiftbox.amb .bb,[data-theme=light] .shiftbox.amb .lw{color:#B3261E}
@@ -2857,7 +2860,7 @@ function partyHTML(r, me) {
   const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
   const chips = m => [m.broken ? '<em class="tg sn">정신 붕괴</em>' : '', m.guard ? '<em class="tg gd">막기</em>' : '', !m.broken && m.san / m.sanMax <= .3 ? '<em class="tg sn">정신 위험</em>' : '', r.dark && !m.broken && me && m.uid === me.uid ? '<em class="tg ct" title="관제가 구역 전원을 켜면 사라집니다">어둠 · 주사위 −1</em>' : ''].join('');
   const card = m => { const f = FX['u' + m.uid], hit = f && (f.hp < 0 || f.san < 0);
-    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
+    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
   const ctls = r.members.filter(m => m.role === 'ctrl');
   const ccard = m => { const f = FX['u' + m.uid], hit = f && f.san < 0;
     const st = m.dead ? '이탈' : m.broken ? '<em class="tg sn">정신 붕괴</em>' : m.passed ? '<em class="tg ok">넘김</em>' : m.acted ? '<em class="tg ok">행동 완료</em>' : '<em class="tg wt">고르는 중</em>';
@@ -2938,6 +2941,12 @@ setInterval(() => document.querySelectorAll('.rbar[data-dl]').forEach(el => {
 function shiftBoxHTML(r) {
   const X = r.shift; if (!X) return '';
   return `<div class="shiftbox" role="alert"><span class="bb">SHIFT DETECTED</span><span><b>${esc(X.name)}: ${esc(X.warn)}</b><small>다음 라운드가 끝나면 구조가 바뀝니다. 누구든 「관제실 요청 → 기준점 비컨 조작 요청」으로 막을 수 있습니다.</small></span></div>`;
+}
+// 개체 접촉 예고: 대상자는 피하고, 동료는 막기로 피해를 절반으로
+function contactBoxHTML(r, me) {
+  const W = r.contactWarn; if (!W) return '';
+  const mine = me && me.uid === W.uid;
+  return `<div class="shiftbox amb ent" role="alert"><span class="bb">CONTACT IMMINENT</span><span><b>${mine ? '이번 라운드가 끝나면 개체가 나에게 닿는다.' : `이번 라운드가 끝나면 개체가 ${esc(W.name)} 요원에게 닿는다.`}</b><small>${mine ? '「피한다」에 성공하면 빗나가고 개체가 멀리 물러납니다. 동료가 「막기」를 고르면 피해가 절반이 됩니다.' : `${esc(W.name)} 요원은 「피한다」, 동료는 「막기」로 피해를 절반으로 줄일 수 있습니다.`}</small></span></div>`;
 }
 // 하수인 출현 하달: 이번 라운드에 전원이 조용히 있으면(숨는다·대기) 지나간다
 function ambushBoxHTML(r) {
@@ -3173,6 +3182,8 @@ function myTurnHTML(r, me, combat) {
     r.r1 || r.fork ? '' : `<button class="choice2 r1" data-act="opAct" data-v="raven1"><b>RAVEN-1 지원 요청</b><small>누구나 · 작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button>`
   ].filter(Boolean).join('');
   const clsc = clsCardsHTML(r, me);
+  const W = r.contactWarn, evade = W && W.uid === me.uid ? `<button class="choice2 hide ent" data-act="opAct" data-v="evade"><b>피한다</b><small>민첩 + 은신 · 보통(2)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 개체 접촉 임박. 성공하면 빗나가고 개체가 멀리 물러난다.</em></button>`
+    : W && !(r.minions || []).length ? `<button class="choice2 hide" data-act="opAct" data-v="guard"><b>막기</b><small>판정 없음</small><em class="eff">${esc(W.name)} 요원이 받는 개체 피해가 절반이 된다.</em></button>` : '';
   const hide = r.ambush ? `<button class="choice2 hide" data-act="opAct" data-v="hide"><b>숨는다</b><small>민첩 + 은신 · 쉬움(1)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 하수인이 접근 중. 전원이 조용히 있으면 지나간다.</em></button>` : '';
 
   const Rd = readyOf(r), mine = Rd.P[me.uid];
@@ -3182,7 +3193,7 @@ function myTurnHTML(r, me, combat) {
   return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${me.cls ? `<span class="clsb c-${me.cls}">${CLS[me.cls][0]}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine">이번 라운드: <b>${esc(mine.label)}</b> · ${Rd.waitCtl ? '관제 행동을 기다리는 중.' : '모두 고르면 고른 순서대로 실행된다.'}<button class="btn s g" data-act="opUnpick">선택 취소</button></span>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
-    ${dq}${hide ? `<div class="choices">${hide}</div>` : ''}${clsc}
+    ${dq}${evade || hide ? `<div class="choices">${evade}${hide}</div>` : ''}${clsc}
     ${cards ? `<div class="choices cacts">${cards}</div>` : ''}
     ${opItemsHTML(r, me) ? `<div class="tfoot">${opItemsHTML(r, me)}</div>` : ''}</div>`;
 }
@@ -3267,7 +3278,7 @@ function viewOps(rr, parts) {
   const noisy = ctl && r.noise && r.noise.shown ? ' noisy' : '';
   const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}
       ${npcHTML(r)}
-      ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${ambushBoxHTML(r)}
+      ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${contactBoxHTML(r, me)}${ambushBoxHTML(r)}
       ${stageHTML(r, me)}
       ${partyHTML(r, me)}
       ${combat ? foreHTML(r) : ''}` : '';
