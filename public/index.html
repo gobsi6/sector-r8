@@ -1125,7 +1125,7 @@ button.seat:hover:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--navyLine);ba
 .lg.noise{box-shadow:inset 2px 0 0 #C86BB0}.lg.noise>span{color:#D9A6CF}
 .lg.shift{box-shadow:inset 2px 0 0 #C86BB0;background:color-mix(in srgb,#C86BB0 7%,transparent)}.lg.shift>span{color:#E7C3DF}
 /* 하층 구조 변형 · 기준점 비컨 · 갈림길 */
-.shiftbox,.shiftban{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:4px;background:color-mix(in srgb,#C86BB0 9%,#0E1416);box-shadow:inset 0 0 0 1px color-mix(in srgb,#C86BB0 60%,transparent)}
+.shiftbox,.shiftban{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:4px;background:color-mix(in srgb,#C86BB0 9%,var(--tile));box-shadow:inset 0 0 0 1px color-mix(in srgb,#C86BB0 60%,transparent)}
 .shiftbox>.bb,.shiftban>.bb{flex:none;font-size:15px;letter-spacing:.14em;color:#C86BB0}
 .shiftbox>span:not(.bb),.shiftban>span:not(.bb){display:flex;flex-direction:column;gap:2px;min-width:0}.shiftbox b,.shiftban b{font-size:14px}.shiftbox small,.shiftban small{font-size:12px;line-height:1.45;color:var(--sub)}
 .shiftban>span.dd{margin-left:auto;flex:none;flex-direction:row;align-items:baseline;gap:6px;font-size:13px;color:var(--sub)}.shiftban .dd s{opacity:.7}.shiftban .dd b{color:#E7C3DF;font-size:16px}
@@ -1664,6 +1664,10 @@ body.modal-open{overflow:hidden}
 .c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
 [data-theme=light] .c-weapon{--c:#B3261E}[data-theme=light] .c-detector{--c:#1F57A6}[data-theme=light] .c-medkit{--c:#1F6B3E}[data-theme=light] .c-radio{--c:#8A6100}
 .stg .c-weapon{--c:#FF8A80}.stg .c-detector{--c:#8FB8F0}.stg .c-medkit{--c:#7FD39B}.stg .c-radio{--c:#F0C774}
+/* 하수인 출현 하달 */
+.shiftbox.amb{background:color-mix(in srgb,#E5574F 8%,var(--tile));box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 50%,transparent)}.shiftbox.amb .bb{color:#FF8A80}.shiftbox.amb .lw{color:#FF8A80;font-weight:700}
+[data-theme=light] .shiftbox.amb .bb,[data-theme=light] .shiftbox.amb .lw{color:#B3261E}
+.myturn .choice2.hide{box-shadow:inset 0 0 0 1.5px #8FB8F0,inset 3px 0 0 #8FB8F0}[data-theme=light] .myturn .choice2.hide{box-shadow:inset 0 0 0 1.5px #1F57A6,inset 3px 0 0 #1F57A6}
 /* 관제실 요청·치료: 접히는 묶음 */
 .rqs{box-shadow:inset 0 0 0 1px var(--tileLine)}.rqs>summary{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;list-style:none;font-size:13px}.rqs>summary::-webkit-details-marker{display:none}
 .rqs>summary small{color:var(--sub);font-size:11px}.rqs>summary i{margin-left:auto;font-style:normal;font-size:11px;color:var(--sub)}.rqs>summary::after{content:'+';color:var(--sub)}.rqs[open]>summary::after{content:'−'}
@@ -2844,6 +2848,13 @@ function shiftBoxHTML(r) {
   const X = r.shift; if (!X) return '';
   return `<div class="shiftbox" role="alert"><span class="bb">SHIFT DETECTED</span><span><b>${esc(X.name)}: ${esc(X.warn)}</b><small>다음 턴이 끝나면 구조가 바뀝니다. 누구든 「관제실 요청 → 기준점 비컨 조작 요청」으로 막을 수 있습니다.</small></span></div>`;
 }
+// 하수인 출현 하달: 이번 라운드에 전원이 조용히 있으면(숨는다·대기) 지나간다
+function ambushBoxHTML(r) {
+  const A = r.ambush; if (!A) return '';
+  const able = r.members.filter(m => m.role === 'field' && !m.dead && !m.broken), need = Math.ceil(able.length / 2);
+  const P = Object.fromEntries((r.picks || []).map(x => [x.uid, x])), loud = able.filter(m => { const p = P[m.uid]; return p && !(p.kind === 'move' && p.v === 'wait') && p.v !== 'hide' && p.v !== 'peek-done' && !/^fork-/.test(p.v); });
+  return `<div class="shiftbox amb" role="alert"><span class="bb">CONTACT WARNING</span><span><b>${A.side === 'rear' ? '후방' : '전방'}에서 하수인${A.n > 1 ? ' ' + A.n + '마리' : ''} 접근. 이번 라운드가 끝나면 나타난다.</b><small>전원이 「숨는다」나 대기를 고르면 지나갑니다(숨기 성공 ${need}명 이상). 전진·공격·관제실 조작 요청은 소리를 냅니다.${loud.length ? ` <b class="lw">소리를 내는 중: ${loud.map(m => esc(m.name)).join(', ')}</b>` : ''}</small></span></div>`;
+}
 // 관제 NPC 무전: 가장 최근 무전 한 줄. 잡음이 끼면 끊긴다.
 function npcHTML(r) {
   const N = r.noise, last = (r.log || []).filter(x => x.kind === 'radio').slice(-1)[0];
@@ -3071,6 +3082,7 @@ function myTurnHTML(r, me, combat) {
     r.r1 || r.fork ? '' : `<button class="choice2 r1" data-act="opAct" data-v="raven1"><b>RAVEN-1 지원 요청</b><small>누구나 · 작전당 한 번 · 하수인 제거, 개체 밀어냄, ${esc(r.op.countLabel || '')} +2</small><span class="req"><i class="a">대가: 참가자 전원 보급품 −20, 성공 보상 절반</i></span></button>`
   ].filter(Boolean).join('');
   const clsc = clsCardsHTML(r, me);
+  const hide = r.ambush ? `<button class="choice2 hide" data-act="opAct" data-v="hide"><b>숨는다</b><small>민첩 + 은신 · 쉬움(1)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 하수인이 접근 중. 전원이 조용히 있으면 지나간다.</em></button>` : '';
 
   const Rd = readyOf(r), mine = Rd.P[me.uid];
   const timer = timerHTML(r, `준비 ${Rd.done}/${Rd.all}`);
@@ -3078,7 +3090,7 @@ function myTurnHTML(r, me, combat) {
     ? `<span class="dnote">무전 잡음으로 개체 거리를 알 수 없습니다. 거리 조건이 안 맞으면 판정 없이 차례만 지나갑니다.</span>` : '';
   return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${me.cls ? `<span class="clsb c-${me.cls}">${CLS[me.cls][0]}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine">이번 라운드: <b>${esc(mine.label)}</b> · ${Rd.waitCtl ? '관제 행동을 기다리는 중.' : '모두 고르면 고른 순서대로 실행된다.'}<button class="btn s g" data-act="opUnpick">선택 취소</button></span>` : ''}
-    ${dq}${clsc}
+    ${dq}${hide ? `<div class="choices">${hide}</div>` : ''}${clsc}
     ${cards ? `<div class="choices cacts">${cards}</div>` : ''}
     ${r.fork ? `<div class="tfoot"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div>${opItemsHTML(r, me)}</div>` : `<div class="tfoot">${movesHTML(r, me)}${opItemsHTML(r, me)}</div>`}</div>`;
 }
@@ -3163,7 +3175,7 @@ function viewOps(rr, parts) {
   const noisy = ctl && r.noise && r.noise.shown ? ' noisy' : '';
   const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}
       ${npcHTML(r)}
-      ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}
+      ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${ambushBoxHTML(r)}
       ${stageHTML(r, me)}
       ${partyHTML(r, me)}
       ${combat ? foreHTML(r) : ''}` : '';

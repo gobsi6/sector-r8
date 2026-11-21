@@ -87,6 +87,8 @@ function classPick(r, mem, taken) {
   const team = r.members.filter(x => x.role === 'field' && !x.dead);
   const lead = p === 'front' || p === 'solo';
   const adv0 = sc.choices ? sc.choices.filter(c => c.adv !== false) : [], needLead = !sc.fork && adv0.length && adv0.every(c => c.reach && r.pos < sc.map.len - REACH_M) && !r.minions.some(x => x.side === 'front');
+  // 관제실이 하수인 출현을 하달하면, 앞에 붙은 하수인이 없고 개체가 멀 때 숨는다(HIDE=0 이면 무시)
+  if (r.ambush && process.env.HIDE !== '0' && !r.minions.length && r.dist > (sc.speed || 5) * 2) return ['act', 'hide'];
   const DU = duty(r);
   if (DU.tech === mem.uid) {
     if (r.noise && r.count <= 4) return ['act', mem.san > mem.sanMax * 0.5 ? 'decode' : 'jam'];

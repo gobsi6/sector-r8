@@ -690,6 +690,7 @@ function runOut(r, viewer, gm) {
     members: r.members.map(m => ({ ...m, pos: m.role === 'field' ? posOf(r, m.uid) : null })), order: r.order, radar, turn: r.turn,
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
+    ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
     noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
     shift: live && r.shift ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
     shiftFx: live && r.shiftFx && r.shiftFx.turn === r.turn ? r.shiftFx : null,
@@ -849,6 +850,7 @@ function pickCheck(r, uid, kind, v) {
     return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
   }
   if (v === 'guard') return r.minions.length ? [null, '막기'] : ['op/no-foe'];
+  if (v === 'hide') return r.ambush ? [null, '숨는다'] : ['op/no-ambush'];
   if (v.startsWith('rec-')) { const t = r.members.find(x => x.uid === v.slice(4)); return !t || !needsRecovery(t) || t.uid === m.uid ? ['op/no-target'] : [null, `${t.name} 회수`]; }
   if (v.startsWith('heal-')) { const t = r.members.find(x => x.uid === v.slice(5)); if (!lvOf(m, '응급처치') && m.cls !== 'medkit') return ['op/no-skill']; return !t || !canHeal(t) ? ['op/no-target'] : [null, t.uid === m.uid ? '자가 응급 처치' : `${t.name} 응급 처치`]; }
   const c = sc.choices.find(x => x.id === v); if (!c) return ['op/bad-choice'];
@@ -908,6 +910,10 @@ function resolveRound(r) {
     if (e && r.status === 'live') say(r, `${m.name} 요원의 「${p.label}」은(는) 상황이 바뀌어 할 수 없었다.`, { kind: 'move', uid });
   }
   if (r.status === 'live' && r.scene === sc0 && D(r).scenes[r.scene].fork) forkResolve(r);
+  if (r.ambush && r.ambush.at === r.turn + 1) {
+    const able = r.members.filter(canPick), quietV = p => !p || (p.kind === 'move' && p.v === 'wait') || p.v === 'hide' || p.v === 'peek-done' || /^fork-/.test(p.v);
+    r.ambushQuiet = { quiet: able.every(m => quietV(picks[m.uid])), ok: able.filter(m => m.hideOk === r.turn).length, need: Math.ceil(able.length / 2) };
+  }
   r.batch = false; r.picks = {};
   if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
   if (r.status === 'live') startRound(r);
@@ -973,7 +979,7 @@ function canField(r, uid) {
    하수인은 현장 인원으로 정한다 — hp: 하수인 체력 + · spawn: 장면·시간 경과 때 더 나오는 수 · cap: 시간 경과로 나올 때 상한
    R8_SCALE 환경 변수(JSON, {"time":{…},"foe":{…}})로 덮어쓸 수 있다. */
 const SCALE_ENV = (() => { try { return JSON.parse(process.env.R8_SCALE || '{}'); } catch { return {}; } })();
-const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.1, speed: 0.9 }, 3: { every: 1.2, speed: 0.9 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
+const SCALE_T = Object.assign({ 1: { every: 1.3, speed: 0.75 }, 2: { every: 1.05, speed: 0.9 }, 3: { every: 1.05, speed: 0.95 }, 4: { every: 1.1, speed: 1 } }, SCALE_ENV.time || {});
 const SCALE_F = Object.assign({ 1: { hp: 0, spawn: 0, cap: 2 }, 2: { hp: 0, spawn: 0, cap: 2 }, 3: { hp: 0, spawn: 0, cap: 2 }, 4: { hp: 1, spawn: 0, cap: 3 } }, SCALE_ENV.foe || {});
 const scaleOf = r => ({ ...SCALE_T[Math.min(4, Math.max(1, r.nt || 1))], ...SCALE_F[Math.min(4, Math.max(1, r.nf || 1))] });
 function spawnMinion(r, side, n) {
@@ -1054,7 +1060,7 @@ function shiftApply(r) {
   say(r, text, { kind: 'shift', title: SHIFT_KINDS[k].name });
 }
 function sceneEnter(r) {
-  r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
+  r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.ambush = null; r.ambushQuiet = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
   const sc0 = D(r).scenes[r.scene];
   if (sc0.fork) { r.minions = []; return; }
   const sp = sc0.spawn;
@@ -1142,6 +1148,25 @@ function npcRadio(r) {
   if (band > (r.band || 0)) say(r, `관제실: 개체, 대열 ${sc.from === 'rear' ? '후방' : '전방'} ${d}m. ${band >= 4 ? '접촉 직전. 즉시 방어 태세.' : band >= 3 ? '곧 접촉한다. 대열을 정비할 것.' : band >= 2 ? '접근 속도 상승. 대비할 것.' : '레이더 포착. 경계 유지할 것.'}`, { kind: 'radio', name: '관제실' });
   r.band = band;
 }
+/* ───────── 하수인 회피 ─────────
+   관제실이 출현을 한 턴 먼저 하달하면, 그 라운드에 전원이 조용히 있어야(숨는다·대기·문 확인 요청) 하수인이 지나간다.
+   숨기 성공이 인원의 절반(올림) 이상이어야 한다. 전진·공격·관제실 조작 요청 같은 행동은 소리를 내서 들킨다. */
+function ambushTick(r) {
+  const A = r.ambush; if (!A || r.turn < A.at) return;
+  r.ambush = null;
+  const Q = r.ambushQuiet; r.ambushQuiet = null;
+  if (A.scene !== r.scene) return; // 장면을 벗어났다
+  if (Q && Q.quiet && Q.ok >= Q.need) { say(r, '관제실: 하수인 반응, 대열 곁을 통과했다. 이동 재개해도 좋다.', { kind: 'radio', name: '관제실' }); r.dodged = (r.dodged || 0) + 1; return; }
+  say(r, Q && Q.quiet ? `관제실: 은폐 실패(${Q.ok}/${Q.need}). 발견됐다, 교전 대비.` : '관제실: 소음 감지. 놈들이 들었다, 교전 대비.', { kind: 'radio', name: '관제실' });
+  if (r.minions.length < scaleOf(r).cap) spawnMinion(r, A.side, A.n);
+}
+function hideExec(r, m) {
+  const row = Q.agent.get(Number(m.uid));
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 2, '은신', gearDie(m, 'detector'), isDark(r) ? 1 : 0), tier = tierOf(res.succ, 1);
+  if (tier !== 'fail') m.hideOk = r.turn;
+  say(r, tier !== 'fail' ? `${m.name} 요원이 그림자 속에 몸을 붙였다.` : `${m.name} 요원의 발밑에서 무언가 굴러가는 소리가 났다.`, { kind: 'roll', uid: m.uid, name: m.name, label: '숨는다', stat: res.stat, statVal: res.statVal, skill: '은신', skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff: 1, tier, tierName: TIER_NAME[tier] });
+  return endTurn(r);
+}
 function endTurn(r, moved) {
   if (r.batch) { if (moved === false) r._sceneChanged = true; return null; }
   const o = D(r);
@@ -1151,8 +1176,14 @@ function endTurn(r, moved) {
   const ev = Math.max(1.5, (o.countEvery || COUNT_EVERY) * SC.every); // 소수 주기: 평균적으로 ev 턴마다 한 칸
   if (Math.floor(r.turn / ev) > Math.floor((r.turn - 1) / ev)) {
     r.count = Math.max(0, r.count - 1); say(r, o.tickText, { kind: 'warn' });
-    if (o.tickSpawn !== false && r.minions.length < SC.cap) spawnMinion(r, o.scenes[r.scene].from, 1 + (SC.spawn && Math.random() < 0.5 ? SC.spawn : 0));
+    if (o.tickSpawn !== false && r.minions.length < SC.cap && !r.ambush) {
+      const side = o.scenes[r.scene].from, n = 1 + (SC.spawn && Math.random() < 0.5 ? SC.spawn : 0);
+      // 관제실이 한 턴 먼저 하달한다. 잡음이 끼면 경고 없이 바로 나온다.
+      if (r.noise) spawnMinion(r, side, n);
+      else { r.ambush = { side, n, at: r.turn + 1, scene: r.scene }; say(r, `관제실: ${side === 'rear' ? '후방' : '전방'} 배관에서 하수인 반응${n > 1 ? ` ${n}` : ''}. 다음 턴 출현 예상. 전원 정지하고 숨을 것.`, { kind: 'radio', name: '관제실', ambush: true }); }
+    }
   }
+  ambushTick(r);
   noiseTick(r);
   if (moved !== false) shiftTick(r);
   npcRadio(r);
@@ -1177,6 +1208,7 @@ function actExec(r, uid, choiceId) {
   if (/^atk-(front|rear)$/.test(choiceId)) return opFight(r, m, uid, choiceId.slice(4));
   if (/^shv-(front|rear)$/.test(choiceId)) return opShove(r, m, uid, choiceId.slice(4));
   if (choiceId === 'guard') return opGuard(r, m, uid);
+  if (choiceId === 'hide') return r.ambush ? hideExec(r, m) : 'op/no-ambush';
   const CA = classAct(choiceId);
   if (CA) { const [pe] = classPre(r, m, CA); if (pe) return pe; const e = classExec(r, m, CA.k, CA.t); if (e) return e; checkBodies(r); return endTurn(r); }
   if (choiceId.startsWith('rec-')) return opRecover(r, m, uid, choiceId.slice(4));
