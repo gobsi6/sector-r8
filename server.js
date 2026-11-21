@@ -240,6 +240,12 @@ function bumpAch(uid, add) {
 const gearFx = row => { const v = invOf(row), fx = { hp: 0, san: 0, lim: 0, skill: {} };
   SLOTS.forEach(sl => { const g = SHOP_BY[v.eq[sl]]; if (!g || !g.fx) return; fx.hp += g.fx.hp || 0; fx.san += g.fx.san || 0; fx.lim += g.fx.lim || 0; if (g.fx.skill) fx.skill[g.fx.skill[0]] = (fx.skill[g.fx.skill[0]] || 0) + g.fx.skill[1]; });
   return fx; };
+// 출입증의 HP·정신력: 작전 중이면 그 작전의 현재 값, 아니면 최대치(작전마다 가득 찬 채로 시작한다)
+function vitOf(row) {
+  try { const mx = maxes(row), r = busyIn(row.user_id), m = r && r.status === 'live' && r.members.find(x => x.uid === String(row.user_id));
+    return { hp: m ? m.hp : mx.hp, hpMax: m ? m.hpMax : mx.hp, san: m ? m.san : mx.san, sanMax: m ? m.sanMax : mx.san, live: !!m };
+  } catch { return null; }
+}
 function publicAgent(row) {
   if (!row) return null;
   return {
@@ -248,7 +254,7 @@ function publicAgent(row) {
     task: typeof QT !== 'undefined' ? taskOut(QT.mine.get(row.user_id)) : null,
     skillXp: JSON.parse(row.skill_xp || '{}'), career: { ...rankOf(row.career || 0), total: row.career || 0 }, statPts: row.stat_pts || 0, statCap: STAT_CAP,
     regenUntil: row.regen_until || null, quarUntil: row.quar_until || null, contLimit: contLimit(row), opsDone: row.ops_done || 0,
-    inv: invOf(row), ach: achOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
+    vit: vitOf(row), inv: invOf(row), ach: achOf(row), gear: gearFx(row), res: JSON.parse(row.res), createdAt: row.created, lastSeen: row.last_seen, online: (online.get(row.user_id) || 0) > 0
   };
 }
 function chatOut(r) { return { id: r.id, uid: String(r.user_id), num: r.num, name: r.name, role: r.role, channel: r.channel, text: r.text, ts: r.ts }; }

@@ -1801,6 +1801,17 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 /* 대응 카드 */
 .choice2.ctr{box-shadow:inset 0 0 0 1.5px #F0C774;background:color-mix(in srgb,#F0C774 10%,transparent)}.choice2.ctr>b{display:flex;align-items:baseline;gap:8px;color:#F0C774}.choice2.ctr .tskn{font-size:11px;font-weight:700;color:var(--sub)}
 [data-theme=light] .choice2.ctr{box-shadow:inset 0 0 0 1.5px #A87B12}[data-theme=light] .choice2.ctr>b{color:#7A5600}
+/* 출입증 정돈: 팀 색 줄, 바이탈 막대, 상태 줄 */
+.badge.tmb .bt{box-shadow:inset 0 -3px 0 var(--c)}
+.badge .vit{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.badge .vr{display:grid;grid-template-columns:42px minmax(0,1fr) 66px;align-items:center;gap:8px;font-size:12px}
+.badge .vr>b{font-weight:700;color:var(--ink)}.badge .vr i{height:7px;background:var(--rule);display:block}.badge .vr i span{display:block;height:7px}
+.badge .vr.hp i span{background:#3C9A6E}.badge .vr.sn i span{background:#7A64D8}.badge .vr.ct i span{background:#C9A23A}.badge .vr.low i span{background:var(--red)}
+.badge .vr em{font-style:normal;text-align:right;font-size:17px;line-height:1;color:var(--ink)}.badge .vr em small{font-size:12px;color:var(--sub)}
+.badge .bst{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink)}.badge .bst>i{width:8px;height:8px;background:#3C9A6E}.badge .bst>i.op{background:var(--red)}.badge .bst>i.rg{background:var(--red)}
+.badge .bst .skc{margin-left:auto;font-size:11px;padding:1px 7px;color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.badge.tmb .stats .tms .l{color:var(--c)}.badge.tmb .stats .tms .l b{color:var(--c)}
+.badge.mb .vit{margin-top:6px}.badge.mb .bst{margin-top:2px}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2287,9 +2298,14 @@ function stateOf(a) {
 }
 const photoBox = (a, deco) => `${a && a.photo ? '' : `<i class="dots" aria-hidden="true"></i>`}${portrait(a)}${deco ? '<i class="cn a" aria-hidden="true"></i><i class="cn b" aria-hidden="true"></i>' : ''}`;
 const addYear = ms => ms ? ms + 365 * 864e5 : 0;
+// 출입증 바이탈: HP · 정신력 · 오염도를 같은 모양의 막대로
+function vitHTML(a) {
+  const V = a.vit || {}, lim = a.contLimit || 90, row = (k, cls, v, mx) => { const p = mx ? Math.max(0, Math.min(100, v / mx * 100)) : 0; return `<span class="vr ${cls}${p <= 30 && cls !== 'ct' ? ' low' : ''}"><b>${k}</b><i><span style="width:${p}%"></span></i><em class="bb">${v}<small> / ${mx}</small></em></span>`; };
+  return `<span class="vit">${V.hpMax ? row('HP', 'hp', V.hp, V.hpMax) : ''}${V.sanMax ? row('정신력', 'sn', V.san, V.sanMax) : ''}${row('오염도', 'ct', a.contamination || 0, lim)}</span>`;
+}
 function badgeHTML(a, { preview = false } = {}) {
   const tl = traitsOfA(a), tr = tl[0] ? TRAITS[tl[0].id] : null, mods = statMods(a.stats, tl);
-  const stats = SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('');
+  const TM0 = teamOf(a), stats = SN.map((n, k) => `<span${TM0 && TM0.stats.includes(k) ? ' class="tms"' : ''}><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('');
   if (preview) {
     const sealed = [['본명', '███'], ['소속', '███ ███'], ['사망 경위', '███ ██'], ['실제 나이', '██']];
     return `<article class="badge pv" aria-label="출입증 미리보기">
@@ -2304,20 +2320,21 @@ function badgeHTML(a, { preview = false } = {}) {
   const cont = a.contamination || 0;
   const pv = S.framePrev && S.view === 'shop' && S.user && a.uid === S.user.uid ? S.framePrev : null;
   const fr = pv ? ' fr-' + pv + ' fpv' : a.inv && a.inv.frame ? ' fr-' + a.inv.frame : '', ttl = a.inv && a.inv.title && SHOPN[a.inv.title] ? `<span class="ttl2">「${esc(SHOPN[a.inv.title])}」</span>` : '';
-  return `<article class="badge pc-only${fr}" aria-label="요원 출입증">
+  const TB = teamOf(a);
+  return `<article class="badge pc-only${fr}${TB ? ` tmb c-${TB.gear}` : ''}" aria-label="요원 출입증">
   <div class="bt"><span class="t"><span class="bb">ACCESS PASS</span><small>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : 'RAVEN 소속 미정'}, 섹터 R-8 출입증</small></span>${pv ? '<span class="pvtag">미리보기</span>' : `<span class="bb lv">${a.role === 1 ? 'CONTROL' : 'FIELD'}</span>`}</div>
   <div class="id"><div class="ph">${photoBox(a, true)}</div>
     <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:13px">${roleTitle(a.role)}</span>
-      <dl class="kv"><dt>오염도</dt><dd class="n" style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</dd><dt>상태</dt><dd class="ok" style="${stateOf(a).k === 'regen' ? 'color:var(--red)' : ''}">${stateOf(a).t}</dd></dl></div></div>
+      ${vitHTML(a)}<span class="bst"><i class="${a.vit && a.vit.live ? 'op' : stateOf(a).k === 'regen' ? 'rg' : 'ok'}"></i>${a.vit && a.vit.live ? '작전 중' : stateOf(a).t}${teamOf(a) ? `<span class="skc c-${teamOf(a).gear}">${teamOf(a).sk.label} ${(a.opsDone || 0) >= SK_LV_C[3] ? 3 : (a.opsDone || 0) >= SK_LV_C[2] ? 2 : 1}단계</span>` : ''}</span></div></div>
   <div class="stats">${stats}</div>
   <dl class="info"><dt>소속</dt><dd>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : ROLES[a.role][0]}</dd>${teamOf(a) ? (() => { const n = a.opsDone || 0, lv = n >= SK_LV_C[3] ? 3 : n >= SK_LV_C[2] ? 2 : 1; return `<dt>고유 기술</dt><dd>${teamOf(a).sk.label} ${lv}단계${lv < 3 ? ` <span class="sub">(출동 ${n}회, ${SK_LV_C[lv + 1]}회에 ${lv + 1}단계)</span>` : ''}</dd>`; })() : ''}<dt>변질</dt><dd>${tl.length ? esc(tl.map(traitName).join(', ')) + ` <span class="sub">(${tl.length}/5)</span>` : '없음'}</dd><dt>기능</dt><dd>${esc(Object.entries(a.skills || {}).sort((p, q) => q[1] - p[1]).map(([k, v]) => k + ' ' + v).join(', ') || '없음')}</dd><dt>출동 기록</dt><dd>출동 ${a.opsDone || 0}회${a.career ? `, 계급 ${a.career.rank}` : ''}</dd></dl>
   <span style="flex:1"></span>
   <div class="foot"><span class="barcode" aria-hidden="true">${barcode(a.num)}</span><span class="dates">발급 ${ymd(a.createdAt)}<br>만료 ${ymd(addYear(a.createdAt))}</span></div>
 </article>
-<article class="badge mb mb-only${fr}" aria-label="요원 출입증">
+<article class="badge mb mb-only${fr}${TB ? ` tmb c-${TB.gear}` : ''}" aria-label="요원 출입증">
   <div class="bt"><span class="bb">ACCESS PASS</span><small>${teamOf(a) ? `${teamOf(a).name} ${teamOf(a).role}` : 'RAVEN 소속 미정'}</small></div>
   <div class="id"><div class="ph">${photoBox(a, false)}</div>
-    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="sub" style="font-size:12px">${roleTitle(a.role)}, 오염도 <b style="color:${contHot(a) ? 'var(--red)' : 'var(--ink)'}">${contTxt(a)}</b>${stateOf(a).k === 'regen' ? `, <b style="color:var(--red)">${stateOf(a).t}</b>` : ''}</span>
+    <div class="who"><span class="bb num">${esc(a.num)}</span><b class="nm">${esc(a.name)}</b>${ttl}<span class="bst"><i class="${a.vit && a.vit.live ? 'op' : stateOf(a).k === 'regen' ? 'rg' : 'ok'}"></i>${a.vit && a.vit.live ? '작전 중' : stateOf(a).t}</span>${vitHTML(a)}
       <div class="mstats">${SN.map((n, k) => `<span><span class="l">${n}<b>${mods[k]}</b></span>${bars(mods[k])}</span>`).join('')}</div></div></div>
 </article>`;
 }
