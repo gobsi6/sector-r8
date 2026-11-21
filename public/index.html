@@ -1665,6 +1665,20 @@ body.modal-open{overflow:hidden}
 .clsp{grid-template-columns:repeat(auto-fit,minmax(64px,1fr))}.clsp button{white-space:nowrap;min-width:0;padding:0 4px}
 .seat.me .si{white-space:normal}
 @media (max-width:640px){.sgrid{grid-template-columns:minmax(0,1fr)!important}}
+/* 폰: 행동 시트와 여는 버튼(채팅 버튼 자리) */
+.actfab,.opm-act .sheet-h{display:none}
+@media (max-width:999px){
+  .opm-box.sheetmode .actfab:not([hidden]){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:85;width:64px;height:64px;border:0;background:var(--navy);color:var(--onNavy);box-shadow:0 10px 24px rgba(0,0,0,.4);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .opm-box.sheetmode .actfab i{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800;background:var(--red);color:#fff}
+  .opm-box.sheetmode .actfab i.ok{background:#2E8A52}
+  .opm-box.sheetmode.sheet-on .actfab{display:none!important}
+  .opm-box.sheetmode .opm-act{position:fixed;left:0;right:0;bottom:0;z-index:86;max-height:74vh;overflow-y:auto;overscroll-behavior:contain;background:var(--bg,#151515);box-shadow:0 -12px 32px rgba(0,0,0,.5),inset 0 1px 0 var(--navyLine);padding:0 10px calc(12px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .22s ease-out;visibility:hidden}
+  .opm-box.sheetmode.sheet-on .opm-act{transform:none;visibility:visible}
+  .opm-box.sheetmode .opm-act .sheet-h{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2;padding:10px 4px;background:inherit;border-bottom:1px solid var(--tileLine);margin-bottom:8px}
+  .opm-box.sheetmode .opm-act .sheet-h small{color:var(--sub);font-size:11px}.opm-box.sheetmode .opm-act .sheet-h .btn{margin-left:auto}
+  .opm-box.sheetmode .opm-right{padding-bottom:84px}
+}
+@media (prefers-reduced-motion:reduce){.opm-box.sheetmode .opm-act{transition:none}}
 /* 경고 팝업 */
 #toasts{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,460px)}
 .r8toast{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;line-height:1.45;color:var(--ink);background:var(--tile);box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 60%,transparent),0 8px 24px rgba(0,0,0,.35);animation:toastIn .2s ease-out;transition:opacity .45s,transform .45s}
@@ -3645,7 +3659,8 @@ function syncModal() {
     host.dataset.op = String(r.id); host.classList.add('on'); document.body.classList.add('modal-open');
     host.innerHTML = `<div class="opm-box" role="dialog" aria-modal="true" aria-label="작전 진행">
       <div class="opm-head" id="opmHead"></div>
-      <div class="opm-body"><div class="opm-act" id="opmAct"></div><div class="opm-left" id="opmStage"></div>
+      <button type="button" class="actfab" id="opmFab" data-act="actSheet" aria-label="행동 열기"></button>
+      <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div>
         <div class="opm-right"><div id="opmRecap"></div><div class="opm-sec"><span class="bb">LOG</span><small>작전 기록</small></div><ol class="oplog" id="opmLog" aria-label="작전 기록"></ol>
           <div class="opm-sec"><span class="bb">COMMS</span><small>작전 채팅, 참가자만</small></div><div class="list och" id="opmChat"></div>
           <form data-form="opchat" class="opm-form"><label class="sr" for="opChatIn">작전 채팅 입력</label><input id="opChatIn" name="text" autocomplete="off" maxlength="300" placeholder="작전 채팅"><button type="submit" aria-label="보내기">${ico('send', 16, 2)}</button></form></div></div></div>`;
@@ -3658,7 +3673,14 @@ function syncModal() {
   setHTML('opmHead', P.head + `<div class="opm-sub">${done ? P.ctlTeam : ''}${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
   setHTML('opmAct', P.act || '');
-  host.querySelector('.opm-box').classList.toggle('noact', !P.act);
+  const box = host.querySelector('.opm-box');
+  box.classList.toggle('noact', !P.act);
+  // 폰: 행동 패널은 아래에서 올라오는 시트로. 화면과 행동을 스크롤 없이 오가게 한다(훈련 중에는 안내가 버튼을 가리키므로 펼쳐 둔다)
+  const sheet = mobile() && !!P.act && !r.tut;
+  box.classList.toggle('sheetmode', sheet); box.classList.toggle('sheet-on', sheet && !!S.actSheet);
+  const fab = document.getElementById('opmFab');
+  if (fab) { const me = r.members.find(m => m.uid === S.user.uid), mine = me && (r.picks || []).some(x => x.uid === me.uid), need = me && me.role === 'field' && !me.dead && !me.broken && r.status === 'live';
+    fab.innerHTML = `${ico('ops', 22, 2)}<b>행동</b>${need ? (mine ? '<i class="ok">✓</i>' : '<i>!</i>') : ''}`; fab.hidden = !sheet; }
   setHTML('opmRecap', P.recap || '');
   fitLines(document.getElementById('opmStage'));
   markPicks(document.getElementById('opmAct'), r);
@@ -4073,11 +4095,13 @@ app.addEventListener('click', e => {
       const m = { op: r.op.id }; if (a === 'opCls') m.cls = v; if (a === 'opJoin') m.role = v; if (a === 'opReady') m.on = v === '1'; if (a === 'opItem') m.item = v; if (a === 'opAct') m.choice = v; if (a === 'opMove') m.kind = v; if (a === 'opCtl') { m.kind = v; m.target = t.dataset.t; }
       // 응답을 기다리는 동안만 막는다. 원래 막혀 있던 버튼과 작전 목록(opGo·opSel)은 건드리지 않고, 끝나면 반드시 풀어 준다
       // (오류가 나서 화면이 그대로면 막힌 채로 남던 문제: 다른 작전에 들어가려다 실패하면 목록이 전부 눌리지 않았다)
+      if ((a === 'opAct' || a === 'opMove' || a === 'opItem') && S.actSheet) { S.actSheet = false; const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.remove('sheet-on'); }
       S.opErr = ''; const held = a === 'opCls' ? [] : [...document.querySelectorAll('[data-act^="op"]:not([data-act="opGo"]):not([data-act="opSel"])')].filter(b => !b.disabled);
       held.forEach(b => { b.disabled = true; });
       B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); }).finally(() => { held.forEach(b => { if (b.isConnected) b.disabled = false; }); renderCenter(); });
       return;
     }
+    case 'actSheet': { S.actSheet = !S.actSheet; const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.toggle('sheet-on', !!S.actSheet && b.classList.contains('sheetmode')); if (S.actSheet) { const a2 = document.querySelector('#opModal .opm-act'); if (a2) a2.scrollTop = 0; } return; }
     case 'recReload': S.records = null; return renderCenter();
     case 'agentTab': S.agentTab = v; return renderCenter();
     case 'sceneOpen': S.sceneOpen = S.sceneOpen || {}; S.sceneOpen[v] = !S.sceneOpen[v]; return render();
