@@ -1620,6 +1620,8 @@ body.modal-open{overflow:hidden}
 .opm-act .myturn .choices{grid-template-columns:1fr}
 .opm-act .myturn .tfoot{flex-direction:column;align-items:stretch}
 .opm-act .myturn .moves{display:grid;grid-template-columns:repeat(2,1fr)}.opm-act .myturn .opitems{margin-left:0}
+.myturn .moves.m3{grid-template-columns:repeat(3,minmax(0,1fr))}.myturn .moves.m3 .btn small{display:block;margin:0}
+.myturn .moves.m3 .btn{height:auto;min-height:36px;flex-direction:column;gap:1px;line-height:1.2;padding:4px 6px}
 .opm-act .ctl{display:flex;flex-direction:column;gap:10px}
 .opm-act .ctl .choices,.opm-act .fcards,.opm-act .forkp,.opm-act .nbtn{grid-template-columns:1fr}
 .opm-act .fcd{min-height:0}
@@ -1798,6 +1800,25 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 /* 팀 고유 기술 카드 */
 .choice2.tsk{box-shadow:inset 0 0 0 1.5px var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}.choice2.tsk>b{display:flex;align-items:baseline;gap:8px;color:var(--c)}.choice2.tsk .tskn{font-size:11px;font-weight:700;color:var(--sub)}
 .choice2.tsk[disabled]{opacity:.6;background:transparent}
+/* 시안 B: 팀 컬러 아이덴티티 */
+.party .fm.pc.tm{overflow:hidden;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 16%,transparent),transparent 72%),var(--faint);box-shadow:inset 0 3px 0 var(--c),inset 0 0 0 1px var(--tileLine)}
+.party .fm.pc.tm.me{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 24%,transparent),transparent 72%),var(--faint);box-shadow:inset 0 3px 0 var(--c),inset 0 0 0 2px var(--c)}
+.party .fm.pc.tm>*{position:relative}.party .fm.pc.tm>.twm{position:absolute;right:4px;bottom:-26px;font-family:'Bebas Neue',sans-serif;font-size:112px;line-height:1;color:color-mix(in srgb,var(--c) 14%,transparent);pointer-events:none}
+.party .fm.pc.tm.me .mi{background:var(--c);color:#14100F}
+.myturn.tm{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 13%,transparent),transparent 240px);box-shadow:inset 0 3px 0 var(--c)}
+.myturn .mth .tnum{font-size:34px;line-height:.85;color:var(--c);margin-right:2px}
+.choice2.tsk:not([disabled]){background:var(--c);box-shadow:none;color:#15101A}.choice2.tsk:not([disabled])>b,.choice2.tsk:not([disabled]) .tskn,.choice2.tsk:not([disabled])>small,.choice2.tsk:not([disabled]) .eff{color:inherit}
+.choice2.tsk:not([disabled])>small,.choice2.tsk:not([disabled]) .tskn{opacity:.8}.choice2.tsk:not([disabled]):hover{filter:brightness(1.08)}
+[data-theme=light] .choice2.tsk:not([disabled]){color:#fff}
+.boss .bhp i{position:relative;height:12px;background:rgba(255,255,255,.08) linear-gradient(90deg,transparent calc(25% - 1px),rgba(0,0,0,.45) 0 25%,transparent 0 calc(50% - 1px),rgba(0,0,0,.45) 0 50%,transparent 0 calc(75% - 1px),rgba(0,0,0,.45) 0 75%,transparent 0)}
+.boss .bhp i span{position:absolute;left:0;top:0;bottom:0}.boss .bhp i .tr{background:#FFD0C9;transition:width .6s ease-in}.boss .bhp i .cur{background:#FF3B30;transition:none}
+.boss .bin{flex-direction:row;align-items:stretch;gap:0;padding:0;background:transparent;transform:skewX(-10deg);margin-left:4px}
+.boss .bin .nx{display:flex;align-items:center;padding:0 10px;font-size:16px;letter-spacing:.1em;color:#120000;background:#FF3B30}
+.boss .bin .bt2{display:flex;flex-direction:column;gap:1px;padding:5px 12px;flex:1;background:rgba(255,59,48,.14);box-shadow:inset 0 0 0 1.5px #FF3B30}
+.boss .bin .bt2>*{transform:skewX(10deg)}.boss .bin .bt2 b{font-size:15px;font-weight:900}
+.boss .bin.it-open .nx,.boss .bin.it-stun .nx{background:#7FD39B}.boss .bin.it-open .bt2,.boss .bin.it-stun .bt2{background:rgba(127,211,155,.12);box-shadow:inset 0 0 0 1.5px #7FD39B}
+.boss .bin.it-brace .nx{background:#F0C774}.boss .bin.it-brace .bt2{background:rgba(240,199,116,.12);box-shadow:inset 0 0 0 1.5px #F0C774}
+@media (prefers-reduced-motion:reduce){.boss .bhp i .tr{transition:none}}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -2894,13 +2915,21 @@ function foesOnStage(r) {
 const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
 // 제압전: 개체 체력·다음 행동·대응
 const BOSS_FX = { reach: '한 명에게 큰 피해 · 대상자는 피한다, 동료는 막기', count: `모두 정신력 피해 + 남은 시간 −1 · 이번 라운드에 합쳐서 4 이상 때리면 끊긴다`, call: '하수인이 하나 나와 앞을 막는다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', open: '이번 라운드 공격 피해 +2 · 몰아칠 때', stun: '행동 없음 · 몰아칠 기회' };
+// 체력바 잔상: 깎인 만큼 옅은 칸이 남았다가 따라 줄어든다(D04)
+const bossPrev = { id: null, v: null };
+function bossTrail(host) {
+  const t = host.querySelector('.boss .bhp .tr'); if (!t) { bossPrev.v = null; return; }
+  const to = +t.dataset.p; bossPrev.id = (host.querySelector('.boss .bh>b:not(.bb)') || {}).textContent || null;
+  if (bossPrev.v !== to) setTimeout(() => { t.style.width = to + '%'; }, 450);
+  bossPrev.v = to;
+}
 function bossHTML(r) {
   const B = r.boss; if (!B) return '';
   const pct = Math.max(0, Math.round(B.hp / B.hpMax * 100)), tg = B.taunt && r.members.find(m => m.uid === B.taunt);
   const st = [B.exposed ? '<em class="tg gd">급소 노출 · 피해 +3</em>' : '', tg ? `<em class="tg ct">${esc(tg.name)}에게 시선 고정</em>` : '', B.blocked ? '<em class="tg hp">하수인이 앞을 막는 중 · 개체를 칠 수 없음</em>' : '', B.intent === 'count' ? `<em class="tg sn">셈 끊기 ${Math.min(B.dmgRound, B.brk)}/${B.brk}</em>` : ''].join('');
   return `<div class="boss"><span class="bh"><b class="bb">TARGET</b><b>${esc(B.name)}</b><small>제압하면 작전 성공</small></span>
-    <span class="bhp"><i><span style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
-    <span class="bin it-${B.intent}"><small>다음 행동</small><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span>
+    <span class="bhp"><i><span class="tr" data-p="${pct}" style="width:${bossPrev.v != null && bossPrev.id === B.name ? Math.max(pct, bossPrev.v) : pct}%"></span><span class="cur" style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
+    <span class="bin it-${B.intent}"><small class="nx bb">NEXT</small><span class="bt2"><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span></span>
     ${st ? `<span class="bst">${st}</span>` : ''}</div>`;
 }
 function bossAtkHTML(r, me) {
@@ -2950,7 +2979,8 @@ function partyHTML(r, me) {
   const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
   const chips = m => [m.broken ? '<em class="tg sn">정신 붕괴</em>' : '', m.guard ? '<em class="tg gd">막기</em>' : '', !m.broken && m.san / m.sanMax <= .3 ? '<em class="tg sn">정신 위험</em>' : '', r.dark && !m.broken && me && m.uid === me.uid ? '<em class="tg ct" title="관제가 구역 전원을 켜면 사라집니다">어둠 · 주사위 −1</em>' : ''].join('');
   const card = m => { const f = FX['u' + m.uid], hit = f && (f.hp < 0 || f.san < 0);
-    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${r.boss && r.boss.taunt === m.uid ? '<em class="tg ct">시선 고정</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
+    const T = teamOf(m);
+    return `<span class="fm pc${T ? ` tm c-${T.gear}` : ''}${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}">${T ? `<span class="twm" aria-hidden="true">${m.team}</span>` : ''}<span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${T ? `<span class="clsb c-${T.gear}">${T.name}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${r.boss && r.boss.taunt === m.uid ? '<em class="tg ct">시선 고정</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
   const ctls = r.members.filter(m => m.role === 'ctrl');
   const ccard = m => { const f = FX['u' + m.uid], hit = f && f.san < 0;
     const st = m.dead ? '이탈' : m.broken ? '<em class="tg sn">정신 붕괴</em>' : m.passed ? '<em class="tg ok">넘김</em>' : m.acted ? '<em class="tg ok">행동 완료</em>' : '<em class="tg wt">고르는 중</em>';
@@ -3299,7 +3329,8 @@ function myTurnHTML(r, me, combat) {
   const timer = timerHTML(r, `준비 ${Rd.done}/${Rd.all}`);
   const dq = (sc.choices || []).some(c => c.max || c.min) && r.radar && r.radar.noise
     ? `<span class="dnote">무전 잡음으로 개체 거리를 알 수 없습니다. 거리 조건이 안 맞으면 판정 없이 차례만 지나갑니다.</span>` : '';
-  return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${teamTag(me)}${r.mark ? `<span class="clsb c-detector">약점 간파 +${r.mark.bonus}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
+  const TM = teamOf(me);
+  return `<div class="myturn${TM ? ` tm c-${TM.gear}` : ''}"><span class="mth">${TM ? `<b class="tnum bb">0${me.team}</b>` : ''}<b class="lb">내 차례</b><b>${esc(me.name)}</b>${teamTag(me)}${r.mark ? `<span class="clsb c-detector">약점 간파 +${r.mark.bonus}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
     ${mine ? `<span class="mine sel"><i>✓</i><span><small>이번 라운드에 고른 행동</small><b>${esc(mine.label)}</b><small>${Rd.waitCtl ? '관제 행동을 기다리는 중.' : `동료 ${Rd.done}/${Rd.all} · 모두 고르면 고른 순서대로 실행된다.`}</small></span><button class="btn s g" data-act="opUnpick">선택 취소</button></span><details class="chg"${S.chgOpen ? ' open' : ''}><summary data-act="chgToggle">다른 행동 보기</summary>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
     ${dq}${(() => { const T = topCards(evade + hide + cards); return T.top ? `<div class="choices cacts">${T.top}</div>${T.rest ? `<details class="more"${S.moreOpen ? ' open' : ''}><summary data-act="moreToggle">다른 행동 ${T.n}개 더 보기</summary><div class="choices cacts">${T.rest}</div></details>` : ''}` : ''; })()}${clsc}
@@ -3893,6 +3924,7 @@ function syncModal() {
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
   rollFx(host, r);
+  bossTrail(host);
   if (r.tut) tutCoach(host);
 }
 /* ───────── 판정 연출: 새로 들어온 판정을 화면 가운데에 하나씩 띄운다 ───────── */
