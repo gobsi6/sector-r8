@@ -416,10 +416,11 @@ const RADAR_RANGE = 50, STEP_M = 15, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY 
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
-  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
+  id: 'R8-14', kind: 'combat', title: 'AO-212 「계수자」 제압', threat: 'Ⅲ', mins: 15, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
-  brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 개체가 셈을 마치기 전에 장치를 다시 설치하고 귀환하십시오.',
+  brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 제압하십시오. 제압하면 장치는 기지가 다시 켭니다.',
+  boss: { hp: 20, perMember: 9, name: '계수자' },
   contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
   forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
   minion: { name: '세어진 것', hp: 3, text: '이마에 숫자가 새겨진 사람 형체. 셈에 붙들린 이전 직원들의 모습을 하고 있다.',
@@ -437,28 +438,17 @@ const OPS = [{
         { id: 'light', label: '뒤에서 조명을 확보한다', pos: 'rear', stat: 3, skill: '장비 운용', diff: 1, adv: false,
           crit: { text: '복도 전체에 조명이 들어왔다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '손전등 각도를 맞췄다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '조명은 켰지만 깜빡임이 셈과 박자를 맞추기 시작했다.', san: -1, sup: 1 }, fail: { text: '전구가 터졌다. 소리에 셈이 빨라진다.', count: -1 } }
       ] },
-    /* 「계수자와 조우」 장면은 작전을 줄이면서 뺐다(장치 설치 장면에서 개체와 마주친다). 원본은 git 기록에 있다. */
-    { title: '소리 차단 장치 설치', from: 'front', dist: 10, speed: 5, spawn: { rear: 1 },
-      map: { len: 24, start: 4, marks: [{ at: 0, label: '격리실 문', kind: 'door' }, { at: 5, label: '1번 모서리 장치' }, { at: 10, label: '2번 모서리 장치' }, { at: 15, label: '3번 모서리 장치' }, { at: 20, label: '4번 모서리 장치' }, { at: 24, label: '안쪽 벽', kind: 'wall' }] },
-      text: '격리실 문틈으로 AO-212가 보인다. 손가락을 접으며 수를 센다. 장치를 격리실 네 모서리에 다시 붙여야 한다.',
+    // 제압전: 격리실 안에서 개체와 맞선다. 개체 체력을 0으로 만들면 성공. 하수인이 앞을 막으면 개체를 칠 수 없다.
+    { title: '격리실: 계수자 제압', boss: true, from: 'front', dist: 6, speed: 0, spawn: { front: 1 },
+      map: { len: 24, start: 4, marks: [{ at: 0, label: '격리실 문', kind: 'door' }, { at: 8, label: '관찰창' }, { at: 16, label: '쓰러진 의자' }, { at: 24, label: 'AO-212', kind: 'wall' }] },
+      text: '격리실 한가운데 AO-212가 서 있다. 손가락을 하나씩 접으며 수를 센다. 셈 소리가 요원들 중 누군가의 목소리를 닮아 간다.',
       choices: [
-        { id: 'install', label: '장치를 설치한다', pos: 'mid', max: 10, stat: 3, skill: '장비 운용', diff: 2,
-          crit: '네 모서리가 동시에 켜졌다. 격리실이 완전히 조용해졌다.', ok: '장치가 하나씩 켜졌다. 셈 소리가 멀어진다.', cost: { text: '마지막 장치를 붙이는 사이 손등이 숫자로 뒤덮였다.', hp: -1, cont: 5 }, fail: { text: '장치가 튀었다. 소음에 개체가 셈을 서두른다.', count: -2 } },
-        { id: 'hold', label: '몸으로 막아 시간을 번다', pos: 'front', max: 5, stat: 1, skill: '인내', diff: 2,
-          crit: '개체의 셈을 끝까지 버텨 냈다. 동료가 장치를 붙였다.', ok: '버티는 사이 장치가 연결됐다.', cost: { text: '버텼지만 몸 곳곳에 숫자 자국이 남았다.', hp: -2 }, fail: { text: '버티지 못하고 쓰러졌다.', hp: -3, count: -1 } },
-        { id: 'cover', label: '엄호 사격으로 묶어 둔다', pos: 'rear', stat: 2, skill: '사격', diff: 2, adv: false,
-          crit: { text: '탄이 개체의 손가락을 정확히 맞혔다. 개체가 크게 물러났다.', push: 15 }, ok: { text: '사격에 개체가 움찔하며 물러났다.', push: 10 }, cost: { text: '개체는 물러났지만 탄피 소리를 셈이 따라 센다.', push: 5, count: -1 }, fail: { text: '탄이 빗나갔다.', count: -1 } }
-      ] },
-    { title: '귀환', from: 'rear', dist: 12, speed: 10, spawn: { rear: 1 },
-      map: { len: 60, start: 15, marks: [{ at: 0, label: '격리실 B-3', kind: 'door' }, { at: 22, label: '방화문', kind: 'door' }, { at: 38, label: '숫자가 적힌 벽' }, { at: 60, label: '출구', kind: 'door' }] },
-      text: '격리실 문이 닫히기 시작한다. 등 뒤에서 셈 소리가 따라온다. 복도의 숫자가 빠르게 0을 향해 간다.',
-      choices: [
-        { id: 'run', label: '출구까지 전력으로 이탈한다', pos: 'front', min: 20, stat: 2, skill: '운반', diff: 2,
-          crit: '모두가 문이 닫히기 전에 빠져나왔다.', ok: '숨을 몰아쉬며 복도를 벗어났다.', cost: { text: '빠져나왔지만 문틈에 발이 끼었다.', hp: -2 }, fail: { text: '넘어졌다. 등 뒤에서 셈 소리가 다가온다.', hp: -2, count: -2 } },
-        { id: 'guide', label: '숫자가 줄지 않는 길을 찾는다', pos: 'mid', min: 10, stat: 4, skill: '관찰', diff: 2,
-          crit: '숫자가 줄지 않는 길을 찾았다. 아무도 다치지 않았다.', ok: '숫자가 덜 줄어드는 쪽을 골랐다.', cost: { text: '길을 찾는 사이 숫자 몇 개를 들었다.', san: -1 }, fail: { text: '막다른 길이었다.', count: -2 } },
-        { id: 'door', label: '방화문을 닫아 막는다', pos: 'rear', max: 15, stat: 0, skill: '운반', diff: 2, adv: false,
-          crit: { text: '방화문이 개체 코앞에서 닫혔다.', push: 20 }, ok: { text: '방화문을 끌어 닫았다. 셈 소리가 멀어졌다.', push: 15 }, cost: { text: '문은 닫혔지만 손가락 하나가 문틈에 끼어 들어왔다.', push: 10, hp: -1 }, fail: { text: '방화문이 녹슬어 꿈쩍하지 않는다.', count: -1 } }
+        { id: 'sense', label: '진짜 위치를 짚어 낸다', pos: 'mid', stat: 4, skill: '관찰', diff: 2, adv: false,
+          crit: { text: '목소리는 미끼였다. 개체의 진짜 급소를 짚었다. 두 라운드 동안 공격이 더 아프게 들어간다.', bossExpose: 2 }, ok: { text: '개체가 서 있는 진짜 위치를 찾았다. 이번 라운드와 다음 라운드에 공격 피해 +3.', bossExpose: 1 }, cost: { text: '찾아냈지만 개체와 눈이 마주쳤다.', bossExpose: 1, san: -1 }, fail: { text: '목소리에 속았다. 엉뚱한 곳을 가리켰다.', san: -1 } },
+        { id: 'taunt', label: '대신 수를 세어 주의를 끈다', pos: 'front', stat: 5, skill: '인내', diff: 2, adv: false,
+          crit: { text: '개체가 요원의 셈을 따라 하기 시작했다. 다음 공격은 이 요원에게 오고, 절반만 들어온다.', bossTaunt: 2 }, ok: { text: '개체의 시선이 요원에게 고정됐다. 다음 공격은 이 요원에게 온다.', bossTaunt: 1 }, cost: { text: '시선은 끌었지만 셈이 머릿속에 남는다.', bossTaunt: 1, san: -2 }, fail: { text: '셈을 놓쳤다. 개체는 관심이 없다.', san: -1 } },
+        { id: 'flash', label: '섬광탄으로 몰아붙인다', pos: 'rear', stat: 2, skill: '사격', diff: 2, adv: false,
+          crit: { text: '섬광이 정면으로 터졌다. 개체가 비틀거리며 다음 행동을 놓친다. 하수인도 흩어졌다.', bossStun: 1, clearMinions: 1 }, ok: { text: '섬광에 개체가 눈을 가렸다. 다음 행동을 놓친다.', bossStun: 1 }, cost: { text: '개체는 비틀거렸지만 섬광에 요원도 눈이 멀었다.', bossStun: 1, hp: -1 }, fail: { text: '섬광탄이 불발했다.' } }
       ] }
   ]
 }];
@@ -669,7 +659,7 @@ function runOut(r, viewer, gm) {
   const radar = live ? (r.noise && !gm ? { exact: true, noise: true, dist: null, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: true }
     : { exact: true, dist: r.dist, from: sc.from, speed: sc.speed, range: RADAR_RANGE, detected: r.dist <= RADAR_RANGE }) : null;
   return { id: r.id, op: { id: o.id, title: o.title, threat: o.threat, mins: o.mins, field: o.field, ctrl: o.ctrl, count: o.count, brief: o.brief, scenes: o.patrol && !r.gen ? PATROL_SECTIONS * 2 : o.scenes.length,
-      patrol: !!o.patrol, level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
+      patrol: !!o.patrol, kind: o.kind || (o.patrol ? 'explore' : 'explore'), level: o.level || 2, rec: o.rec || null, countLabel: o.countLabel, entity: o.entity, reward: o.reward, sub: o.sub || null },
     steps: live ? o.scenes.map((x, i) => o.patrol ? (x.fork ? '갈림길' : i === o.scenes.length - 1 ? '승강기' : i <= r.scene ? x.title.replace(/ \(하층.*$/, '') : '구역') : x.title) : null,
     eta: live ? (() => { const ev = cadence(r); return Math.max(0, r.count * ev - (r.turn % ev)); })() : null,
     cnt: live ? { every: cadence(r), next: cadence(r) - (r.turn % cadence(r)), max: o.count, fx: (r.cfx || []).filter(x => x.turn >= r.turn - 1) } : null,
@@ -680,6 +670,7 @@ function runOut(r, viewer, gm) {
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     contactWarn: live && r.contactWarn ? r.contactWarn : null,
+    boss: live && r.boss && sc.boss ? { name: r.boss.name, hp: r.boss.hp, hpMax: r.boss.hpMax, intent: r.boss.stun ? 'stun' : r.boss.intent, intentName: r.boss.stun ? '비틀거림' : BOSS_INT[r.boss.intent], exposed: r.boss.exposedUntil >= r.turn, taunt: r.boss.taunt ? r.boss.taunt.uid : null, blocked: r.minions.some(x => x.side === 'front'), dmgRound: r.boss.dmgRound || 0, brk: BOSS_BREAK, combo: r.boss.hitTurn === r.turn - 1 ? r.boss.hitBy : null } : null,
     ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
     noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
     shift: live && r.shift ? { kind: r.shift.kind, name: SHIFT_KINDS[r.shift.kind].name, warn: SHIFT_KINDS[r.shift.kind].warn } : null,
@@ -832,6 +823,7 @@ function pickCheck(r, uid, kind, v) {
     return ['op/bad-choice'];
   }
   const CA = classAct(v); if (CA) return classPre(r, m, CA);
+  if (v === 'atk-boss') return !r.boss || r.boss.hp <= 0 ? ['op/no-foe'] : r.minions.some(x => x.side === 'front') ? ['op/blocked'] : [null, '개체 공격'];
   let mt;
   if ((mt = /^(atk|shv)-(front|rear)$/.exec(v))) {
     const side = mt[2], foe = r.minions.find(x => x.side === side); if (!foe) return ['op/no-foe'];
@@ -945,12 +937,95 @@ function countAdd(r, d, why) {
   const real = r.count - before; if (!real) return;
   r.cfx = (r.cfx || []).filter(x => x.turn >= r.turn - 1).concat({ d: real, why, turn: r.turn }).slice(-4);
 }
+/* ───────── 제압전: 보스 개체 ─────────
+   개체는 체력이 있고, 라운드마다 할 행동이 미리 보인다(하수인과 같은 방식).
+   손 뻗기 → 대상자 피하기·동료 막기 / 셈 → 이번 라운드에 4 이상 때리면 끊긴다 / 부르기 → 하수인 하나 / 웅크림 → 피해 절반 / 틈 → 피해 +2
+   앞에 하수인이 있으면 개체를 칠 수 없다. 장면 행동(급소 짚기·주의 끌기·섬광탄)으로 돕는다. */
+const BOSS_INT = { reach: '손 뻗기', count: '셈', call: '부르기', brace: '웅크림', open: '틈' };
+const BOSS_BREAK = 4;
+function bossIntent(r) {
+  const B = r.boss, x = Math.random(), full = r.minions.length >= scaleOf(r).cap;
+  B.intent = x < 0.4 ? 'reach' : x < 0.62 ? 'count' : x < 0.8 && !full ? 'call' : x < 0.92 ? 'brace' : 'open';
+  B.dmgRound = 0;
+  // 손 뻗기는 관제실이 대상자를 부른다(피하기·막기)
+  r.contactWarn = null;
+  if (B.intent === 'reach' && !B.stun) {
+    const L = lineOf(r), t = (B.taunt && r.members.find(m => m.uid === B.taunt.uid && !m.dead && !m.broken)) || L[0];
+    if (t) { r.contactWarn = { uid: t.uid, name: t.name, side: 'front', boss: true }; if (!r.noise) say(r, `관제실: 개체가 손을 뻗는다. ${t.name}, 회피 준비. 나머지는 엄호할 것.`, { kind: 'radio', name: '관제실' }); }
+  }
+}
+function bossStart(r) {
+  const o = D(r), b = o.boss || { hp: 14, perMember: 5 };
+  const hp = b.hp + b.perMember * Math.max(0, (r.nf || 1) - 1);
+  r.boss = { hp, hpMax: hp, name: b.name || o.entity, stun: false, exposedUntil: -1, taunt: null, hitTurn: -9, hitBy: null };
+  r.dist = 6; bossIntent(r);
+}
+function bossAct(r) {
+  const B = r.boss; if (!B || B.hp <= 0) return;
+  const o = D(r), L = lineOf(r); if (!L.length) return;
+  if (B.stun) { B.stun = false; say(r, `${jo(B.name, '이', '가')} 비틀거리며 자세를 다시 잡는다.`, { kind: 'contact' }); bossIntent(r); return; }
+  const act = B.intent;
+  if (act === 'reach') {
+    const W = r.contactWarn, t = (W && r.members.find(m => m.uid === W.uid && !m.dead)) || L[0];
+    if (t.evadeOk === r.turn - 1) say(r, `개체의 손이 ${t.name} 요원이 있던 자리를 훑고 지나갔다. 빗나갔다.`, { kind: 'contact', ent: true, uid: t.uid });
+    else {
+      const c = scaleFx(o.contact); if (c.san) c.san = grit(t, c.san); c.count = 0;
+      let half = r.coverEnt === r.turn - 1 || (B.taunt && B.taunt.uid === t.uid && B.taunt.half);
+      if (half) { if (c.hp) c.hp = Math.min(-1, Math.round(c.hp / 2)); if (c.san) c.san = Math.min(-1, Math.round(c.san / 2)); }
+      say(r, c.text.replace('{name}', t.name) + (half ? ' (절반)' : ''), { kind: 'contact', ent: true, uid: t.uid, fx: { hp: c.hp, san: c.san } });
+      applyFx(r, t, c, '개체 접촉');
+    }
+    B.taunt = null;
+  } else if (act === 'count') {
+    if (B.dmgRound >= BOSS_BREAK) say(r, `셈이 끊겼다. ${jo(B.name, '이', '가')} 세던 수를 놓쳤다.`, { kind: 'kill' });
+    else { say(r, `${jo(B.name, '이', '가')} 셈을 마저 셌다. 모두의 귀에 자기 이름이 숫자로 들린다.`, { kind: 'contact', ent: true });
+      r.members.filter(m => m.role === 'field' && !m.dead).forEach(m => { const d = grit(m, sanD(-1)); m.san = Math.max(0, m.san + d); });
+      countAdd(r, -1, '계수자의 셈'); }
+  } else if (act === 'call') { say(r, `${jo(B.name, '이', '가')} 손가락 하나를 폈다. 어둠 속에서 무언가 일어선다.`, { kind: 'contact' }); spawnMinion(r, 'front', 1); }
+  else if (act === 'brace') say(r, `${jo(B.name, '이', '가')} 몸을 웅크린 채 버텼다.`, { kind: 'contact' });
+  else if (act === 'open') say(r, `${jo(B.name, '이', '가')} 셈을 잃고 휘청였다. 틈이 지나갔다.`, { kind: 'contact' });
+  bossIntent(r);
+}
+function bossFight(r, m, uid) {
+  const B = r.boss; if (!B || B.hp <= 0) return 'op/no-foe';
+  if (r.minions.some(x => x.side === 'front')) return 'op/blocked';
+  const p = posOf(r, uid), melee = p === 'front' || p === 'solo';
+  const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
+  const row = Q.agent.get(uid), sup = r.support; r.support = 0;
+  const atk = m.cls === 'weapon';
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, stat, skill, sup + (atk ? 1 : 0), isDark(r) ? 1 : 0);
+  const tier = tierOf(res.succ, diff);
+  let dmg = tier === 'crit' ? res.succ + 1 : tier === 'ok' ? res.succ : tier === 'cost' ? 1 : 0;
+  const notes = [];
+  if (atk && dmg > 0) dmg += 1;
+  if (dmg > 0 && B.hitTurn >= r.turn - 1 && B.hitBy && B.hitBy !== m.uid) { dmg += 2; notes.push('협공 +2'); }
+  if (dmg > 0 && B.exposedUntil >= r.turn) { dmg += 3; notes.push('급소 +3'); }
+  if (dmg > 0 && B.intent === 'open') { dmg += 2; notes.push('틈 +2'); }
+  if (dmg > 0 && B.intent === 'brace') { dmg = Math.ceil(dmg / 2); notes.push('웅크림 절반'); }
+  if (dmg > 0) { B.hitTurn = r.turn; B.hitBy = m.uid; }
+  B.hp = Math.max(0, B.hp - dmg); B.dmgRound = (B.dmgRound || 0) + dmg;
+  const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
+  const txt = { crit: '정확히 급소를 노렸다. 개체가 크게 휘청인다.', ok: '개체를 밀어붙였다.', cost: '맞히긴 했지만 개체의 손가락이 팔을 셌다.', fail: '빗나갔다. 개체의 손가락이 팔을 셌다.' }[tier];
+  say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null });
+  if (hurt) m.hp = Math.max(0, m.hp + hurt);
+  if (B.hp <= 0) {
+    say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 접힌 손가락이 더는 펴지지 않는다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill', uid: m.uid });
+    checkBodies(r); return opFinish(r, 'success');
+  }
+  return endTurn(r);
+}
 function applyFx(r, m, fx, why) {
   if (!fx) return;
   if (fx.hp) m.hp = Math.max(0, Math.min(m.hpMax, m.hp + fx.hp));
   if (fx.san) m.san = Math.max(0, Math.min(m.sanMax, m.san + fx.san));
   if (fx.cont) m.cont += fx.cont;
   if (fx.count) countAdd(r, fx.count, why || (fx.count < 0 ? '판정 실패' : '판정 성공'));
+  if (r.boss) {
+    if (fx.bossStun) { r.boss.stun = true; r.contactWarn = null; }
+    if (fx.bossExpose) r.boss.exposedUntil = Math.max(r.boss.exposedUntil, r.turn + fx.bossExpose);
+    if (fx.bossTaunt && m) { r.boss.taunt = { uid: m.uid, half: fx.bossTaunt >= 2 }; if (r.boss.intent === 'reach') r.contactWarn = { uid: m.uid, name: m.name, side: 'front', boss: true }; }
+    if (fx.clearMinions && r.minions.length) { r.minions = []; }
+  }
   if (fx.sup) r.support = Math.min(4, r.support + fx.sup);
   if (fx.push) r.dist = Math.min(60, r.dist + fx.push);
 }
@@ -1002,12 +1077,12 @@ const FAC_SP = [
 function facsOf(r) {
   if (!r.fac) r.fac = {};
   if (D(r).scenes[r.scene].fork) return [];
-  const o = D(r), last = r.scene === o.scenes.length - 1, sp = last ? { name: '화물 승강기', kind: '이동', type: 'ease', eff: '승강기를 미리 불러 귀환 판정이 한 단계 쉬워진다' } : FAC_SP[r.scene % FAC_SP.length];
+  const o = D(r), boss = !!o.scenes[r.scene].boss, last = r.scene === o.scenes.length - 1, sp = boss ? { name: '구속 장치', kind: '구속', type: 'bind', eff: '격리실 구속 장치가 개체를 붙잡는다. 개체가 다음 행동을 놓친다(장면당 한 번)' } : last ? { name: '화물 승강기', kind: '이동', type: 'ease', eff: '승강기를 미리 불러 귀환 판정이 한 단계 쉬워진다' } : FAC_SP[r.scene % FAC_SP.length];
   const from = o.scenes[r.scene].from;
   return [
     { id: 'pwr', name: '구역 전원', kind: '전력', diff: 1, eff: '조명이 돌아와 어둠 판정 주사위 −1이 풀리고, 켜는 순간 하수인이 비틀거린다', on: !!r.fac.pwr, state: r.fac.pwr ? '정상 전력' : '비상등', x: 20 },
     { id: 'sp', name: sp.name, kind: sp.kind, type: sp.type, diff: 2, eff: sp.eff, on: !!r.fac.sp, state: r.fac.sp ? '작동 중' : sp.type === 'short' ? '잠김' : '정지', x: 62 },
-    { id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }
+    ...(boss ? [] : [{ id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }])
   ].concat(r.shift ? [{ id: 'beacon', name: '기준점 비컨', kind: '비컨', diff: 2, skill: '통신', eff: `원래 도면 좌표를 송출해 이번 변형(${SHIFT_KINDS[r.shift.kind].name})을 막는다. 심연도 이 신호를 듣는다: ${BEACON_TURNS}라운드 동안 잡음 확률 2배`, on: false, state: '대기', x: 50 }] : []);
 }
 const isDark = r => !(r.fac && r.fac.pwr);
@@ -1060,6 +1135,7 @@ function sceneEnter(r) {
   r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.ambush = null; r.ambushQuiet = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
   const sc0 = D(r).scenes[r.scene];
   if (sc0.fork) { r.minions = []; return; }
+  if (sc0.boss) bossStart(r); else r.boss = null;
   const sp = sc0.spawn;
   if (sp) for (const sd of ['front', 'rear']) if (sp[sd]) spawnMinion(r, sd, sp[sd] + scaleOf(r).spawn);
 }
@@ -1122,7 +1198,7 @@ function entityStep(r) {
 }
 // 개체 접촉 예고: 이번 라운드가 끝날 때 닿을 것 같으면 관제실이 대상자를 부른다(잡음이면 못 듣는다)
 function contactPredict(r) {
-  const o = D(r), sc = o.scenes[r.scene]; r.contactWarn = null;
+  const o = D(r), sc = o.scenes[r.scene]; if (sc && sc.boss) return; r.contactWarn = null;
   if (r.status !== 'live' || !sc || sc.fork || !sc.speed) return;
   const step = Math.floor((r._sp || 0) + sc.speed * scaleOf(r).speed);
   if (r.dist - step > 0) return;
@@ -1167,6 +1243,7 @@ function noiseTick(r) {
 }
 // 관제 NPC: 개체가 가까워질 때마다 무전으로 거리를 알린다(잡음이 끼면 끊긴다)
 function npcRadio(r) {
+  if (D(r).scenes[r.scene].boss) return; // 제압전에서는 개체가 눈앞에 있다
   const sc = D(r).scenes[r.scene], d = r.dist, band = d <= 5 ? 4 : d <= 10 ? 3 : d <= 20 ? 2 : d <= RADAR_RANGE ? 1 : 0;
   if (r.noise) return;
   if (band > (r.band || 0)) say(r, `관제실: 개체, 대열 ${sc.from === 'rear' ? '후방' : '전방'} ${d}m. ${band >= 4 ? '접촉 직전. 즉시 방어 태세.' : band >= 3 ? '곧 접촉한다. 대열을 정비할 것.' : band >= 2 ? '접근 속도 상승. 대비할 것.' : '레이더 포착. 경계 유지할 것.'}`, { kind: 'radio', name: '관제실' });
@@ -1196,12 +1273,12 @@ function endTurn(r, moved) {
   if (r.batch) { if (moved === false) r._sceneChanged = true; return null; }
   const o = D(r);
   r.turn++;
-  if (moved !== false) { minionsAttack(r); entityStep(r); }
+  if (moved !== false) { minionsAttack(r); if (r.boss && D(r).scenes[r.scene].boss) bossAct(r); else entityStep(r); }
   const SC = scaleOf(r);
   const ev = cadence(r); // 정수 주기: ev 라운드마다 한 칸(언제 줄지 화면에 미리 보여 줄 수 있게)
   if (r.turn % ev === 0) {
     countAdd(r, -1, '시간 경과'); say(r, o.tickText, { kind: 'warn' });
-    if (o.tickSpawn !== false && r.minions.length < SC.cap && !r.ambush) {
+    if (o.tickSpawn !== false && !o.scenes[r.scene].boss && r.minions.length < SC.cap && !r.ambush) {
       const side = o.scenes[r.scene].from, n = 1 + (SC.spawn && Math.random() < 0.5 ? SC.spawn : 0);
       // 관제실이 한 턴 먼저 하달한다. 잡음이 끼면 경고 없이 바로 나온다.
       if (r.noise) spawnMinion(r, side, n);
@@ -1231,6 +1308,7 @@ function actExec(r, uid, choiceId) {
   const err = canField(r, uid); if (err) return err;
   const m = fieldMember(r, uid);
   const o = D(r), sc = o.scenes[r.scene];
+  if (choiceId === 'atk-boss') return bossFight(r, m, uid);
   if (/^atk-(front|rear)$/.test(choiceId)) return opFight(r, m, uid, choiceId.slice(4));
   if (/^shv-(front|rear)$/.test(choiceId)) return opShove(r, m, uid, choiceId.slice(4));
   if (choiceId === 'guard') return opGuard(r, m, uid);
@@ -1475,7 +1553,7 @@ function classExec(r, m, kind, target) {
       else { r.fac.pwr = true; r.minions.forEach(x => { x.intent = 'stun'; x.braced = false; }); txt = `구역 전원을 올렸다. 조명이 돌아왔다.${r.minions.length ? ` ${jo(o2.minion.name, '이', '가')} 빛에 눈이 멀어 비틀거린다.` : ''}`; }
     } else if (F.id === 'sp') {
       if (tier === 'fail') txt = `${F.name}이(가) 반응하지 않는다.`;
-      else { r.fac.sp = true; if (F.type === 'short') { const sc = o2.scenes[r.scene]; r.pos = Math.min(sc.map.len, r.pos + 10); txt = `${F.name}을(를) 원격으로 열었다. 대열이 지름길로 10m 앞당겨졌다.`; } else { r.fac.ease = true; txt = `${F.name}을(를) 원격으로 가동했다. ${F.eff}.`; } }
+      else { r.fac.sp = true; if (F.type === 'bind') { if (r.boss) { r.boss.stun = true; r.contactWarn = null; } txt = `${F.name}이 작동했다. 개체의 팔이 벽에 붙들렸다. 다음 행동을 놓친다.`; } else if (F.type === 'short') { const sc = o2.scenes[r.scene]; r.pos = Math.min(sc.map.len, r.pos + 10); txt = `${F.name}을(를) 원격으로 열었다. 대열이 지름길로 10m 앞당겨졌다.`; } else { r.fac.ease = true; txt = `${F.name}을(를) 원격으로 가동했다. ${F.eff}.`; } }
     } else {
       r.doorUsed = true;
       if (tier === 'fail') txt = '격벽이 반쯤 내려오다 멈췄다. 개체는 틈으로 그대로 다가온다.';

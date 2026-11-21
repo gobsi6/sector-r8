@@ -87,6 +87,13 @@ function classPick(r, mem, taken) {
   const team = r.members.filter(x => x.role === 'field' && !x.dead);
   const lead = p === 'front' || p === 'solo';
   const adv0 = sc.choices ? sc.choices.filter(c => c.adv !== false) : [], needLead = !sc.fork && adv0.length && adv0.every(c => c.reach && r.pos < sc.map.len - REACH_M) && !r.minions.some(x => x.side === 'front');
+  // 제압전: 앞에 하수인이 없으면 개체를 친다. 중열 한 명은 급소가 안 보이면 급소부터 짚는다.
+  if (r.boss && sc.boss && !(r.contactWarn && r.contactWarn.uid === mem.uid)) {
+    if (!r.minions.some(x => x.side === 'front')) {
+      if (p === 'mid' && r.boss.exposedUntil < r.turn && !taken.has('sense') && process.env.BOSSAID !== '0') { taken.add('sense'); return ['act', 'sense']; }
+      return ['act', 'atk-boss'];
+    }
+  }
   // 관제실이 개체 접촉을 예고하면 대상자는 피한다(EVADE=0 이면 무시)
   if (r.contactWarn && process.env.EVADE !== '0' && r.contactWarn.uid === mem.uid) return ['act', 'evade'];
   // 관제실이 하수인 출현을 하달하면, 앞에 붙은 하수인이 없고 개체가 멀 때 숨는다(HIDE=0 이면 무시)
@@ -101,7 +108,7 @@ function classPick(r, mem, taken) {
     if (f('beacon')) return ['act', 'fac-beacon'];
     if (!f('pwr').on) return ['act', 'fac-pwr'];
     if (!f('sp').on) return ['act', 'fac-sp'];
-    if (!f('wall').on && f('wall').need && r.dist <= 15) return ['act', 'fac-wall'];
+    if (f('wall') && !f('wall').on && f('wall').need && r.dist <= 15) return ['act', 'fac-wall'];
     if (r.support < 2 && !taken.has('sup')) { taken.add('sup'); return ['act', 'sup']; }
     return null;
   }

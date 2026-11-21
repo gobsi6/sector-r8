@@ -1741,6 +1741,19 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
 [data-theme=light] .c-weapon{--c:#B3261E}[data-theme=light] .c-detector{--c:#1F57A6}[data-theme=light] .c-medkit{--c:#1F6B3E}[data-theme=light] .c-radio{--c:#8A6100}
 .stg .c-weapon{--c:#FF8A80}.stg .c-detector{--c:#8FB8F0}.stg .c-medkit{--c:#7FD39B}.stg .c-radio{--c:#F0C774}
+/* 작전 종류 꼬리표 */
+.okind{display:inline-block;font-size:10.5px;font-weight:800;padding:0 6px;line-height:18px;margin-left:6px;--c:#8FC3D3;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);box-shadow:inset 0 0 0 1px var(--c)}
+.okind.k-combat{--c:#FF8A80}[data-theme=light] .okind.k-combat{--c:#B3261E}[data-theme=light] .okind{--c:#1F4A59}
+/* 제압전 개체 카드 */
+.boss{display:flex;flex-direction:column;gap:8px;padding:10px 12px;background:rgba(10,14,15,.86);box-shadow:inset 0 0 0 1px color-mix(in srgb,#E5574F 55%,transparent),inset 3px 0 0 #E5574F;color:var(--ink)}
+.boss .bh{display:flex;align-items:baseline;gap:8px}.boss .bh .bb{font-size:13px;letter-spacing:.14em;color:#FF8A80}.boss .bh>b:not(.bb){font-size:15px}.boss .bh small{margin-left:auto;font-size:10.5px;color:var(--sub)}
+.boss .bhp{display:flex;align-items:center;gap:6px}.boss .bhp i{flex:1;height:8px;background:rgba(255,255,255,.08)}.boss .bhp i span{display:block;height:100%;background:#E5574F;transition:width .4s}
+.boss .bhp b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:20px;color:#FF8A80}.boss .bhp small{font-size:11px;color:var(--sub)}
+.boss .bin{display:flex;flex-direction:column;gap:2px;padding:6px 8px;background:rgba(255,255,255,.04)}.boss .bin small{font-size:10.5px;color:var(--sub)}.boss .bin b{font-size:14px}.boss .bin em{font-style:normal;font-size:11.5px;line-height:1.45;color:var(--sub)}
+.boss .bin.it-reach b,.boss .bin.it-count b{color:#FF8A80}.boss .bin.it-open b,.boss .bin.it-stun b{color:#7FD39B}.boss .bin.it-brace b{color:#F0C774}
+.boss .bst{display:flex;flex-wrap:wrap;gap:4px}
+.myturn .choice2.atk.boss{box-shadow:inset 0 0 0 1.5px #E5574F,inset 3px 0 0 #E5574F}
+@media (max-width:999px){.boss{background:var(--tile)}}
 /* 고른 뒤: 고른 행동을 크게, 나머지는 접어 둔다 */
 .myturn .mine.sel{display:flex;align-items:center;gap:10px;padding:10px 12px;background:color-mix(in srgb,var(--navyLine) 12%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
 .myturn .mine.sel>i{flex:none;width:26px;height:26px;display:grid;place-items:center;font-style:normal;font-weight:800;background:var(--navy);color:var(--onNavy)}
@@ -2142,7 +2155,7 @@ const AUTH_MSG = {
   'op/raven1-used': '이번 작전에서는 이미 RAVEN-1을 불렀습니다.',
   'op/sealed': 'RAVEN-3이 현장을 관리하고 있습니다. 봉쇄가 풀린 뒤 참가할 수 있습니다.', 'base/raven': 'RAVEN-3이 관리 중인 격리실입니다. 봉쇄가 풀린 뒤 점검할 수 있습니다.',
   'op/pos': '대열 위치가 맞지 않는 행동입니다.', 'op/map-end': '이 구역의 끝입니다. 더 나아갈 수 없습니다.', 'op/map-start': '이 구역의 시작 지점입니다. 더 물러날 수 없습니다.', 'op/no-foe': '그쪽에는 싸울 상대가 없습니다.',
-  'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/resolving': '라운드를 진행하는 중입니다. 잠시 뒤에 다시 고르십시오.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제는 이제 NPC가 맡습니다.', 'op/cls': '이 포지션은 할 수 없는 행동입니다.',  'op/bad-choice': '할 수 없는 행동입니다.',
+  'op/blocked': '하수인이 앞을 막고 있어 개체를 칠 수 없습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-front': '세어진 것이 앞을 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/blocked-rear': '세어진 것이 뒤를 막고 있습니다. 먼저 쓰러뜨리십시오.', 'op/no-ahead': '이미 대열 맨 앞입니다.', 'op/resolving': '라운드를 진행하는 중입니다. 잠시 뒤에 다시 고르십시오.', 'op/radio-wait': '다음 현장 행동 뒤에 다시 보고할 수 있습니다.', 'op/not-field': '현장팀만 할 수 있습니다.', 'op/not-ctrl': '관제는 이제 NPC가 맡습니다.', 'op/cls': '이 포지션은 할 수 없는 행동입니다.',  'op/bad-choice': '할 수 없는 행동입니다.',
   'op/broken': '정신이 붕괴한 상태입니다. 관제팀의 안정을 기다리십시오.', 'op/ctl-wait': '다음 현장 판정 뒤에 다시 행동할 수 있습니다.', 'op/no-noise': '지금은 잡음이 없습니다.', 'op/used': '이 장면에서는 이미 썼습니다.', 'op/fork': '갈림길에서는 문을 고르거나 기다릴 수만 있습니다.', 'op/noise': '잡음 때문에 거리를 읽을 수 없습니다. 먼저 해독하거나 차단하십시오.', 'op/no-need': '정신력이 이미 가득 찼습니다.', 'op/not-done': '아직 끝나지 않은 작전입니다.',
   'demo': '데모 모드에서는 이 기능을 쓸 수 없습니다.',
   'res/short': '자원이 부족합니다. 작전에 성공하면 보급품과 연구 자료가 지급됩니다.',
@@ -2707,11 +2720,12 @@ function opRank(r) {
     + (TH_N[r.op.threat] || 0) * 10 - (r.op.patrol ? 60 : 0) - (sealed ? 400 : 0) - (r.status === 'done' ? 100 : 0);
 }
 const opsSorted = () => Object.values(S.ops || {}).sort((a, b) => opRank(b) - opRank(a));
+const KIND = k => k === 'combat' ? '<span class="okind k-combat" title="전투 작전: 개체를 제압하면 성공">전투</span>' : '<span class="okind k-explore" title="탐사 작전: 길을 찾아 목표 지점까지 가면 성공">탐사</span>';
 const OP_ST = r => r.sealedUntil > Date.now() && r.status === 'lobby' ? 'RAVEN-3 봉쇄' : ({ lobby: '대기실', live: '진행 중', done: '종료' })[r.status];
 function opRowHTML(r, act, sel) {
   const f = r.members.filter(m => m.role === 'field').length, c = r.members.filter(m => m.role === 'ctrl').length;
   return `<button class="oprow ${thC(r.op.threat)}${r.status === 'live' ? ' live' : ''}" data-act="${act}" data-v="${esc(r.op.id)}" ${sel != null ? `role="tab" aria-selected="${sel}"` : ''}>
-    <span class="bb">${esc(r.op.id)}</span>${thChip(r.op.threat)}<b>${esc(r.op.patrol ? '하층 정기 순찰' : r.op.title)}</b>
+    <span class="bb">${esc(r.op.id)}</span>${thChip(r.op.threat)}${KIND(r.op.kind)}<b>${esc(r.op.patrol ? '하층 정기 순찰' : r.op.title)}</b>
     <span class="st">${OP_ST(r)}${opMine(r) && r.status !== 'done' ? ', 참가 중' : ''}</span><span class="ppl">현장팀 ${f}/${r.op.field}</span>${act === 'opGo' ? `<span class="go2">${r.status === 'live' ? '보기' : '입장'}</span>` : ''}</button>`;
 }
 function viewHome() {
@@ -2787,6 +2801,7 @@ function stepsHTML(r, cnt) {
 function goalLine(r) {
   const sc = r.scene; if (!sc) return '';
   if (r.fork) return `<span class="goal"><b>목표</b>문 A와 문 B 중 하나를 고른다 → 다음 구역</span>`;
+  if (r.boss) return `<span class="goal"><b>목표</b>${esc(r.boss.name)}의 체력을 0으로 → 작전 성공</span>`;
   const adv = (sc.choices || []).filter(c => c.adv).map(c => c.label);
   if (!adv.length) return '';
   return `<span class="goal"><b>목표</b>${esc(adv.slice(0, 2).join(' 또는 '))} → 다음 장면</span>`;
@@ -2816,7 +2831,7 @@ function stripHTML(r, me) {
   }
   return `<div class="strip" aria-label="진행 막대"><span class="trk"><i class="done" style="width:${P.toFixed(1)}%"></i></span>
     <span class="sg"><i></i></span>${ent}${foe}${mem}
-    <span class="sl"><b>목표</b> ${left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
+    <span class="sl"><b>목표</b> ${r.boss ? `${esc(r.boss.name)} 제압` : left <= 6 ? `${esc(end.label)} 바로 앞` : `${esc(end.label)}까지 약 ${left}m`}</span></div>`;
 }
 // 무대 위 하수인: 이름, 체력, 다음 행동
 function foesOnStage(r) {
@@ -2827,6 +2842,23 @@ function foesOnStage(r) {
 }
 // 조우 카드: 개체 그림 대신, 가까워질수록 관측 기록이 한 줄씩 열린다
 const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
+// 제압전: 개체 체력·다음 행동·대응
+const BOSS_FX = { reach: '한 명에게 큰 피해 · 대상자는 피한다, 동료는 막기', count: `모두 정신력 피해 + 남은 시간 −1 · 이번 라운드에 합쳐서 4 이상 때리면 끊긴다`, call: '하수인이 하나 나와 앞을 막는다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', open: '이번 라운드 공격 피해 +2 · 몰아칠 때', stun: '행동 없음 · 몰아칠 기회' };
+function bossHTML(r) {
+  const B = r.boss; if (!B) return '';
+  const pct = Math.max(0, Math.round(B.hp / B.hpMax * 100)), tg = B.taunt && r.members.find(m => m.uid === B.taunt);
+  const st = [B.exposed ? '<em class="tg gd">급소 노출 · 피해 +3</em>' : '', tg ? `<em class="tg ct">${esc(tg.name)}에게 시선 고정</em>` : '', B.blocked ? '<em class="tg hp">하수인이 앞을 막는 중 · 개체를 칠 수 없음</em>' : '', B.intent === 'count' ? `<em class="tg sn">셈 끊기 ${Math.min(B.dmgRound, B.brk)}/${B.brk}</em>` : ''].join('');
+  return `<div class="boss"><span class="bh"><b class="bb">TARGET</b><b>${esc(B.name)}</b><small>제압하면 작전 성공</small></span>
+    <span class="bhp"><i><span style="width:${pct}%"></span></i><b>${B.hp}</b><small>/${B.hpMax}</small></span>
+    <span class="bin it-${B.intent}"><small>다음 행동</small><b>${esc(B.intentName || '')}</b><em>${esc(BOSS_FX[B.intent] || '')}</em></span>
+    ${st ? `<span class="bst">${st}</span>` : ''}</div>`;
+}
+function bossAtkHTML(r, me) {
+  const B = r.boss; if (!B || B.hp <= 0) return '';
+  const p = me.pos, melee = p === 'front' || p === 'solo';
+  const tags = [me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : '', B.combo && B.combo !== me.uid ? '<i class="cb">협공 +2</i>' : '', B.exposed ? '<i class="cb">급소 +3</i>' : '', B.intent === 'open' ? '<i class="cb">틈 +2</i>' : '', B.intent === 'brace' ? '<i class="d">웅크림 · 피해 절반</i>' : '', B.intent === 'count' ? '<i class="a">셈 끊기</i>' : ''].join('');
+  return `<button class="choice2 atk boss" data-act="opAct" data-v="atk-boss" ${B.blocked ? 'disabled' : ''}><b>${esc(jo2(B.name, '을', '를'))} 공격한다</b><small>${melee ? '근력 + 격투 · 근접' : '민첩 + 사격 · 사격'} · 보통(2) · 성공 수만큼 피해</small><span class="req">${B.blocked ? '<i class="a">하수인이 앞을 막고 있다 · 먼저 쓰러뜨릴 것</i>' : `<i class="a">제압</i>${tags}`}</span></button>`;
+}
 function encHTML(r, ctl) {
   const E = r.ent; if (!E) return '';
   const R = r.radar || {}, nick = (r.op.title.match(/「(.+?)」/) || [])[1];
@@ -2844,7 +2876,7 @@ function stageHTML(r, me) {
   if (!(src in CAM_IMG)) { CAM_IMG[src] = null; const im = new Image(); im.onload = () => { CAM_IMG[src] = true; refreshLobby(); }; im.onerror = () => { CAM_IMG[src] = false; }; im.src = src; }
   const t = new Date(), hh = n => String(n).padStart(2, '0');
   const cam = `CAM B3-${hh(sc.idx + 1)}${S2 && S2.from === 'rear' ? ' REAR' : ''}`;
-  const R = r.radar || {}, near = (S2 && S2.stage >= 2) || (R.exact && R.detected && R.dist != null && R.dist <= 10);
+  const R = r.radar || {}, near = !r.boss && ((S2 && S2.stage >= 2) || (R.exact && R.detected && R.dist != null && R.dist <= 10));
   const cx = r._cx && Date.now() - r._cx.at < 1600 ? r._cx : null;
   const fresh = r._fxAt && Date.now() - r._fxAt < 1600, mf = fresh && me && r._fx && r._fx['u' + me.uid];
   const fx = cx ? ' fx-contact' : (near ? ' fx-near' : '') + (mf && (mf.hp < 0 || mf.san < 0) ? ' fx-hit' : '');
@@ -2857,7 +2889,7 @@ function stageHTML(r, me) {
     <span class="foes">${foesOnStage(r)}</span>
     ${cx ? `<span class="ctx" role="alert"><b class="bb">CONTACT</b><span>${esc(cx.text)}</span>${tags ? `<span class="tgs">${tags}</span>` : ''}</span>` : ''}
     ${stripHTML(r, me)}
-  </div><div class="sideov">${radarHTML(r)}${near ? encHTML(r, ctl) : ''}</div></div>`;
+  </div><div class="sideov">${r.boss ? bossHTML(r) : `${radarHTML(r)}${near ? encHTML(r, ctl) : ''}`}</div></div>`;
 }
 // 대열 카드: 선두부터 후미 순서. 내 카드는 강조.
 function partyHTML(r, me) {
@@ -2868,7 +2900,7 @@ function partyHTML(r, me) {
   const pop = f => !f ? '' : [f.hp ? `<em class="pop ${f.hp < 0 ? 'dmg' : 'heal'}">${f.hp > 0 ? '+' : ''}${f.hp}</em>` : '', f.san ? `<em class="pop ${f.san < 0 ? 'sdmg' : 'heal'}${f.hp ? ' two' : ''}">${f.san > 0 ? '+' : ''}${f.san}</em>` : ''].join('');
   const chips = m => [m.broken ? '<em class="tg sn">정신 붕괴</em>' : '', m.guard ? '<em class="tg gd">막기</em>' : '', !m.broken && m.san / m.sanMax <= .3 ? '<em class="tg sn">정신 위험</em>' : '', r.dark && !m.broken && me && m.uid === me.uid ? '<em class="tg ct" title="관제가 구역 전원을 켜면 사라집니다">어둠 · 주사위 −1</em>' : ''].join('');
   const card = m => { const f = FX['u' + m.uid], hit = f && (f.hp < 0 || f.san < 0);
-    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
+    return `<span class="fm pc${me && m.uid === me.uid ? ' me' : ''}${m.broken ? ' broken' : ''}${hit ? ' hit' : f ? ' healed' : ''}"><span class="fh"><span class="ps">${POSN[m.pos] || ''}</span><b>${esc(m.name)}</b>${me && m.uid === me.uid ? '<span class="mi">나</span>' : ''}${m.cls ? `<span class="clsb c-${m.cls}">${CLS[m.cls][0]}</span>` : ''}</span>${bar('HP', m.hp, m.hpMax, 'hp')}${bar('정신', m.san, m.sanMax, 'sn')}<span class="pcx">${r.contactWarn && r.contactWarn.uid === m.uid ? '<em class="tg hp">접촉 임박</em>' : ''}${r.boss && r.boss.taunt === m.uid ? '<em class="tg ct">시선 고정</em>' : ''}${m.cont ? `<small>오염 +${m.cont}%</small>` : ''}${chips(m)}</span>${pop(f)}</span>`; };
   const ctls = r.members.filter(m => m.role === 'ctrl');
   const ccard = m => { const f = FX['u' + m.uid], hit = f && f.san < 0;
     const st = m.dead ? '이탈' : m.broken ? '<em class="tg sn">정신 붕괴</em>' : m.passed ? '<em class="tg ok">넘김</em>' : m.acted ? '<em class="tg ok">행동 완료</em>' : '<em class="tg wt">고르는 중</em>';
@@ -3186,6 +3218,7 @@ function myTurnHTML(r, me, combat) {
     : reachNeed && (p === 'front' || p === 'solo') ? '구역 끝까지 전진해야 목표 행동을 할 수 있다.'
     : reachNeed ? '선두가 대열을 이끌고 구역 끝까지 가야 한다. 그사이 보조 행동으로 돕는다.' : '';
   const cards = [
+    r.boss ? bossAtkHTML(r, me) : '',
     ...(combat && !r.fork ? (r.attacks || []).map(a => attackHTML(a, me, r)) : []), combat && !r.fork ? guardHTML(r, me) : '',
     ...(r.recover || []).map(x => `<button class="choice2 rec" data-act="opAct" data-v="${x.id}"><b>${esc(x.name)} 회수</b><small>체력 + 운반 · 쉬움(1) · ${x.why === 'dead' ? '생체 신호 끊김' : '정신 붕괴'}</small><span class="req"><i class="r4">회수</i><i>누구나</i><i>장면 유지</i></span></button>`),
     ...(r.fork ? [] : (sc.choices || []).map(c => choiceHTML(c, me, r))),
@@ -3271,7 +3304,7 @@ function viewOps(rr, parts) {
     const reward = r.op.patrol ? `보급품 ${r.op.reward ? r.op.reward.supply : 40}, 수용 개체 안정도 +15%` : `보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}`;
     const canStart = me && f && !sealed && rd === tot;
     return opSplit(r, ' lobby', `<div class="loba"><div class="lobm">
-      <div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span></span><h2>${esc(r.op.title)}</h2><p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}</div>
+      <div class="ophead"><span class="k">${ico('ops', 18, 2)}<span class="bb">OPERATION ${esc(r.op.id)}</span>${KIND(r.op.kind)}</span><h2>${esc(r.op.title)}</h2><p>${esc(r.op.brief)}</p>${r.op.sub ? `<p class="opsub">${esc(r.op.sub)}</p>` : ''}</div>
       <div class="facts"><span class="fc"><small>위험 등급</small>${thChip(r.op.threat, true)}</span><span class="fc"><small>난이도</small>${levelHTML(r.op)}</span><span class="fc"><small>예상 소요</small><b class="bb">${r.op.mins}분</b></span><span class="fc"><small>성공 보상</small><b>${reward}</b></span></div>
       <div class="seats"><div class="sg"><span class="sgh"><b>현장팀</b><small>${f}/${r.op.field}</small>${r.op.rec ? `<small>· 권장 ${recTxt(r.op).split(', ')[0].replace('현장 ', '')}</small>` : ''}</span><div class="sgrid">${seats('field', r.op.field)}</div></div>
         <div class="sg c npc"><span class="sgh"><b>관제</b><small>NPC</small></span><div class="seat on npcs"><span class="sn"><b>관제실</b><small>무전 지휘</small></span><span class="si">개체 거리와 구조 변형을 무전으로 하달한다. 시설 조작·비컨·문 확인은 요원의 요청을 받아 처리한다.</span></div></div></div></div>
