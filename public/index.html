@@ -1754,6 +1754,28 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .boss .bst{display:flex;flex-wrap:wrap;gap:4px}
 .myturn .choice2.atk.boss{box-shadow:inset 0 0 0 1.5px #E5574F,inset 3px 0 0 #E5574F}
 @media (max-width:999px){.boss{background:var(--tile)}}
+/* 팀 연계 게이지 */
+.stage .gauge{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px}
+.stage .gauge small{font-weight:700;color:var(--ink)}.stage .gauge .gb2{display:flex;gap:2px}.stage .gauge .gb2 i{width:12px;height:6px;background:var(--rule)}.stage .gauge .gb2 i.on{background:#F0C774}
+.stage .gauge b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:16px;color:#F0C774}.stage .gauge em{font-style:normal;color:var(--sub);font-size:10.5px}
+[data-theme=light] .stage .gauge .gb2 i.on{background:#B08410}[data-theme=light] .stage .gauge b{color:#8A6100}
+.stage .gauge.full .gb2 i.on{animation:gfull .6s ease-in-out infinite alternate}@keyframes gfull{to{filter:brightness(1.6)}}
+/* 판정 연출 */
+#rollFx{position:absolute;left:0;right:0;top:38%;z-index:60;display:flex;justify-content:center;pointer-events:none}
+#rollFx .rf{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 22px;min-width:240px;background:rgba(8,10,11,.92);box-shadow:inset 0 0 0 1.5px var(--navyLine),0 16px 40px rgba(0,0,0,.5);color:#F2F2F0;animation:rfIn .18s ease-out}
+#rollFx .rf small{font-size:12px;color:#A8B0B2}
+#rollFx .rd{display:flex;gap:5px}#rollFx .rd .dc{width:30px;height:30px;font-size:19px;opacity:1;transition:transform .15s}#rollFx .land .rd .dc.hit{transform:scale(1.15);box-shadow:0 0 0 2px #F0C774}
+#rollFx .rt{font-size:22px;font-weight:800;opacity:0;transform:scale(.7)}#rollFx .land .rt{opacity:1;transform:none;transition:all .18s cubic-bezier(.2,1.6,.4,1)}
+#rollFx .t-crit{box-shadow:inset 0 0 0 2px #F0C774,0 0 40px rgba(240,199,116,.35)}#rollFx .t-crit .rt{color:#F0C774;font-size:28px}
+#rollFx .t-ok .rt{color:#8FC3D3}#rollFx .t-cost .rt{color:#D9C48A}#rollFx .t-fail .rt{color:#FF8A80}
+#rollFx .rdmg{font-style:normal;font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;color:#FF8A80;opacity:0}#rollFx .land .rdmg{animation:dmgPop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+#rollFx .burst{box-shadow:inset 0 0 0 2px #F0C774,0 0 60px rgba(240,199,116,.45);padding:18px 28px}#rollFx .burst b{font-size:34px;letter-spacing:.12em;color:#F0C774;animation:dmgPop .5s cubic-bezier(.2,1.6,.4,1)}#rollFx .burst em{font-style:normal;font-size:13px}
+@keyframes rfIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes dmgPop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:none}}
+.opm-box.shake .opm-left{animation:boxShake .35s ease-in-out}@keyframes boxShake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,0)}}
+@media (max-width:999px){#rollFx{position:fixed;top:30%}}
+@media (prefers-reduced-motion:reduce){#rollFx .rf,.opm-box.shake .opm-left{animation:none}}
+.mvp{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 12px;box-shadow:inset 0 0 0 1px #F0C774}.mvp .bb{font-size:18px;color:#F0C774;letter-spacing:.12em}.mvp b{font-size:16px}.mvp small{color:var(--sub);font-size:12px}
 /* 행동 카드 더 보기 */
 .myturn details.more>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:2px;list-style:none}.myturn details.more>summary::-webkit-details-marker{display:none}
 .myturn details.more>summary::before{content:'+ '}.myturn details.more[open]>summary::before{content:'− '}.myturn details.more[open]>.choices{margin-top:8px}
@@ -3133,7 +3155,7 @@ function posFits(r, me, need) {
 function choiceHTML(c, me, r) {
   const there = !c.reach || (r.map && r.map.pos >= r.map.len - 6);
   const ok = posFits(r, me, c.pos) && there;
-  const tags = [c.reach ? `<i class="d">${there ? '구역 끝 도착' : '구역 끝 문 앞에서'}</i>` : '',c.pos ? `<i class="p">${POSN[c.pos]}${r.members.some(m => m.pos === 'mid') || c.pos !== 'mid' ? '' : '(누구나)'}</i>` : '<i>누구나</i>', distTag(c, r), c.adv ? '' : '<i>장면 유지</i>', r.dark && !c.reachOnly ? '<i class="dk">어둠 · 주사위 −1</i>' : '', c.eased ? '<i class="fx2">관제: 시설 작동 · 한 단계 쉬움</i>' : ''].join('');
+  const tags = [c.reach ? `<i class="d">${there ? '구역 끝 도착' : '구역 끝 문 앞에서'}</i>` : '', distTag(c, r), c.adv ? '' : '<i>장면 유지</i>', r.dark && !c.reachOnly ? '<i class="dk">어둠 · 주사위 −1</i>' : '', c.eased ? '<i class="fx2">관제: 시설 작동 · 한 단계 쉬움</i>' : ''].join('');
   return `<button class="choice2" data-act="opAct" data-v="${c.id}" ${ok ? '' : 'disabled'}><b>${esc(c.label)}</b><small>${esc(c.stat)} + ${esc(c.skill)} · ${c.diffName}(${c.diff})</small><span class="req">${tags}</span></button>`;
 }
 function attackHTML(a, me, r) {
@@ -3142,7 +3164,7 @@ function attackHTML(a, me, r) {
   const ok = melee || ranged, f = (r.minions || []).find(x => x.side === a.side);
   const how = melee ? '근력 + 격투 · 근접' : ranged ? '민첩 + 사격 · 사격' : (a.side === 'front' ? '선두 근접, 중열 사격' : '후미 근접, 중열 사격');
   const combo = f && f.combo && f.combo !== me.uid;
-  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && INT_TAG[f.intent] ? `<i class="${INT_TAG[f.intent][0]}">${INT_TAG[f.intent][1]}</i>` : ''}<i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i></span></button>`;
+  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && INT_TAG[f.intent] ? `<i class="${INT_TAG[f.intent][0]}">${INT_TAG[f.intent][1]}</i>` : ''}</span></button>`;
   if (melee) h += `<button class="choice2 atk shove" data-act="opAct" data-v="shv-${a.side}"><b>${a.side === 'front' ? '앞' : '뒤'}의 하수인을 밀쳐 낸다</b><small>근력 + 격투 · 쉬움(1) · 다음 행동을 못 하게 한다</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두' : '후미'}</i></span></button>`;
   return h;
 }
@@ -3167,6 +3189,7 @@ function timerHTML(r, label) {
 }
 // 거리 조건: 관제가 이번 라운드에 거리를 알려 줬으면 충족 여부를, 아니면 '거리 모름'을 보여 준다
 function distTag(c, r) {
+  return ''; // 단순화: 거리 조건 없음
   if (!c.max && !c.min) return '';
   const need = c.max ? `${c.max}m 이내` : `${c.min}m 이상`, R = r.report, ex = r.radar && r.radar.exact && !r.radar.noise ? r.radar.dist : null;
   const d = R ? R.dist : ex;
@@ -3208,7 +3231,7 @@ function clsCardsHTML(r, me) {
   if (canHeal) (r.heal || []).forEach(x => C.push(card('heal-' + x.uid, x.uid === me.uid ? '자가 응급 처치' : `${esc(x.name)} 응급 처치`, `지능 + 응급처치 · 보통(2)${plus('medkit')} · HP ${x.hp}/${x.hpMax}`, '', false, 'medkit')));
   r.members.filter(m => m.role === 'field' && !m.dead && m.san < m.sanMax * 0.7).forEach(m => C.push(card('calm-' + m.uid, `${m.uid === me.uid ? '스스로' : esc(m.name)} 정신 안정`, `의지 + 응급처치 · 보통(2)${plus('medkit')} · 정신력 ${m.san}/${m.sanMax}`, m.broken ? '붕괴한 동료를 깨운다' : '', false, 'medkit')));
   const sec = (h, sub, L, open) => L.length ? `<details class="rqs"${open ? ' open' : ''}><summary><b>${h}</b><small>${sub}</small><i>${L.length}</i></summary><div class="choices clsc">${L.join('')}</div></details>` : '';
-  return sec('관제실 요청', '시설·비컨·문 확인·지원', Q, g === 'radio' || r.fork || !!r.shift || !!r.noise) + sec('치료', '응급 처치·정신 안정', C, g === 'medkit' || C.some(x => x.includes('붕괴')));
+  return sec('치료', '응급 처치·정신 안정', C, g === 'medkit' || C.some(x => x.includes('붕괴'))); // 관제실 요청은 관제실이 알아서 한다(단순화)
 }
 // 행동 카드는 지금 쓸 만한 것 3개만 먼저 보여 주고 나머지는 접는다(관제실 요청·치료 묶음은 따로)
 function topCards(html) {
@@ -3223,10 +3246,9 @@ function myTurnHTML(r, me, combat) {
   const front = (r.minions || []).find(x => x.side === 'front'), rear = (r.minions || []).find(x => x.side === 'rear');
   const faces = (p === 'front' || p === 'solo') && front ? front : (p === 'rear' || p === 'solo') && rear ? rear : null;
   const reachNeed = (sc.choices || []).some(c => c.adv && c.reach) && M && M.pos < M.len - 6;
-  const hint = faces ? `${jo2(faces.name, '을', '를')} 치우거나 막아야 대열이 움직일 수 있다.`
-    : combat ? '하수인이 대열에 붙었다. 끝자리 요원이 맞서고, 중열은 사격으로 돕는다.'
-    : reachNeed && (p === 'front' || p === 'solo') ? '구역 끝까지 전진해야 목표 행동을 할 수 있다.'
-    : reachNeed ? '선두가 대열을 이끌고 구역 끝까지 가야 한다. 그사이 보조 행동으로 돕는다.' : '';
+  const hint = r.boss ? '개체를 쓰러뜨리면 작전 성공. 하수인이 앞을 막으면 먼저 치운다.'
+    : combat ? '하수인을 치워야 대열이 움직일 수 있다.'
+    : reachNeed ? '구역 끝까지 전진해야 목표 행동을 할 수 있다.' : '';
   const cards = [
     r.boss ? bossAtkHTML(r, me) : '',
     ...(combat && !r.fork ? (r.attacks || []).map(a => attackHTML(a, me, r)) : []), combat && !r.fork ? guardHTML(r, me) : '',
@@ -3252,12 +3274,11 @@ function myTurnHTML(r, me, combat) {
 }
 function movesHTML(r, me) {
   const p = me.pos, bf = (r.minions || []).some(x => x.side === 'front'), br = (r.minions || []).some(x => x.side === 'rear');
-  const lead = (p === 'front' || p === 'solo') && !bf, tail = (p === 'rear' || p === 'solo') && !br;
-  return `<div class="moves">
-    <button class="btn s${lead ? '' : ' g'}" data-act="opMove" data-v="fwd" ${lead ? '' : 'disabled'}>전진 <small>${bf ? '앞이 막힘' : '선두'}</small></button>
-    <button class="btn s g" data-act="opMove" data-v="wait">대기 <small>누구나</small></button>
-    <button class="btn s${tail ? '' : ' g'}" data-act="opMove" data-v="back" ${tail ? '' : 'disabled'}>후퇴 <small>${br ? '뒤가 막힘' : '후미'}</small></button>
-    <button class="btn s g" data-act="opMove" data-v="swap" ${p === 'front' || p === 'solo' ? 'disabled' : ''}>자리 바꾸기 <small>앞으로</small></button>
+  const lead = !bf && !r.boss, tail = !br && !r.boss;
+  return `<div class="moves m3">
+    <button class="btn s${lead ? '' : ' g'}" data-act="opMove" data-v="fwd" ${lead ? '' : 'disabled'}>전진${bf ? ' <small>앞이 막힘</small>' : ''}</button>
+    <button class="btn s g" data-act="opMove" data-v="wait">대기</button>
+    <button class="btn s g" data-act="opMove" data-v="back" ${tail ? '' : 'disabled'}>후퇴${br ? ' <small>뒤가 막힘</small>' : ''}</button>
   </div>`;
 }
 // 난이도(1~4)와 권장 인원
@@ -3266,7 +3287,7 @@ const levelHTML = op => `<span class="lvl l${op.level}" title="난이도 ${LEVEL
 const recTxt = op => { if (!op.rec) return ''; const f = op.rec.field, rg = a => a[0] === a[1] ? a[0] : a[0] + '~' + a[1]; return `현장 ${rg(f)}명`; };
 // 포지션: 대기실에서 작전마다 고른다
 // 출발 장비: 대기실에서 작전마다 하나 챙긴다(무료). 역할은 정해져 있지 않고, 장비가 잘하는 쪽을 정한다.
-const CLS = { weapon: ['무기', '공격 판정 주사위 +1, 맞히면 피해 +1'], detector: ['탐지기', '은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률 증가'], medkit: ['구급상자', '응급처치·정신 안정 주사위 +1, 기능 없이도 치료 가능, 구급 키트 1회분'], radio: ['통신기', '관제실 요청(시설·비컨·지원·해독) 주사위 +1'] };
+const CLS = { weapon: ['무기', '공격 판정 주사위 +1, 맞히면 피해 +1'], detector: ['탐지기', '은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률 증가'], medkit: ['구급상자', '응급처치·정신 안정 주사위 +1, 기능 없이도 치료 가능, 구급 키트 1회분'], radio: ['통신기', '장면 행동 판정 주사위 +1(관찰·해독·설치 같은 공격 말고 카드)'] };
 const clsPickHTML = m => `<span class="si">출발 장비 · 하나를 챙깁니다</span><span class="clsp" role="group" aria-label="출발 장비">${Object.entries(CLS).map(([k, [n, d]]) => `<button class="c-${k}" data-act="opCls" data-v="${k}" aria-pressed="${m.cls === k}" title="${esc(d)}">${n}</button>`).join('')}</span><span class="si">${esc((CLS[m.cls] || CLS.weapon)[1])}</span>`;
 function recNote(r) {
   if (!r.op.rec || r.status !== 'lobby') return '';
@@ -3329,7 +3350,8 @@ function viewOps(rr, parts) {
   const combat = r.status === 'live' && (r.minions || []).length > 0, otherOpen = S.otherOpen && S.otherOpen[r.id];
   const otherN = sc ? sc.choices.length + (r.recover || []).length + (me && me.sk && me.sk['응급처치'] ? (r.heal || []).length : 0) : 0;
   const noisy = ctl && r.noise && r.noise.shown ? ' noisy' : '';
-  const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}
+  const G = r.gauge, gauge = G ? `<span class="gauge${G.v >= G.max ? ' full' : ''}"><small>팀 연계</small><span class="gb2">${Array.from({ length: G.max }, (_, k) => `<i class="${k < G.v ? 'on' : ''}"></i>`).join('')}</span><b>${G.v}/${G.max}</b><em>성공하면 1칸, 대성공은 2칸 · 가득 차면 RAVEN 일제 사격</em></span>` : '';
+  const vis = r.status === 'live' ? `${stepsHTML(r, cnt)}${gauge}
       ${npcHTML(r)}
       ${shiftBanHTML(r)}${r.shift ? shiftBoxHTML(r) : ''}${contactBoxHTML(r, me)}${ambushBoxHTML(r)}
       ${stageHTML(r, me)}
@@ -3349,12 +3371,13 @@ function viewOps(rr, parts) {
   const stage = r.status === 'live' ? `<div class="stage${noisy}">${vis}${actIn}</div>` : `<div class="stage done"><span class="bb res ${r.result}">${({ success: 'MISSION COMPLETE', fail: 'MISSION FAILED', abort: 'MISSION ABORTED' })[r.result]}</span>
       <b class="st">${({ success: '작전 성공', fail: '작전 실패', abort: '작전 중단' })[r.result]}</b>
       <p>${r.result === 'success' ? `생존 요원 보상: 보급품 ${r.op.reward ? r.op.reward.supply : 40}, 연구 자료 ${r.op.reward ? r.op.reward.research : 2}.${r.op.patrol ? ' 수용 개체의 격리 안정도가 15% 올랐습니다.' : ''}` : '보상은 지급되지 않았습니다.'} 사망한 요원은 재생 수조로 이송되었습니다.</p>
+      ${(() => { const D2 = Object.entries(r.dmgBy || {}).sort((a, b) => b[1] - a[1]); if (!D2.length) return ''; const mv = r.members.find(m => m.uid === D2[0][0]); return `<div class="mvp"><span class="bb">MVP</span><b>${esc(mv ? mv.name : '')}</b><small>입힌 피해 ${D2[0][1]}</small>${D2.slice(1).map(([u, v]) => { const x = r.members.find(m => m.uid === u); return `<small>${esc(x ? x.name : '')} ${v}</small>`; }).join('')}</div>`; })()}
       ${me ? `<div class="acts"><button class="btn" data-act="opClose">확인하고 대기실 다시 열기</button></div>` : ''}${err}</div>`;
   if (parts) return { head, stage: r.status === 'live' ? `<div class="stage vis${noisy}">${vis}</div>` : stage, act: r.status === 'live' ? `<div class="stage act">${actIn}</div>` : '', ctlTeam, log: logHTML(r, me), recap: r.status === 'live' ? recapHTML(r) : '' };
   const fold = !(S.logOpen && S.logOpen[r.id]);
   return opSplit(r, ' live', `${head}
     <div class="opgrid"><div class="opmain">${stage}<button class="logfold" data-act="logFold" data-v="${r.id}" aria-expanded="${!fold}">${ico('log', 16, 2)}<b>${fold ? '작전 기록 다시보기' : '작전 기록 접기'}</b><small>${r.log.length}건</small><span class="cv">${ico(fold ? 'chevR' : 'chevD', 14, 2)}</span></button>${fold ? '' : `<ol class="oplog" aria-label="작전 기록">${logHTML(r, me)}</ol>`}</div>
-      <div class="opside">${r.status === 'live' ? ctlTeam : teams}</div></div>`);
+      <div class="opside">${teams}</div></div>`);
 }
 function viewRecords() {
   if (!S.records) { B.getRecords().then(l => { S.records = l; renderCenter(); }).catch(() => { S.records = []; renderCenter(); }); return `<section class="pnl wip"><span class="bb">RECORDS</span><h2>작전 기록</h2><p class="sub" style="margin:0">기록을 불러오는 중입니다.</p></section>`; }
@@ -3790,7 +3813,7 @@ function syncModal() {
   const done = r.status === 'done';
   // 행동 버튼은 누르는 순간 잠기므로, 갱신이 올 때마다 머리와 장면은 새로 그려 잠금을 푼다
   ['opmHead', 'opmStage', 'opmAct'].forEach(id => { const el = document.getElementById(id); if (el) el._h = null; });
-  setHTML('opmHead', P.head + `<div class="opm-sub">${done ? P.ctlTeam : ''}${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
+  setHTML('opmHead', P.head + `<div class="opm-sub">${done ? `<button class="btn s g" data-act="modalHide">결과 닫기</button>` : ''}</div>`);
   setHTML('opmStage', P.stage);
   setHTML('opmAct', P.act || '');
   const box = host.querySelector('.opm-box');
@@ -3815,7 +3838,41 @@ function syncModal() {
   setHTML('opmLog', P.log); if (lg && !lg._up) requestAnimationFrame(() => { lg.scrollTop = lg.scrollHeight; });
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
+  rollFx(host, r);
   if (r.tut) tutCoach(host);
+}
+/* ───────── 판정 연출: 새로 들어온 판정을 화면 가운데에 하나씩 띄운다 ───────── */
+const RFQ = [];
+function rollFx(host, r) {
+  const L = r.log || [];
+  if (host._seenOp !== String(r.id)) { host._seenOp = String(r.id); host._seen = L.length; return; }
+  if (L.length <= (host._seen || 0)) { host._seen = L.length; return; }
+  const nw = L.slice(host._seen); host._seen = L.length;
+  nw.forEach(e => { if (e.kind === 'roll' && e.dice) RFQ.push(e); else if (e.kind === 'burst') RFQ.push(e); });
+  while (RFQ.length > 4) RFQ.shift();
+  if (!rollFx.busy) rollFxNext(host);
+}
+function rollFxNext(host) {
+  const e = RFQ.shift(); if (!e) { rollFx.busy = false; return; }
+  rollFx.busy = true;
+  const box = host.querySelector('.opm-box'); if (!box) { rollFx.busy = false; return; }
+  let el = box.querySelector('#rollFx'); if (!el) { el = document.createElement('div'); el.id = 'rollFx'; el.setAttribute('aria-hidden', 'true'); box.appendChild(el); }
+  const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if (e.kind === 'burst') {
+    el.innerHTML = `<div class="rf burst"><b class="bb">RAVEN 일제 사격</b><em>${esc(e.text.replace('팀 연계 완성. RAVEN 일제 사격. ', ''))}</em></div>`;
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    setTimeout(() => { el.innerHTML = ''; rollFxNext(host); }, reduce ? 1200 : 1700); return;
+  }
+  const faces = [...(e.dice.w || []).map(v => ['w', v]), ...(e.dice.b || []).map(v => ['b', v]), ...(e.dice.s || []).map(v => ['s', v])].slice(0, 10);
+  const dmg = (e.fx && e.fx.foe) || (/피해 (\d+)/.exec(e.text || '') || [])[1];
+  const T = { crit: '대성공!', ok: '성공', cost: '대가 있는 성공', fail: '실패' }[e.tier] || e.tierName || '';
+  el.innerHTML = `<div class="rf t-${e.tier || ''}"><small>${esc(e.name || '')} · ${esc(e.label || '')}</small><span class="rd">${faces.map(([k, v]) => `<i class="dc ${k}" data-v="${v}">${reduce ? v : Math.ceil(Math.random() * 6)}</i>`).join('')}</span><b class="rt">${T}</b>${dmg ? `<em class="rdmg">−${dmg}</em>` : ''}</div>`;
+  const card = el.firstChild;
+  if (!reduce) { const it = setInterval(() => card.querySelectorAll('.rd i').forEach(i => { i.textContent = Math.ceil(Math.random() * 6); }), 60);
+    setTimeout(() => { clearInterval(it); card.querySelectorAll('.rd i').forEach(i => { i.textContent = i.dataset.v; if (+i.dataset.v >= 5) i.classList.add('hit'); }); card.classList.add('land');
+      if (e.tier === 'crit') { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); } }, 420); }
+  else card.classList.add('land');
+  setTimeout(() => { el.innerHTML = ''; rollFxNext(host); }, reduce ? 900 : 1250);
 }
 // 카메라 화면 위의 장면 설명 칸과 레이더 칸의 윗선을 맞춘다(PC). 크기는 각자 내용대로 둔다.
 function eqStageTop(root) {

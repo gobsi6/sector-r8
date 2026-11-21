@@ -420,7 +420,7 @@ const OPS = [{
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 격리실로 들어가 셈을 마치기 전에 개체를 제압하십시오. 제압하면 장치는 기지가 다시 켭니다.',
-  boss: { hp: 20, perMember: 9, name: '계수자' },
+  boss: { hpBy: [0, 30, 54, 62, 72], name: '계수자' },
   contact: { text: '어둠 속에서 손가락이 뻗어 나왔다. {name} 요원의 몸 어딘가가 하나 세어졌다.', hp: -2, san: -1, count: -1 },
   forms: ['어둠 너머에서 셈 소리만 들린다. 형체는 보이지 않는다.', '복도 끝 어둠 속에 사람보다 머리 하나는 큰 윤곽이 서 있다.', '무릎까지 늘어진 두 팔이 보인다. 손마다 손가락이 너무 많고, 하나씩 접히고 있다.', '그것이 고개를 든다. 접힌 손가락 마디마다 숫자가 새겨져 있다.'],
   minion: { name: '세어진 것', hp: 3, text: '이마에 숫자가 새겨진 사람 형체. 셈에 붙들린 이전 직원들의 모습을 하고 있다.',
@@ -644,6 +644,7 @@ function posOf(r, uid) {
 }
 // 위치 조건: 혼자면 모든 자리, 중열이 없으면(2명 이하) 중열 행동은 누구나
 function posOk(r, uid, need) {
+  return true; // 단순화: 대열 위치 제한 없음(누구나 아무 행동이나)
   if (!need) return true;
   const p = posOf(r, uid); if (!p) return false;
   if (p === 'solo') return true;
@@ -670,6 +671,7 @@ function runOut(r, viewer, gm) {
     r1: r.r1 || null,
     picks: live ? Object.entries(r.picks || {}).map(([u, p]) => ({ uid: u, kind: p.kind, v: p.v, label: p.label })) : [], deadline: live ? r.deadline || null : null, roundMs: ROUND_MS, now: now(),
     contactWarn: live && r.contactWarn ? r.contactWarn : null,
+    gauge: live ? { v: r.gauge || 0, max: gaugeMax(r) } : null, dmgBy: r.dmgBy || {},
     boss: live && r.boss && sc.boss ? { name: r.boss.name, hp: r.boss.hp, hpMax: r.boss.hpMax, intent: r.boss.stun ? 'stun' : r.boss.intent, intentName: r.boss.stun ? '비틀거림' : BOSS_INT[r.boss.intent], exposed: r.boss.exposedUntil >= r.turn, taunt: r.boss.taunt ? r.boss.taunt.uid : null, blocked: r.minions.some(x => x.side === 'front'), dmgRound: r.boss.dmgRound || 0, brk: BOSS_BREAK, combo: r.boss.hitTurn === r.turn - 1 ? r.boss.hitBy : null } : null,
     ambush: live && r.ambush ? { side: r.ambush.side, n: r.ambush.n } : null,
     noise: live && r.noise ? { shown: r.noise.shown, turns: r.noise.turns, left: Math.max(1, 3 - r.noise.turns) } : null,
@@ -719,6 +721,8 @@ function gainXp(uid, skill, n) {
 }
 const say = (r, text, extra) => {
   r.log.push({ t: now(), text, ...(extra || {}) });
+  // 팀 연계 게이지: 성공한 판정마다 1, 대성공은 2. 가득 차면 라운드 끝에 일제 사격.
+  if (extra && extra.kind === 'roll' && extra.uid && r.status === 'live' && (extra.tier === 'ok' || extra.tier === 'crit')) r.gauge = Math.min(gaugeMax(r), (r.gauge || 0) + (extra.tier === 'crit' ? 2 : 1));
   // 작전 판정이면 그 기능에 경험치. 등급이 오르면 대열 정보도 새로 고친다.
   if (extra && extra.kind === 'roll' && extra.uid && extra.skill) {
     const g = gainXp(Number(extra.uid), extra.skill, extra.ctl ? XP.ctl : XP.roll), m = r.members.find(x => x.uid === String(extra.uid));
@@ -764,7 +768,7 @@ function opReady(uid, opId, on) {
    무기: 공격 판정 주사위 +1, 맞히면 피해 +1
    탐지기: 은신 판정 주사위 +1, 하수인이 덤빌 때 피할 확률이 늘어난다
    구급상자: 응급처치·정신 안정 주사위 +1, 응급처치 기능이 없어도 치료할 수 있다, 구급 키트 1회분
-   통신기: 관제실 요청(시설·비컨·지원 연결·잡음 해독) 주사위 +1
+   통신기: 장면 행동(공격 말고 장면 카드) 판정 주사위 +1
    (내부 필드 이름은 예전 포지션 그대로 cls를 쓴다) */
 const CLS = { weapon: '무기', detector: '탐지기', medkit: '구급상자', radio: '통신기' };
 const gearDie = (m, g) => m && m.cls === g ? 1 : 0;
@@ -815,8 +819,6 @@ function pickCheck(r, uid, kind, v) {
     if (v === 'wait') return [null, '대기'];
     if (v === 'swap') return L.findIndex(x => x.uid === m.uid) <= 0 ? ['op/no-ahead'] : [null, '자리 바꾸기'];
     if (v === 'fwd' || v === 'back') {
-      if (v === 'fwd' && !(p === 'front' || p === 'solo')) return ['op/pos'];
-      if (v === 'back' && !(p === 'rear' || p === 'solo')) return ['op/pos'];
       if (r.minions.some(x => x.side === (v === 'fwd' ? 'front' : 'rear'))) return [v === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear'];
       return [null, v === 'fwd' ? '전진' : '후퇴'];
     }
@@ -828,8 +830,8 @@ function pickCheck(r, uid, kind, v) {
   if ((mt = /^(atk|shv)-(front|rear)$/.exec(v))) {
     const side = mt[2], foe = r.minions.find(x => x.side === side); if (!foe) return ['op/no-foe'];
     const melee = p === 'solo' || p === side, ranged = p === 'mid' || (L.length === 2 && p !== side);
-    if (mt[1] === 'shv') return melee ? [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
-    return melee || ranged ? [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`] : ['op/pos'];
+    if (mt[1] === 'shv') return [null, `밀쳐 내기 (${side === 'front' ? '앞' : '뒤'})`];
+    return [null, `${melee ? '공격' : '사격'} (${side === 'front' ? '앞' : '뒤'})`];
   }
   if (v === 'guard') return r.minions.length || r.contactWarn ? [null, '막기'] : ['op/no-foe'];
   if (v === 'evade') return r.contactWarn && r.contactWarn.uid === String(uid) ? [null, '피한다'] : ['op/no-target'];
@@ -876,6 +878,18 @@ function startRound(r) {
   r.deadline = now() + ROUND_MS;
   r._timer = setTimeout(() => { if (r.status === 'live') { resolveRound(r); emitRun(r); } }, ROUND_MS + 250);
 }
+const gaugeMax = r => 4 + 2 * Math.max(1, r.nf || 1);
+// 일제 사격: 개체가 있으면 큰 피해, 하수인은 모두 쓰러뜨리고, 탐사에서는 남은 시간 +1
+function burst(r) {
+  r.gauge = 0; r.bursts = (r.bursts || 0) + 1;
+  const B = r.boss && D(r).scenes[r.scene].boss ? r.boss : null, n = r.minions.length, dmg = 6 + 2 * (r.nf || 1);
+  let txt = '팀 연계 완성. RAVEN 일제 사격.';
+  if (n) { r.minions = []; txt += ` 하수인 ${n}마리를 쓸어버렸다.`; }
+  if (B && B.hp > 0) { B.hp = Math.max(0, B.hp - dmg); txt += ` 계수자에게 피해 ${dmg}.`; }
+  if (!n && !B) { countAdd(r, 1, '일제 사격'); txt += ' 길이 열렸다. 남은 시간 +1.'; }
+  say(r, txt, { kind: 'burst', dmg: B ? dmg : 0 });
+  if (B && B.hp <= 0) { say(r, `${jo(B.name, '이', '가')} 무릎을 꿇었다. 제압 완료. 기지가 소리 차단 장치를 다시 켰다.`, { kind: 'kill' }); checkBodies(r); opFinish(r, 'success'); }
+}
 function resolveRound(r) {
   if (r.status !== 'live' || r.batch) return;
   clearTimeout(r._timer);
@@ -898,6 +912,7 @@ function resolveRound(r) {
     r.ambushQuiet = { quiet: able.every(m => quietV(picks[m.uid])), ok: able.filter(m => m.hideOk === r.turn).length, need: Math.ceil(able.length / 2) };
   }
   r.batch = false; r.picks = {};
+  if (r.status === 'live' && (r.gauge || 0) >= gaugeMax(r)) burst(r);
   if (r.status === 'live') endTurn(r, r._sceneChanged ? false : undefined);
   if (r.status === 'live') startRound(r);
 }
@@ -912,7 +927,7 @@ function opStart(uid, opId) {
   const o = D(r);
   // 인원 보정 기준: 현장 인원
   r.nf = r.members.filter(m => m.role === 'field').length; r.nt = r.nf;
-  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
+  r.status = 'live'; r.started = now(); r.noise = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.beaconUntil = -1; r.sceneT0 = 0; r.ctlUsed = {}; r.doorUsed = false; r.fac = {}; r.count = o.count; r.cfx = []; r.gauge = 0; r.dmgBy = {}; r.scene = 0; r.support = 0; r.log = []; r.turn = 0; r.dist = o.scenes[0].dist; r.pos = o.scenes[0].map.start;
   const agi = m => { const row = Q.agent.get(Number(m.uid)); return row ? modStats(row)[2] : 0; };
   r.order = r.members.filter(m => m.role === 'field').map((m, i) => ({ uid: m.uid, a: agi(m), i })).sort((a, b) => b.a - a.a || a.i - b.i).map(x => x.uid);
   r.members.forEach(m => { if (!CLS[m.cls]) m.cls = 'weapon'; m.kitFree = m.cls === 'medkit' ? 1 : 0; });
@@ -956,7 +971,7 @@ function bossIntent(r) {
 }
 function bossStart(r) {
   const o = D(r), b = o.boss || { hp: 14, perMember: 5 };
-  const hp = b.hp + b.perMember * Math.max(0, (r.nf || 1) - 1);
+  const hp = b.hpBy ? b.hpBy[Math.min(4, Math.max(1, r.nf || 1))] : b.hp + b.perMember * Math.max(0, (r.nf || 1) - 1);
   r.boss = { hp, hpMax: hp, name: b.name || o.entity, stun: false, exposedUntil: -1, taunt: null, hitTurn: -9, hitBy: null };
   r.dist = 6; bossIntent(r);
 }
@@ -1003,7 +1018,8 @@ function bossFight(r, m, uid) {
   if (dmg > 0 && B.intent === 'open') { dmg += 2; notes.push('틈 +2'); }
   if (dmg > 0 && B.intent === 'brace') { dmg = Math.ceil(dmg / 2); notes.push('웅크림 절반'); }
   if (dmg > 0) { B.hitTurn = r.turn; B.hitBy = m.uid; }
-  B.hp = Math.max(0, B.hp - dmg); B.dmgRound = (B.dmgRound || 0) + dmg;
+  B.hp = Math.max(0, B.hp - dmg); B.dmgRound = (B.dmgRound || 0) + dmg; r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + dmg;
+  if (!B.npcBind && B.hp > 0 && B.hp <= B.hpMax / 2) { B.npcBind = true; B.stun = true; r.contactWarn = null; say(r, '관제실: 구속 장치 가동. 개체를 붙잡았다. 지금 몰아칠 것.', { kind: 'radio', name: '관제실' }); }
   const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
   const txt = { crit: '정확히 급소를 노렸다. 개체가 크게 휘청인다.', ok: '개체를 밀어붙였다.', cost: '맞히긴 했지만 개체의 손가락이 팔을 셌다.', fail: '빗나갔다. 개체의 손가락이 팔을 셌다.' }[tier];
   say(r, `${txt}${dmg ? ` 피해 ${dmg}${notes.length ? ` (${notes.join(', ')})` : ''}.` : ''}`, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + ' (개체)', stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: hurt ? { hp: hurt } : null });
@@ -1085,12 +1101,12 @@ function facsOf(r) {
     ...(boss ? [] : [{ id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }])
   ].concat(r.shift ? [{ id: 'beacon', name: '기준점 비컨', kind: '비컨', diff: 2, skill: '통신', eff: `원래 도면 좌표를 송출해 이번 변형(${SHIFT_KINDS[r.shift.kind].name})을 막는다. 심연도 이 신호를 듣는다: ${BEACON_TURNS}라운드 동안 잡음 확률 2배`, on: false, state: '대기', x: 50 }] : []);
 }
-const isDark = r => !(r.fac && r.fac.pwr);
+const isDark = r => false; // 단순화: 어둠 주사위 −1 없음
 /* ───────── 하층 구조 변형 ─────────
    하층은 기지 구조가 꼬여 있고 계속 확장·변형된다. 구역마다 한 번, 관제 계기판에 변형이 먼저 잡히고
    다음 턴이 끝날 때 구조가 바뀐다. 관제는 그 사이에 기준점 비컨(지능 + 통신, 보통)으로 변형을 막을 수 있다.
    비컨은 원래 도면 좌표를 송출하는 장치라 심연도 그 신호를 듣는다: 켜면 3라운드 동안 잡음 확률이 두 배가 된다. */
-const SHIFT_CHANCE = Number(process.env.R8_SHIFT ?? 0.35), BEACON_TURNS = 3;
+const SHIFT_CHANCE = Number(process.env.R8_SHIFT ?? 0), BEACON_TURNS = 3;
 const SHIFT_KINDS = {
   extend: { name: '복도 연장', warn: '구역 끝까지의 복도가 12m 늘어난다' },
   marks: { name: '표지물 이동', warn: '지나온 표지물이 앞쪽으로 옮겨진다. 대열이 8m 되돌아간다' },
@@ -1134,7 +1150,7 @@ function shiftApply(r) {
 function sceneEnter(r) {
   r.ctlUsed = {}; r.fac = {}; r.band = 0; r.forkIdle = 0; r.ambush = null; r.ambushQuiet = null; r.shift = null; r.shiftDone = false; r.shiftFx = null; r.sceneT0 = r.turn;
   const sc0 = D(r).scenes[r.scene];
-  if (sc0.fork) { r.minions = []; return; }
+  if (sc0.fork) { r.minions = []; const d = pick(sc0.doors); if (d && !d.peeked) { classExec(r, { uid: '0', name: '관제실', cls: null }, 'peek', d.id); } return; }
   if (sc0.boss) bossStart(r); else r.boss = null;
   const sp = sc0.spawn;
   if (sp) for (const sd of ['front', 'rear']) if (sp[sd]) spawnMinion(r, sd, sp[sd] + scaleOf(r).spawn);
@@ -1227,7 +1243,7 @@ const NOISE_TEXT = [
   '귀환 신호는 우리가 먹고 있다. 돌려받고 싶으면 읽어라.',
   '문은 열려 있었다. 처음부터. 너희가 닫혀 있었다.'
 ];
-const NOISE_CHANCE = 0.2;
+const NOISE_CHANCE = 0; // 단순화: 잡음 끔
 const SUPPORT_MAX = 2; // 관제 지원 주사위는 2개까지 쌓인다(시뮬레이터로 맞춘 값)
 function garble(t) { return [...t].map(ch => ch === ' ' || ch === '.' ? ch : Math.random() < 0.55 ? '▒█▓░'[Math.floor(Math.random() * 4)] : ch).join(''); }
 function noiseStart(r) {
@@ -1323,14 +1339,14 @@ function actExec(r, uid, choiceId) {
   if (!posOk(r, uid, c.pos)) return 'op/pos';
   if (c.reach && r.pos < sc.map.len - REACH_M) return 'op/not-there';
   // 거리가 맞지 않으면 판정 없이 턴만 흐른다 (현장팀은 정확한 거리를 모른다)
-  if ((c.max && r.dist > c.max) || (c.min && r.dist < c.min)) {
+  if (false && ((c.max && r.dist > c.max) || (c.min && r.dist < c.min))) {
     say(r, `${m.name} 요원이 「${c.label}」을(를) 시도했지만 ${c.max && r.dist > c.max ? '개체가 아직 멀었다' : '개체가 너무 가까웠다'}. 아무 일도 일어나지 않았다.`, { kind: 'miss', uid: m.uid });
     return endTurn(r);
   }
   const row = Q.agent.get(uid);
   const sup = r.support; r.support = 0;
   const ease = c.adv !== false && r.fac && r.fac.ease ? 1 : 0, diff = Math.max(1, c.diff - ease);
-  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0), isDark(r) ? 1 : 0);
+  const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, c.stat, c.skill, sup + (c.skill === '은신' ? gearDie(m, 'detector') : 0) + gearDie(m, 'radio'), isDark(r) ? 1 : 0);
   const tier = tierOf(res.succ, diff);
   const raw = c[tier], out = scaleFx(typeof raw === 'string' ? { text: raw } : raw); if (out.san) out.san = grit(m, out.san);
   const fx = ['hp', 'san', 'cont', 'count', 'sup', 'push'].some(k => out[k]) ? { hp: out.hp, san: out.san, cont: out.cont, count: out.count, sup: out.sup, push: out.push } : null;
@@ -1355,7 +1371,6 @@ function opFight(r, m, uid, side) {
   const p = posOf(r, uid), L = lineOf(r);
   const melee = p === 'solo' || (side === 'front' ? p === 'front' : p === 'rear');
   const ranged = p === 'mid' || (L.length === 2 && p !== (side === 'front' ? 'front' : 'rear'));
-  if (!melee && !ranged) return 'op/pos';
   const stat = melee ? 0 : 2, skill = melee ? '격투' : '사격', diff = 2;
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const atk = m.cls === 'weapon';
@@ -1369,7 +1384,7 @@ function opFight(r, m, uid, side) {
   const braced = dmg > 0 && foe.braced; if (braced) dmg = Math.ceil(dmg / 2);
   if (dmg > 0) { foe.hitTurn = r.turn; foe.hitBy = m.uid; }
   const hurt = tier === 'cost' || tier === 'fail' ? hpD(-1) : 0;
-  foe.hp = Math.max(0, foe.hp - dmg);
+  foe.hp = Math.max(0, foe.hp - dmg); r.dmgBy = r.dmgBy || {}; r.dmgBy[m.uid] = (r.dmgBy[m.uid] || 0) + dmg;
   const nm = o.minion.name, txt = { crit: `정확히 급소를 노렸다. ${jo(nm, '이', '가')} 크게 휘청인다.`, ok: `${jo(nm, '을', '를')} 밀어붙였다.`, cost: `맞히긴 했지만 ${nm}의 반격이 스쳤다.`, fail: `빗나갔다. ${jo(nm, '이', '가')} 틈을 파고들었다.` }[tier];
   say(r, txt, { kind: 'roll', uid: m.uid, name: m.name, pos: POS_NAME[p] || '', label: (melee ? '근접 공격' : '사격') + (side === 'front' ? ' (앞)' : ' (뒤)'), stat: res.stat, statVal: res.statVal, skill, skillLv: res.skillLv, dice: res.dice, succ: res.succ, diff, tier, tierName: TIER_NAME[tier], fx: { foe: dmg, hp: hurt || undefined } });
   if (combo) say(r, `협공. ${jo(o.minion.name, '이', '가')} 연달아 맞아 피해 +2.`, { kind: 'kill', uid: m.uid });
@@ -1382,7 +1397,7 @@ function opFight(r, m, uid, side) {
 // 밀쳐내기: 끝자리 요원이 근력 + 격투, 쉬움(1). 성공하면 하수인이 다음 행동을 놓친다.
 function opShove(r, m, uid, side) {
   const o = D(r), foe = r.minions.find(x => x.side === side); if (!foe) return 'op/no-foe';
-  const p = posOf(r, uid); if (!(p === 'solo' || p === side)) return 'op/pos';
+  const p = posOf(r, uid);
   const row = Q.agent.get(uid), sup = r.support; r.support = 0;
   const res = rollPool({ ...row, contamination: (row.contamination || 0) + m.cont }, 0, '격투', sup);
   const tier = tierOf(res.succ, 1), nm = o.minion.name;
@@ -1433,15 +1448,13 @@ function moveExec(r, uid, kind) {
   const err = canField(r, uid); if (err) return err;
   const m = fieldMember(r, uid), sc = D(r).scenes[r.scene], p = posOf(r, uid);
   if (kind === 'fwd' || kind === 'back') {
-    if (kind === 'fwd' && !(p === 'front' || p === 'solo')) return 'op/pos';
-    if (kind === 'back' && !(p === 'rear' || p === 'solo')) return 'op/pos';
     if (r.minions.some(x => x.side === (kind === 'fwd' ? 'front' : 'rear'))) return kind === 'fwd' ? 'op/blocked-front' : 'op/blocked-rear';
     // 대열은 지형 위에서 움직인다. 진행 방향(fwd)은 지형의 끝 쪽.
     const np = Math.max(0, Math.min(sc.map.len, r.pos + (kind === 'fwd' ? STEP_M : -STEP_M))), moved = np - r.pos;
     if (!moved) return kind === 'fwd' ? 'op/map-end' : 'op/map-start';
     r.pos = np;
     r.dist = Math.max(0, Math.min(60, r.dist + (sc.from === 'front' ? -moved : moved)));
-    say(r, kind === 'fwd' ? `선두 ${m.name} 요원이 대열을 이끌고 앞으로 나아갔다.` : `후미 ${m.name} 요원의 신호에 대열이 뒤로 물러났다.`, { kind: 'move', uid: m.uid });
+    say(r, kind === 'fwd' ? `${m.name} 요원의 신호로 대열이 앞으로 나아갔다.` : `${m.name} 요원의 신호에 대열이 뒤로 물러났다.`, { kind: 'move', uid: m.uid });
   } else if (kind === 'wait') {
     say(r, `${m.name} 요원의 신호로 대열이 제자리에서 숨을 죽였다.`, { kind: 'move', uid: m.uid });
   } else if (kind === 'swap') {
@@ -1530,7 +1543,7 @@ function classExec(r, m, kind, target) {
     if (r.noise) return 'op/noise';
     d.peeked = true; 
     const R = DOOR_RISK[d.risk], ns = d.scene;
-    say(r, `관제실: ${m.name} 요원 요청 확인. ${d.name} 너머 감시 카메라 판독. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '후방' : '전방'}에서 접근 예상.`, { kind: 'radio', uid: m.uid, name: '관제실', peek: d.id });
+    say(r, `관제실: ${m.uid === '0' ? '' : `${m.name} 요원 요청 확인. `}${d.name} 너머 감시 카메라 판독. ${d.tpl}. ${R.name}: ${R.text} 개체는 대열 ${ns.from === 'rear' ? '후방' : '전방'}에서 접근 예상.`, { kind: 'radio', uid: m.uid, name: '관제실', peek: d.id });
     return null;
   } else if (kind === 'fac') {
     const F = facsOf(r).find(x => x.id === target); if (!F) return 'op/bad-choice';
