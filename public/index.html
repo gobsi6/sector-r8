@@ -1679,6 +1679,24 @@ body.modal-open{overflow:hidden}
   .opm-box.sheetmode .opm-right{padding-bottom:84px}
 }
 @media (prefers-reduced-motion:reduce){.opm-box.sheetmode .opm-act{transition:none}}
+/* 작전 중에는 아래 메뉴·채팅 버튼을 숨긴다(폰에서 스크롤하면 뒤에 비쳐 튀어나와 보였다) */
+body.modal-open .bnav,body.modal-open .fab{display:none!important}
+.opm-comms{display:contents}.opm-comms .sheet-h,.chatfab{display:none}
+@media (max-width:999px){
+  .opm-box.chatmode .chatfab:not([hidden]){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:fixed;right:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:85;width:64px;height:64px;border:0;background:var(--tile);color:var(--ink);box-shadow:inset 0 0 0 1px var(--navyLine),0 10px 24px rgba(0,0,0,.4);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .opm-box.chatmode:not(.sheetmode) .chatfab:not([hidden]){bottom:calc(20px + env(safe-area-inset-bottom))}
+  .opm-box.chatmode .chatfab i{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800;background:var(--red);color:#fff}
+  .opm-box.chat-on .actfab,.opm-box.sheet-on .chatfab{display:none!important}
+  .opm-box.chatmode .opm-comms{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:86;height:66vh;background:var(--bg,#151515);box-shadow:0 -12px 32px rgba(0,0,0,.5),inset 0 1px 0 var(--navyLine);padding:0 10px calc(10px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .22s ease-out}
+  .opm-box.chatmode.chat-on .opm-comms{transform:none;visibility:visible}
+  .opm-box.chatmode .opm-comms .sheet-h{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--tileLine);margin-bottom:6px;flex:none}
+  .opm-box.chatmode .opm-comms .sheet-h small{color:var(--sub);font-size:11px}.opm-box.chatmode .opm-comms .sheet-h .btn{margin-left:auto}
+  .opm-box.chatmode .opm-comms>.opm-sec{display:none}
+  .opm-box.chatmode .opm-comms>#opmChat{flex:1;min-height:0;height:auto!important;max-height:none!important;overflow-y:auto}
+  .opm-box.chatmode .opm-comms>form{flex:none}
+  .opm-box.chatmode .opm-right{display:flex;flex-direction:column;gap:8px}.opm-box.chatmode .opm-right>#opmLog{height:260px;flex:none;overflow-y:auto}
+}
+@media (prefers-reduced-motion:reduce){.opm-box.chatmode .opm-comms{transition:none}}
 /* 경고 팝업 */
 #toasts{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,460px)}
 .r8toast{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;line-height:1.45;color:var(--ink);background:var(--tile);box-shadow:inset 3px 0 0 #E5574F,inset 0 0 0 1px color-mix(in srgb,#E5574F 60%,transparent),0 8px 24px rgba(0,0,0,.35);animation:toastIn .2s ease-out;transition:opacity .45s,transform .45s}
@@ -3660,10 +3678,12 @@ function syncModal() {
     host.innerHTML = `<div class="opm-box" role="dialog" aria-modal="true" aria-label="작전 진행">
       <div class="opm-head" id="opmHead"></div>
       <button type="button" class="actfab" id="opmFab" data-act="actSheet" aria-label="행동 열기"></button>
+      <button type="button" class="actfab chatfab" id="opmChatFab" data-act="chatSheet" aria-label="작전 채팅 열기"></button>
       <div class="opm-body"><div class="opm-act"><div class="sheet-h"><b>행동</b><small>고르면 닫힙니다</small><button type="button" class="btn s g" data-act="actSheet">닫기</button></div><div id="opmAct"></div></div><div class="opm-left" id="opmStage"></div>
         <div class="opm-right"><div id="opmRecap"></div><div class="opm-sec"><span class="bb">LOG</span><small>작전 기록</small></div><ol class="oplog" id="opmLog" aria-label="작전 기록"></ol>
+          <div class="opm-comms"><div class="sheet-h"><b>작전 채팅</b><small>참가자만</small><button type="button" class="btn s g" data-act="chatSheet">닫기</button></div>
           <div class="opm-sec"><span class="bb">COMMS</span><small>작전 채팅, 참가자만</small></div><div class="list och" id="opmChat"></div>
-          <form data-form="opchat" class="opm-form"><label class="sr" for="opChatIn">작전 채팅 입력</label><input id="opChatIn" name="text" autocomplete="off" maxlength="300" placeholder="작전 채팅"><button type="submit" aria-label="보내기">${ico('send', 16, 2)}</button></form></div></div></div>`;
+          <form data-form="opchat" class="opm-form"><label class="sr" for="opChatIn">작전 채팅 입력</label><input id="opChatIn" name="text" autocomplete="off" maxlength="300" placeholder="작전 채팅"><button type="submit" aria-label="보내기">${ico('send', 16, 2)}</button></form></div></div></div></div>`;
     fitModal();
     requestAnimationFrame(() => { const lg = document.getElementById('opmLog'); if (lg) { lg.scrollTop = lg.scrollHeight; lg.addEventListener('scroll', () => { lg._up = lg.scrollHeight - lg.scrollTop - lg.clientHeight > 60; }); } const c = document.getElementById('opmChat'); if (c) c.scrollTop = c.scrollHeight; });
   }
@@ -3681,6 +3701,12 @@ function syncModal() {
   const fab = document.getElementById('opmFab');
   if (fab) { const me = r.members.find(m => m.uid === S.user.uid), mine = me && (r.picks || []).some(x => x.uid === me.uid), need = me && me.role === 'field' && !me.dead && !me.broken && r.status === 'live';
     fab.innerHTML = `${ico('ops', 22, 2)}<b>행동</b>${need ? (mine ? '<i class="ok">✓</i>' : '<i>!</i>') : ''}`; fab.hidden = !sheet; }
+  // 폰: 작전 채팅도 버튼으로 여는 시트로. 닫혀 있는 동안 온 메시지 수를 배지로
+  const cm = mobile() && !r.tut, nChat = (r.chat || []).length;
+  if (S.chatSheet || S.opChatSeen == null || S.opChatOp !== r.id) { S.opChatSeen = nChat; S.opChatOp = r.id; }
+  box.classList.toggle('chatmode', cm); box.classList.toggle('chat-on', cm && !!S.chatSheet);
+  const cf = document.getElementById('opmChatFab');
+  if (cf) { const nu = Math.max(0, nChat - S.opChatSeen); cf.innerHTML = `${ico('msg', 22)}<b>채팅</b>${nu ? `<i>${nu > 9 ? '9+' : nu}</i>` : ''}`; cf.hidden = !cm; }
   setHTML('opmRecap', P.recap || '');
   fitLines(document.getElementById('opmStage'));
   markPicks(document.getElementById('opmAct'), r);
@@ -4101,7 +4127,11 @@ app.addEventListener('click', e => {
       B.opCall(ev, m).catch(err => { S.opErr = errMsg(err); }).finally(() => { held.forEach(b => { if (b.isConnected) b.disabled = false; }); renderCenter(); });
       return;
     }
-    case 'actSheet': { S.actSheet = !S.actSheet; const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.toggle('sheet-on', !!S.actSheet && b.classList.contains('sheetmode')); if (S.actSheet) { const a2 = document.querySelector('#opModal .opm-act'); if (a2) a2.scrollTop = 0; } return; }
+    case 'chatSheet': { S.chatSheet = !S.chatSheet; if (S.chatSheet) S.actSheet = false; const b = document.querySelector('#opModal .opm-box'); if (b) { b.classList.toggle('chat-on', !!S.chatSheet && b.classList.contains('chatmode')); b.classList.remove('sheet-on'); }
+      if (S.chatSheet) { const r = S.tut && S.tut.stage === 'op' ? S.tut.r : myModalOp(); S.opChatSeen = ((r && r.chat) || []).length; const cf = document.getElementById('opmChatFab'); if (cf) { const i = cf.querySelector('i'); if (i) i.remove(); }
+        requestAnimationFrame(() => { const c = document.getElementById('opmChat'); if (c) c.scrollTop = c.scrollHeight; }); }
+      return; }
+    case 'actSheet': { S.actSheet = !S.actSheet; if (S.actSheet) { S.chatSheet = false; const b0 = document.querySelector('#opModal .opm-box'); if (b0) b0.classList.remove('chat-on'); } const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.toggle('sheet-on', !!S.actSheet && b.classList.contains('sheetmode')); if (S.actSheet) { const a2 = document.querySelector('#opModal .opm-act'); if (a2) a2.scrollTop = 0; } return; }
     case 'recReload': S.records = null; return renderCenter();
     case 'agentTab': S.agentTab = v; return renderCenter();
     case 'sceneOpen': S.sceneOpen = S.sceneOpen || {}; S.sceneOpen[v] = !S.sceneOpen[v]; return render();
