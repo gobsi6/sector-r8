@@ -1741,6 +1741,14 @@ body.modal-open .bnav,body.modal-open .fab{display:none!important}
 .c-weapon{--c:#FF8A80}.c-detector{--c:#8FB8F0}.c-medkit{--c:#7FD39B}.c-radio{--c:#F0C774}
 [data-theme=light] .c-weapon{--c:#B3261E}[data-theme=light] .c-detector{--c:#1F57A6}[data-theme=light] .c-medkit{--c:#1F6B3E}[data-theme=light] .c-radio{--c:#8A6100}
 .stg .c-weapon{--c:#FF8A80}.stg .c-detector{--c:#8FB8F0}.stg .c-medkit{--c:#7FD39B}.stg .c-radio{--c:#F0C774}
+/* 고른 뒤: 고른 행동을 크게, 나머지는 접어 둔다 */
+.myturn .mine.sel{display:flex;align-items:center;gap:10px;padding:10px 12px;background:color-mix(in srgb,var(--navyLine) 12%,transparent);box-shadow:inset 0 0 0 1.5px var(--navyLine)}
+.myturn .mine.sel>i{flex:none;width:26px;height:26px;display:grid;place-items:center;font-style:normal;font-weight:800;background:var(--navy);color:var(--onNavy)}
+.myturn .mine.sel>span{display:flex;flex-direction:column;gap:1px;min-width:0}.myturn .mine.sel b{font-size:14px}.myturn .mine.sel small{font-size:11px;color:var(--sub)}
+.myturn .mine.sel .btn{margin-left:auto;flex:none}
+.myturn details.chg{display:flex;flex-direction:column;gap:8px}.myturn details.chg>summary{cursor:pointer;font-size:12px;color:var(--sub);padding:4px 2px;list-style:none}
+.myturn details.chg>summary::-webkit-details-marker{display:none}.myturn details.chg>summary::before{content:'+ '}.myturn details.chg[open]>summary::before{content:'− '}
+.myturn details.chg[open]{gap:8px}.myturn details.chg>*+*{margin-top:8px}
 /* 개체 접촉 예고 */
 .myturn .choice2.hide.ent{box-shadow:inset 0 0 0 1.5px #E5574F,inset 3px 0 0 #E5574F}
 .party .fm.pc .cw{align-self:flex-start;margin-top:2px}
@@ -2815,7 +2823,7 @@ function foesOnStage(r) {
   const fresh = r._fxAt && Date.now() - r._fxAt < 1600, FX = fresh ? r._fx || {} : {};
   return ['front', 'rear'].map(sd => { const L2 = (r.minions || []).filter(x => x.side === sd); if (!L2.length) return '';
     const x = L2[0], it = x.intent || 'bite', tg = (it === 'bite' || it === 'scream') ? foeTarget(r, sd) : null, f = FX['m' + x.id];
-    return `<span class="sfoe${f && f.hp < 0 ? ' hit' : ''}"><i></i><b>${esc(x.name)}</b><small>${sd === 'front' ? '앞' : '뒤'} · HP ${x.hp}/${x.hpMax}${L2.length > 1 ? ` · +${L2.length - 1} 대기` : ''}${x.braced ? ' · 웅크림' : ''}</small><em class="it-${it}">다음: ${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</em></span>`; }).join('');
+    return `<span class="sfoe${f && f.hp < 0 ? ' hit' : ''}"><i></i><b>${esc(x.name)}</b><small>${sd === 'front' ? '앞' : '뒤'} · HP ${x.hp}/${x.hpMax}${L2.length > 1 ? ` · +${L2.length - 1} 대기` : ''}</small><em class="it-${it}">다음: ${esc(x.intentName || it)}${tg ? ` → ${esc(tg.name)}` : ''}</em></span>`; }).join('');
 }
 // 조우 카드: 개체 그림 대신, 가까워질수록 관측 기록이 한 줄씩 열린다
 const OBS_D = ['25m 밖', '24~11m', '10~6m', '5m 안'];
@@ -3000,7 +3008,9 @@ function foeTarget(r, sd) {
   const line = r.order.map(u => field.find(m => m.uid === u)).filter(m => m && !m.dead);
   return line.length ? (sd === 'front' ? line[0] : line[line.length - 1]) : null;
 }
-const INT_FX = { bite: 'HP 피해', scream: '정신력 피해', call: '하수인이 1마리 늘어남', brace: '받는 피해 절반', stun: '행동 없음', unknown: '어두워서 보이지 않음 · 관제실에 구역 전원을 요청하면 보인다' };
+// 하수인 예고: 무엇을 하는지 + 맞는 대응
+const INT_FX = { bite: 'HP 피해 · 막기로 절반', scream: '정신력 피해 · 막기로 절반', call: '이번 라운드에 쓰러뜨리지 못하면 하나 더 온다', brace: '이번 라운드 공격 피해 절반 · 다른 걸 할 때', stun: '행동 없음 · 몰아칠 기회', unknown: '' };
+const INT_TAG = { call: ['a', '부르기 · 지금 처치'], brace: ['d', '웅크림 · 피해 절반'], stun: ['cb', '비틀거림 · 기회'] };
 // 교전 중에는 감시 카메라·레이더 대신 한 줄 띠를 보여 준다
 function combatBarHTML(r) {
   const sc = r.scene, R = r.radar, open = S.sceneOpen && S.sceneOpen[r.id];
@@ -3097,7 +3107,7 @@ function attackHTML(a, me, r) {
   const ok = melee || ranged, f = (r.minions || []).find(x => x.side === a.side);
   const how = melee ? '근력 + 격투 · 근접' : ranged ? '민첩 + 사격 · 사격' : (a.side === 'front' ? '선두 근접, 중열 사격' : '후미 근접, 중열 사격');
   const combo = f && f.combo && f.combo !== me.uid;
-  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && f.braced ? '<i class="d">웅크림 · 피해 절반</i>' : ''}<i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i></span></button>`;
+  let h = `<button class="choice2 atk${combo ? ' combo' : ''}" data-act="opAct" data-v="${a.id}" ${ok ? '' : 'disabled'}><b>${esc(a.label)}</b><small>${how} · 보통(2) · 성공 수만큼 피해</small><span class="req"><i class="a">교전</i>${me.cls === 'weapon' ? '<i class="cb">무기 주사위 +1 · 피해 +1</i>' : ''}${combo ? '<i class="cb">협공 +2</i>' : ''}${f && INT_TAG[f.intent] ? `<i class="${INT_TAG[f.intent][0]}">${INT_TAG[f.intent][1]}</i>` : ''}<i class="p">${a.side === 'front' ? '선두·중열' : '후미·중열'}</i></span></button>`;
   if (melee) h += `<button class="choice2 atk shove" data-act="opAct" data-v="shv-${a.side}"><b>${a.side === 'front' ? '앞' : '뒤'}의 하수인을 밀쳐 낸다</b><small>근력 + 격투 · 쉬움(1) · 다음 행동을 못 하게 한다</small><span class="req"><i class="a">교전</i><i class="p">${a.side === 'front' ? '선두' : '후미'}</i></span></button>`;
   return h;
 }
@@ -3187,15 +3197,16 @@ function myTurnHTML(r, me, combat) {
   const hide = r.ambush ? `<button class="choice2 hide" data-act="opAct" data-v="hide"><b>숨는다</b><small>민첩 + 은신 · 쉬움(1)${me.cls === 'detector' ? ' · <b class="gp c-detector">탐지기 +1</b>' : ''}</small><em class="eff">관제실 하달: 하수인이 접근 중. 전원이 조용히 있으면 지나간다.</em></button>` : '';
 
   const Rd = readyOf(r), mine = Rd.P[me.uid];
+  if (!mine) S.chgOpen = false;
   const timer = timerHTML(r, `준비 ${Rd.done}/${Rd.all}`);
   const dq = (sc.choices || []).some(c => c.max || c.min) && r.radar && r.radar.noise
     ? `<span class="dnote">무전 잡음으로 개체 거리를 알 수 없습니다. 거리 조건이 안 맞으면 판정 없이 차례만 지나갑니다.</span>` : '';
   return `<div class="myturn"><span class="mth"><b class="lb">내 차례</b><b>${esc(me.name)}</b>${me.cls ? `<span class="clsb c-${me.cls}">${CLS[me.cls][0]}</span>` : ''}<small class="ps">${POSN[p] || ''}</small>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}${r.support ? `<span class="sup">${ico('plus', 13, 2)}지원 주사위 ${r.support}개</span>` : ''}${timer}</span>
-    ${mine ? `<span class="mine">이번 라운드: <b>${esc(mine.label)}</b> · ${Rd.waitCtl ? '관제 행동을 기다리는 중.' : '모두 고르면 고른 순서대로 실행된다.'}<button class="btn s g" data-act="opUnpick">선택 취소</button></span>` : ''}
+    ${mine ? `<span class="mine sel"><i>✓</i><span><small>이번 라운드에 고른 행동</small><b>${esc(mine.label)}</b><small>${Rd.waitCtl ? '관제 행동을 기다리는 중.' : `동료 ${Rd.done}/${Rd.all} · 모두 고르면 고른 순서대로 실행된다.`}</small></span><button class="btn s g" data-act="opUnpick">선택 취소</button></span><details class="chg"${S.chgOpen ? ' open' : ''}><summary data-act="chgToggle">다른 행동 보기</summary>` : ''}
     ${r.fork ? `<div class="tfoot tmv"><div class="moves"><button class="btn s g" data-act="opMove" data-v="wait">기다린다 <small>문 확인을 보고 고른다</small></button></div></div>` : `<div class="tfoot tmv">${movesHTML(r, me)}</div>`}
     ${dq}${evade || hide ? `<div class="choices">${evade}${hide}</div>` : ''}${clsc}
     ${cards ? `<div class="choices cacts">${cards}</div>` : ''}
-    ${opItemsHTML(r, me) ? `<div class="tfoot">${opItemsHTML(r, me)}</div>` : ''}</div>`;
+    ${opItemsHTML(r, me) ? `<div class="tfoot">${opItemsHTML(r, me)}</div>` : ''}${mine ? '</details>' : ''}</div>`;
 }
 function movesHTML(r, me) {
   const p = me.pos, bf = (r.minions || []).some(x => x.side === 'front'), br = (r.minions || []).some(x => x.side === 'rear');
@@ -3756,12 +3767,24 @@ function syncModal() {
   if (cf) { const nu = Math.max(0, nChat - S.opChatSeen); cf.innerHTML = `${ico('msg', 22)}<b>채팅</b>${nu ? `<i>${nu > 9 ? '9+' : nu}</i>` : ''}`; cf.hidden = !cm; }
   setHTML('opmRecap', P.recap || '');
   fitLines(document.getElementById('opmStage'));
+  eqStageTop(document.getElementById('opmStage'));
   markPicks(document.getElementById('opmAct'), r);
   const lg = document.getElementById('opmLog');
   setHTML('opmLog', P.log); if (lg && !lg._up) requestAnimationFrame(() => { lg.scrollTop = lg.scrollHeight; });
   const ch = document.getElementById('opmChat'), atC = ch && ch.scrollHeight - ch.scrollTop - ch.clientHeight < 60;
   setHTML('opmChat', opChatHTML(r)); if (ch && atC) ch.scrollTop = ch.scrollHeight;
   if (r.tut) tutCoach(host);
+}
+// 카메라 화면 위의 장면 설명 칸과 레이더 칸을 같은 높이·같은 줄에 맞춘다(PC). 내용 길이가 달라 CSS만으로는 못 맞춘다.
+function eqStageTop(root) {
+  if (!root || mobile()) return;
+  const cap = root.querySelector('.stg .cctv.big .cap2'), side = root.querySelector('.stg .sideov'), rad = side && side.querySelector('.radar');
+  if (!cap || !rad) return;
+  cap.style.minHeight = ''; rad.style.minHeight = '';
+  const camTop = root.querySelector('.stg .cctv.big').getBoundingClientRect().top, k = parseFloat(getComputedStyle(document.querySelector('#opModal .opm-box') || document.body).getPropertyValue('--s')) || 1;
+  side.style.top = Math.round((cap.getBoundingClientRect().top - camTop) / k) + 'px';
+  const h = Math.max(cap.offsetHeight, rad.offsetHeight);
+  cap.style.minHeight = h + 'px'; rad.style.minHeight = h + 'px';
 }
 /* ─────────────────────────── 튜토리얼: 첫 출동 ───────────────────────────
    새 요원이 재생 수조에서 깨어나 경보를 듣고 바로 투입된다. 서버 작전을 쓰지 않고 브라우저 안에서 대본대로 진행한다.
@@ -4178,6 +4201,7 @@ app.addEventListener('click', e => {
       if (S.chatSheet) { const r = S.tut && S.tut.stage === 'op' ? S.tut.r : myModalOp(); S.opChatSeen = ((r && r.chat) || []).length; const cf = document.getElementById('opmChatFab'); if (cf) { const i = cf.querySelector('i'); if (i) i.remove(); }
         requestAnimationFrame(() => { const c = document.getElementById('opmChat'); if (c) c.scrollTop = c.scrollHeight; }); }
       return; }
+    case 'chgToggle': { e.preventDefault(); S.chgOpen = !S.chgOpen; const d = t.closest('details'); if (d) d.open = S.chgOpen; return; }
     case 'actSheet': { S.actSheet = !S.actSheet; if (S.actSheet) { S.chatSheet = false; const b0 = document.querySelector('#opModal .opm-box'); if (b0) b0.classList.remove('chat-on'); } const b = document.querySelector('#opModal .opm-box'); if (b) b.classList.toggle('sheet-on', !!S.actSheet && b.classList.contains('sheetmode')); if (S.actSheet) { const a2 = document.querySelector('#opModal .opm-act'); if (a2) a2.scrollTop = 0; } return; }
     case 'recReload': S.records = null; return renderCenter();
     case 'agentTab': S.agentTab = v; return renderCenter();

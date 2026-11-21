@@ -412,11 +412,11 @@ const DIFF_NAME = { 1: '쉬움', 2: '보통', 3: '어려움', 4: '극한' };
 
 // 거리: 개체와 대열 사이 거리(m). from은 개체가 있는 쪽(front 앞, rear 뒤). speed는 한 턴에 개체가 다가오는 거리.
 // 선택지: pos는 대열 위치(front 선두, mid 중열, rear 후미, 없으면 누구나), max/min은 필요한 거리, adv:false면 장면이 넘어가지 않는다.
-const RADAR_RANGE = 50, STEP_M = 10, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY = 4, MINION_CAP = 4;
+const RADAR_RANGE = 50, STEP_M = 15, RECOIL_M = 12, EVADE_PUSH = 6, COUNT_EVERY = 4, MINION_CAP = 4;
 // 형상: 거리가 가까울수록 개체의 몸이 드러난다 (25m 이상, 11~24m, 6~10m, 5m 이하)
 const sightStage = d => d >= 25 ? 0 : d > 10 ? 1 : d > 5 ? 2 : 3;
 const OPS = [{
-  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 8, countEvery: 4, entity: 'AO-212',
+  id: 'R8-14', title: 'AO-212 「계수자」 재격리', threat: 'Ⅲ', mins: 40, field: 3, ctrl: 0, level: 3, rec: { field: [3, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, entity: 'AO-212',
   countLabel: '계수자의 셈', tickText: '복도 벽의 숫자가 하나 줄었다. 셈은 기다려 주지 않는다.',
   endText: 'AO-212가 셈을 마쳤다. 복도의 모든 소리가 한꺼번에 사라졌다.', endHp: -4, failText: '격리동 B-3을 봉쇄한다.', reward: { supply: 40, research: 2 },
   brief: '격리동 B-3에서 AO-212의 소리 차단 장치가 꺼졌습니다. 개체가 셈을 마치기 전에 장치를 다시 설치하고 귀환하십시오.',
@@ -437,22 +437,10 @@ const OPS = [{
         { id: 'light', label: '뒤에서 조명을 확보한다', pos: 'rear', stat: 3, skill: '장비 운용', diff: 1, adv: false,
           crit: { text: '복도 전체에 조명이 들어왔다. 다음 판정이 수월해진다.', sup: 2 }, ok: { text: '손전등 각도를 맞췄다. 다음 판정이 수월해진다.', sup: 1 }, cost: { text: '조명은 켰지만 깜빡임이 셈과 박자를 맞추기 시작했다.', san: -1, sup: 1 }, fail: { text: '전구가 터졌다. 소리에 셈이 빨라진다.', count: -1 } }
       ] },
-    { title: '계수자와 조우', from: 'front', dist: 15, speed: 5, spawn: { front: 1 },
-      map: { len: 30, start: 3, marks: [{ at: 0, label: '격리실 문', kind: 'door' }, { at: 8, label: '관찰창' }, { at: 16, label: '쓰러진 의자' }, { at: 28, label: '격리실 안쪽 벽', kind: 'wall' }] },
-      text: '격리실 문틈으로 AO-212가 보인다. 그것은 손가락을 접으며 수를 센다. 셈 소리는 요원들 중 누군가의 목소리를 닮아 간다.',
-      choices: [
-        { id: 'force', label: '힘으로 제압한다', pos: 'front', max: 5, stat: 0, skill: '격투', diff: 3,
-          crit: '개체를 벽에 밀어붙였다. 셈이 끊겼다.', ok: '개체를 구석으로 몰아넣었다.', cost: { text: '몰아넣었지만 개체의 손가락이 팔을 셌다.', hp: -3 }, fail: { text: '닿는 순간 팔의 감각이 하나씩 세어져 사라졌다.', hp: -4, cont: 5 } },
-        { id: 'sense', label: '진짜 위치를 짚어 낸다', pos: 'front', max: 10, stat: 4, skill: '관찰', diff: 2,
-          crit: '목소리는 미끼였다. 개체의 실제 위치를 정확히 짚었다.', ok: '개체가 서 있는 위치를 찾아냈다.', cost: { text: '찾아냈지만 개체와 눈이 마주쳤다.', cont: 5 }, fail: { text: '목소리를 쫓다 엉뚱한 벽을 짚었다.', hp: -2, count: -1 } },
-        { id: 'count', label: '대신 수를 세어 주의를 끈다', pos: 'mid', max: 15, stat: 5, skill: '인내', diff: 3,
-          crit: '개체가 요원의 셈을 따라 하기 시작했다. 셈이 거꾸로 돌아간다.', ok: '개체의 시선이 요원에게 고정됐다. 틈이 생겼다.', cost: { text: '셈을 맞추는 동안 자기 이름이 기억나지 않았다.', san: -2 }, fail: { text: '셈이 엇갈렸다. 개체가 요원의 숫자를 지웠다.', san: -2, count: -1, cont: 5 } },
-        { id: 'flare', label: '섬광탄으로 밀어낸다', pos: 'rear', stat: 2, skill: '사격', diff: 2, adv: false,
-          crit: { text: '섬광이 터졌다. 개체가 복도 끝까지 물러났다.', push: 15 }, ok: { text: '섬광에 개체가 뒤로 물러났다.', push: 10 }, cost: { text: '개체는 물러났지만 눈앞에 숫자가 잔상으로 남았다.', push: 10, san: -1 }, fail: { text: '섬광탄이 불발됐다.', count: -1 } }
-      ] },
+    /* 「계수자와 조우」 장면은 작전을 줄이면서 뺐다(장치 설치 장면에서 개체와 마주친다). 원본은 git 기록에 있다. */
     { title: '소리 차단 장치 설치', from: 'front', dist: 10, speed: 5, spawn: { rear: 1 },
       map: { len: 24, start: 4, marks: [{ at: 0, label: '격리실 문', kind: 'door' }, { at: 5, label: '1번 모서리 장치' }, { at: 10, label: '2번 모서리 장치' }, { at: 15, label: '3번 모서리 장치' }, { at: 20, label: '4번 모서리 장치' }, { at: 24, label: '안쪽 벽', kind: 'wall' }] },
-      text: '장치를 격리실 네 모서리에 다시 붙여야 한다. 개체는 아직 셈을 멈추지 않았다.',
+      text: '격리실 문틈으로 AO-212가 보인다. 손가락을 접으며 수를 센다. 장치를 격리실 네 모서리에 다시 붙여야 한다.',
       choices: [
         { id: 'install', label: '장치를 설치한다', pos: 'mid', max: 10, stat: 3, skill: '장비 운용', diff: 2,
           crit: '네 모서리가 동시에 켜졌다. 격리실이 완전히 조용해졌다.', ok: '장치가 하나씩 켜졌다. 셈 소리가 멀어진다.', cost: { text: '마지막 장치를 붙이는 사이 손등이 숫자로 뒤덮였다.', hp: -1, cont: 5 }, fail: { text: '장치가 튀었다. 소음에 개체가 셈을 서두른다.', count: -2 } },
@@ -477,8 +465,8 @@ const OPS = [{
 
 /* ───────── 하층 순찰 (들어갈 때마다 무작위로 만들어지는 작전) ───────── */
 // 하층: 심연의 영향으로 뒤틀린 기지 아래층. 구역 3곳을 지나 상층 승강기로 돌아오면 성공이다.
-const PATROL_SECTIONS = 3, REACH_M = 6, PATROL_STAB = 15;
-OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 8, countEvery: 4, recoil: 12,
+const PATROL_SECTIONS = 2, REACH_M = 6, PATROL_STAB = 15;
+OPS.push({ id: 'R8-P', patrol: true, title: '하층 정기 순찰', threat: 'Ⅱ', mins: 30, field: 3, ctrl: 0, level: 2, rec: { field: [2, 3], ctrl: [0, 0] }, count: 6, countEvery: 3, recoil: 12,
   brief: '하층 B3 구역 정기 순찰입니다. 구역 문을 지나 상층 승강기까지 돌아오십시오. 하층의 구조와 배회 개체는 진입할 때마다 바뀝니다.',
   sub: '도면과 배회 개체는 진입할 때마다 바뀝니다. 성공하면 수용 개체의 격리 안정도가 모두 15% 오릅니다.',
   countLabel: '귀환 신호', tickText: '귀환 신호가 약해졌다. 하층의 구조가 또 바뀌고 있다.',
@@ -701,7 +689,7 @@ function runOut(r, viewer, gm) {
     facs: live ? facsOf(r) : [], dark: live ? isDark(r) : false, ease: live ? !!(r.fac && r.fac.ease) : false,
     sight: live ? { stage: sightStage(r.dist), text: o.forms[sightStage(r.dist)], from: sc.from } : null,
     map: live ? { len: sc.map.len, marks: sc.map.marks, pos: r.pos } : null,
-    minions: live ? r.minions.map(x => ({ id: x.id, side: x.side, hp: x.hp, hpMax: x.hpMax, name: o.minion.name, intent: isDark(r) && !ctl ? 'unknown' : x.intent || 'bite', intentName: isDark(r) && !ctl ? '?' : INTENT[x.intent || 'bite'], braced: !!x.braced, combo: x.hitTurn === r.turn - 1 ? x.hitBy : null })) : [],
+    minions: live ? r.minions.map(x => ({ id: x.id, side: x.side, hp: x.hp, hpMax: x.hpMax, name: o.minion.name, intent: x.intent || 'bite', intentName: INTENT[x.intent || 'bite'], braced: !!x.braced, combo: x.hitTurn === r.turn - 1 ? x.hitBy : null })) : [],
     heal: live ? r.members.filter(canHeal).map(m => ({ id: 'heal-' + m.uid, uid: m.uid, name: m.name, hp: m.hp, hpMax: m.hpMax })) : [],
     recover: live ? r.members.filter(needsRecovery).map(m => ({ id: 'rec-' + m.uid, uid: m.uid, name: m.name, why: m.dead ? 'dead' : 'broken' })) : [],
     attacks: live ? ['front', 'rear'].filter(sd => r.minions.some(x => x.side === sd)).map(sd => ({ id: 'atk-' + sd, side: sd, label: sd === 'front' ? `앞을 막은 ${jo(o.minion.name, '과', '와')} 싸운다` : `뒤에서 덮치는 ${jo(o.minion.name, '과', '와')} 싸운다` })) : [],
@@ -995,7 +983,7 @@ function spawnMinion(r, side, n) {
   const o = D(r);
   for (let i = 0; i < n && r.minions.length < MINION_CAP; i++) {
     const hp = o.minion.hp + MINION_HP + scaleOf(r).hp;
-    r.minions.push({ id: ++r.mseq, side, hp, hpMax: hp, intent: pickIntent(r) });
+    const f = { id: ++r.mseq, side, hp, hpMax: hp }; setIntent(r, f); r.minions.push(f);
     say(r, o.minion.spawn[side], { kind: 'spawn' });
   }
 }
@@ -1017,7 +1005,7 @@ function facsOf(r) {
   const o = D(r), last = r.scene === o.scenes.length - 1, sp = last ? { name: '화물 승강기', kind: '이동', type: 'ease', eff: '승강기를 미리 불러 귀환 판정이 한 단계 쉬워진다' } : FAC_SP[r.scene % FAC_SP.length];
   const from = o.scenes[r.scene].from;
   return [
-    { id: 'pwr', name: '구역 전원', kind: '전력', diff: 1, eff: '조명이 돌아와 현장 시야가 트인다(하수인 예고 공개, 판정 주사위 −1 해제)', on: !!r.fac.pwr, state: r.fac.pwr ? '정상 전력' : '비상등', x: 20 },
+    { id: 'pwr', name: '구역 전원', kind: '전력', diff: 1, eff: '조명이 돌아와 어둠 판정 주사위 −1이 풀리고, 켜는 순간 하수인이 비틀거린다', on: !!r.fac.pwr, state: r.fac.pwr ? '정상 전력' : '비상등', x: 20 },
     { id: 'sp', name: sp.name, kind: sp.kind, type: sp.type, diff: 2, eff: sp.eff, on: !!r.fac.sp, state: r.fac.sp ? '작동 중' : sp.type === 'short' ? '잠김' : '정지', x: 62 },
     { id: 'wall', name: '격벽', kind: '격벽', diff: 3, eff: '개체가 8m 물러난다 (작전당 한 번)', on: !!r.doorUsed, state: r.doorUsed ? '사용함' : '열림', x: from === 'rear' ? 6 : 94, need: r.dist <= RADAR_RANGE }
   ].concat(r.shift ? [{ id: 'beacon', name: '기준점 비컨', kind: '비컨', diff: 2, skill: '통신', eff: `원래 도면 좌표를 송출해 이번 변형(${SHIFT_KINDS[r.shift.kind].name})을 막는다. 심연도 이 신호를 듣는다: ${BEACON_TURNS}라운드 동안 잡음 확률 2배`, on: false, state: '대기', x: 50 }] : []);
@@ -1078,6 +1066,9 @@ function sceneEnter(r) {
 // 하수인의 다음 행동. 칩에 미리 보여서 요원이 막을지 칠지 고를 수 있다.
 // bite 물기(HP) · scream 비명(정신력) · call 동료 부르기 · brace 웅크리기(다음 피해 절반)
 const INTENT = { bite: '물기', scream: '비명', call: '부르기', brace: '웅크리기', stun: '비틀거림' };
+// 하수인 예고는 늘 보인다. 예고마다 맞는 대응이 다르다:
+//   물기·비명 → 막기로 절반 / 부르기 → 이번 라운드에 쓰러뜨리지 않으면 하나 더 / 웅크림 → 이번 라운드 공격 피해 절반 / 비틀거림 → 행동 없음, 몰아칠 때
+function setIntent(r, f) { f.intent = pickIntent(r); f.braced = f.intent === 'brace'; }
 function pickIntent(r) {
   const x = Math.random(), full = r.minions.length >= MINION_CAP;
   return x < 0.5 ? 'bite' : x < 0.7 ? 'scream' : x < 0.85 && !full ? 'call' : 'brace';
@@ -1093,9 +1084,8 @@ function minionsAttack(r) {
     const t = sd === 'front' ? L[0] : L[L.length - 1];
     const p = L.length === 1 ? '' : sd === 'front' ? '선두' : '후미';
     const act = f.intent || 'bite';
-    f.braced = false;
     if (act === 'stun') { say(r, `${jo(nm, '이', '가')} 비틀거리며 자세를 다시 잡는다.`, { kind: 'contact' }); }
-    else if (act === 'brace') { f.braced = true; say(r, `${jo(nm, '이', '가')} 몸을 웅크렸다. 다음 공격을 절반만 받는다.`, { kind: 'contact' }); }
+    else if (act === 'brace') { say(r, `${jo(nm, '이', '가')} 웅크린 채 버텼다.`, { kind: 'contact' }); }
     else if (act === 'call') { say(r, `${jo(nm, '이', '가')} 길게 울었다. 어둠 속에서 무언가 대답한다.`, { kind: 'contact' }); spawnMinion(r, sd, 1); }
     else if (Math.random() < STEALTH_DODGE * (lvOf(t, '은신') + (t.cls === 'detector' ? 2 : 0))) { say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었지만, 요원은 이미 그 자리에 없었다. (은신)`.replace('  ', ' '), { kind: 'contact', uid: t.uid }); }
     else if (act === 'scream') {
@@ -1107,7 +1097,7 @@ function minionsAttack(r) {
       say(r, `${jo(nm, '이', '가')} ${p} ${t.name} 요원에게 달려들었다.${t.guard ? ' (막기로 절반)' : ''}`.replace('  ', ' '), { kind: 'contact', uid: t.uid, fx: { hp: d } });
       t.hp = Math.max(0, t.hp + d);
     }
-    f.intent = pickIntent(r);
+    setIntent(r, f);
   }
   r.members.forEach(x => { x.guard = false; });
 }
